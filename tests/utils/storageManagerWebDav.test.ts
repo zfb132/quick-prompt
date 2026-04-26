@@ -195,6 +195,23 @@ describe("storageManager WebDAV auto upload", () => {
     expect(webdavBackup.uploadWebDavBackup).not.toHaveBeenCalled();
   });
 
+  it("does not upload or write status when remoteDir is invalid", async () => {
+    mockBrowser.storage.sync.get.mockResolvedValueOnce({
+      ...configSettings,
+      [WEBDAV_STORAGE_KEYS.REMOTE_DIR]: "../quick-prompt",
+    });
+    const { handleWebDavAutoSyncForTest } = await import("@/utils/browser/storageManager");
+
+    handleWebDavAutoSyncForTest();
+    await vi.advanceTimersByTimeAsync(3000);
+    await flushPromises();
+
+    expect(webdavBackup.uploadWebDavBackup).not.toHaveBeenCalled();
+    expect(mockBrowser.storage.local.set).not.toHaveBeenCalledWith({
+      [WEBDAV_STORAGE_KEYS.SYNC_STATUS]: expect.anything(),
+    });
+  });
+
   it("writes an error status when WebDAV upload fails", async () => {
     vi.mocked(webdavBackup.uploadWebDavBackup).mockResolvedValueOnce({
       success: false,

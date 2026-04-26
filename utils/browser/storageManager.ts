@@ -154,6 +154,10 @@ const isValidWebDavUrl = (url: string): boolean => {
   }
 }
 
+const isValidWebDavRemoteDir = (remoteDir: string): boolean => (
+  remoteDir.trim().length > 0 && !remoteDir.includes("..")
+)
+
 const buildWebDavConfig = (settings: Record<string, unknown>): WebDavConfig | null => {
   const storedServerUrl = settings[WEBDAV_STORAGE_KEYS.SERVER_URL]
   const storedUsername = settings[WEBDAV_STORAGE_KEYS.USERNAME]
@@ -173,11 +177,15 @@ const buildWebDavConfig = (settings: Record<string, unknown>): WebDavConfig | nu
     ? storedRemoteDir.trim()
     : ""
 
-  if (!settings[WEBDAV_STORAGE_KEYS.AUTO_SYNC] || !serverUrl || !username || !password || !remoteDir) {
+  if (!settings[WEBDAV_STORAGE_KEYS.AUTO_SYNC] || !serverUrl || !username || !password) {
     return null
   }
 
   if (!isValidWebDavUrl(serverUrl)) {
+    return null
+  }
+
+  if (!isValidWebDavRemoteDir(remoteDir)) {
     return null
   }
 

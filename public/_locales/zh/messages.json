@@ -370,6 +370,9 @@
   "syncingFromNotion": {
     "message": "正在从Notion同步，请稍候..."
   },
+  "syncingToWebDav": {
+    "message": "正在上传到 WebDAV，请稍候..."
+  },
   "noPromptsAdded": {
     "message": "还没有添加任何 Prompt"
   },
@@ -1656,6 +1659,12 @@
   },
   "webdavUploadFailed": {
     "message": "WebDAV 上传失败"
+  },
+  "webdavAutoUploadSuccess": {
+    "message": "WebDAV 自动上传完成。"
+  },
+  "webdavAutoUploadFailed": {
+    "message": "WebDAV 自动上传失败"
   },
   "webdavDownloadTitle": {
     "message": "下载远程备份"

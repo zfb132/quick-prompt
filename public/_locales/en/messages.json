@@ -367,6 +367,9 @@
   "syncingFromNotion": {
     "message": "Syncing from Notion, please wait..."
   },
+  "syncingToWebDav": {
+    "message": "Uploading to WebDAV, please wait..."
+  },
   "noPromptsAdded": {
     "message": "No prompts added yet"
   },
@@ -1656,6 +1659,12 @@
   },
   "webdavUploadFailed": {
     "message": "WebDAV upload failed"
+  },
+  "webdavAutoUploadSuccess": {
+    "message": "WebDAV auto upload completed."
+  },
+  "webdavAutoUploadFailed": {
+    "message": "WebDAV auto upload failed"
   },
   "webdavDownloadTitle": {
     "message": "Download Remote Backup"

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import Toast, { ToastProps } from './Toast';
 import { browser } from '#imports';
 import { t } from '../../../utils/i18n'
+import { WEBDAV_STORAGE_KEYS } from "@/utils/sync/webdavSync";
 
 interface ToastItem extends ToastProps {
   id: string;
@@ -18,6 +19,25 @@ interface SyncStatus {
   error?: string;
   success?: boolean;
 }
+
+const getDefaultStatusMessage = (storageKey: string, status: SyncStatus["status"]): string => {
+  if (storageKey === WEBDAV_STORAGE_KEYS.SYNC_STATUS) {
+    if (status === 'in_progress') return t('syncingToWebDav');
+    return status === 'success' ? t('webdavAutoUploadSuccess') : t('webdavAutoUploadFailed');
+  }
+
+  if (status === 'success') return t('syncSuccess');
+  if (status === 'error') return t('syncFailed');
+
+  if (storageKey === 'notion_sync_status') {
+    return t('syncingToNotion');
+  }
+  if (storageKey === 'notion_from_sync_status') {
+    return t('syncingFromNotion');
+  }
+
+  return t('syncing');
+};
 
 const ToastContainer: React.FC = () => {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -57,7 +77,7 @@ const ToastContainer: React.FC = () => {
         const allKeys = Object.keys(result);
         
         // 处理标准同步状态
-        const syncKeys = ['notion_sync_status', 'notion_from_sync_status'];
+        const syncKeys = ['notion_sync_status', 'notion_from_sync_status', WEBDAV_STORAGE_KEYS.SYNC_STATUS];
         for (const storageKey of syncKeys) {
           const syncStatus = result[storageKey] as SyncStatus;
           if (syncStatus) {
@@ -74,7 +94,7 @@ const ToastContainer: React.FC = () => {
                 addToast({
                   id: statusId,
                   type: syncStatus.status === 'success' ? 'success' : 'error',
-                  message: syncStatus.message || (syncStatus.status === 'success' ? t('syncSuccess') : t('syncFailed')),
+                  message: syncStatus.message || getDefaultStatusMessage(storageKey, syncStatus.status),
                   error: syncStatus.error,
                   duration: syncStatus.error ? 10000 : 5000
                 });
@@ -87,17 +107,10 @@ const ToastContainer: React.FC = () => {
             else if (syncStatus.status === 'in_progress') {
               const loadingId = `loading_${statusId}`;
               if (!processedToastsRef.current.has(loadingId) && !toastsRef.current.some(t => t.id === loadingId)) {
-                let loadingMessage = t('syncing');
-                if (storageKey === 'notion_sync_status') {
-                  loadingMessage = t('syncingToNotion');
-                } else if (storageKey === 'notion_from_sync_status') {
-                  loadingMessage = t('syncingFromNotion');
-                }
-                
                 addToast({
                   id: loadingId,
                   type: 'loading',
-                  message: syncStatus.message || loadingMessage,
+                  message: syncStatus.message || getDefaultStatusMessage(storageKey, syncStatus.status),
                   duration: Infinity
                 });
               }
@@ -155,4 +168,4 @@ const ToastContainer: React.FC = () => {
   );
 };
 
-export default ToastContainer; 
+export default ToastContainer;
