@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { browser } from '#imports'
 import type { PromptAttachment } from '@/utils/types'
 import { formatFileSize, isImageAttachment } from '@/utils/attachments/metadata'
@@ -11,6 +11,8 @@ interface ImagePreviewState {
   url?: string
 }
 
+const EMPTY_ATTACHMENTS: PromptAttachment[] = []
+
 const base64ToBlob = (base64: string, contentType: string): Blob => {
   const binary = atob(base64)
   const bytes = new Uint8Array(binary.length)
@@ -22,16 +24,54 @@ const base64ToBlob = (base64: string, contentType: string): Blob => {
   return new Blob([bytes], { type: contentType })
 }
 
-const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attachments = [] }) => {
+const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attachments }) => {
+  const safeAttachments = attachments ?? EMPTY_ATTACHMENTS
+  const containerRef = useRef<HTMLDivElement>(null)
   const [imagePreviews, setImagePreviews] = useState<Record<string, ImagePreviewState>>({})
+  const [isPreviewVisible, setIsPreviewVisible] = useState(false)
 
   useEffect(() => {
-    const imageAttachments = attachments.filter(isImageAttachment)
+    const imageAttachments = safeAttachments.filter(isImageAttachment)
+
+    if (imageAttachments.length === 0) {
+      setIsPreviewVisible(false)
+      setImagePreviews((current) => Object.keys(current).length > 0 ? {} : current)
+      return
+    }
+
+    if (typeof IntersectionObserver === 'undefined') {
+      setIsPreviewVisible(true)
+      return
+    }
+
+    const target = containerRef.current
+    if (!target) return
+
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setIsPreviewVisible(true)
+        observer.disconnect()
+      }
+    }, {
+      rootMargin: '200px',
+    })
+
+    observer.observe(target)
+
+    return () => observer.disconnect()
+  }, [safeAttachments])
+
+  useEffect(() => {
+    const imageAttachments = safeAttachments.filter(isImageAttachment)
     const objectUrls: string[] = []
     let canceled = false
 
     if (imageAttachments.length === 0) {
-      setImagePreviews({})
+      setImagePreviews((current) => Object.keys(current).length > 0 ? {} : current)
+      return
+    }
+
+    if (!isPreviewVisible) {
       return
     }
 
@@ -69,15 +109,15 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
       canceled = true
       objectUrls.forEach((url) => URL.revokeObjectURL(url))
     }
-  }, [attachments])
+  }, [safeAttachments, isPreviewVisible])
 
-  if (attachments.length === 0) {
+  if (safeAttachments.length === 0) {
     return null
   }
 
   return (
-    <div className="qp-attachments">
-      {attachments.map((attachment) => {
+    <div ref={containerRef} className="qp-attachments">
+      {safeAttachments.map((attachment) => {
         const preview = imagePreviews[attachment.id]
 
         return (

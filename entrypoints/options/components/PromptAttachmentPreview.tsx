@@ -18,19 +18,22 @@ interface ImagePreviewState {
   error?: string
 }
 
+const EMPTY_ATTACHMENTS: PromptAttachment[] = []
+
 const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
-  attachments = [],
+  attachments,
   compact = false,
 }) => {
+  const safeAttachments = attachments ?? EMPTY_ATTACHMENTS
   const [imagePreviews, setImagePreviews] = useState<Record<string, ImagePreviewState>>({})
 
   useEffect(() => {
-    const imageAttachments = attachments.filter(isImageAttachment)
+    const imageAttachments = safeAttachments.filter(isImageAttachment)
     const objectUrls: string[] = []
     let canceled = false
 
     if (imageAttachments.length === 0) {
-      setImagePreviews({})
+      setImagePreviews((current) => Object.keys(current).length > 0 ? {} : current)
       return
     }
 
@@ -72,15 +75,15 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
       canceled = true
       objectUrls.forEach((url) => URL.revokeObjectURL(url))
     }
-  }, [attachments])
+  }, [safeAttachments])
 
-  if (attachments.length === 0) {
+  if (safeAttachments.length === 0) {
     return null
   }
 
   return (
     <div className={compact ? 'flex items-center gap-1.5 min-w-0' : 'mt-3 flex flex-wrap gap-2'}>
-      {attachments.map((attachment) => {
+      {safeAttachments.map((attachment) => {
         const preview = imagePreviews[attachment.id]
         const hasImagePreview = isImageAttachment(attachment) && preview?.url
 

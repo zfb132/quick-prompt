@@ -52,6 +52,26 @@ describe('PromptAttachmentPreview', () => {
     expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(File))
   })
 
+  it('renders nothing and does not read the attachment root when attachments are undefined', async () => {
+    const { container } = render(<PromptAttachmentPreview />)
+
+    expect(container).toBeEmptyDOMElement()
+    await waitFor(() => expect(fs.getAttachmentRootHandle).not.toHaveBeenCalled())
+  })
+
+  it('revokes image preview object URLs on unmount', async () => {
+    vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue({ name: 'root' } as any)
+    vi.mocked(fs.verifyReadWritePermission).mockResolvedValue(true)
+    vi.mocked(fs.getFileFromAttachmentRoot).mockResolvedValue(new File(['image-bytes'], 'image.png', { type: 'image/png' }))
+
+    const { unmount } = render(<PromptAttachmentPreview attachments={[createAttachment()]} />)
+
+    await screen.findByRole('img', { name: 'image.png' })
+    unmount()
+
+    expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:preview-url')
+  })
+
   it('keeps image metadata visible when permission or file reads fail', async () => {
     vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue(undefined)
 
