@@ -21,6 +21,10 @@ interface SortablePromptCardProps {
   isDragEnabled?: boolean
 }
 
+const countPromptCharacters = (content: string): number => (
+  Array.from(content.replace(/\s/g, '')).length
+)
+
 const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
   prompt,
   category,
@@ -57,6 +61,8 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
     opacity: isDragging ? 0.5 : 1,
     zIndex: isDragging ? 1000 : 'auto',
   }
+
+  const characterCount = countPromptCharacters(prompt.content || '')
 
   const formatTime = (timestamp?: string) => {
     if (!timestamp) return t('noModificationTime')
@@ -163,6 +169,13 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
           </div>
 
           <PromptAttachmentPreview attachments={prompt.attachments} compact />
+
+          <span
+            className='text-xs text-gray-500 dark:text-gray-400 flex-shrink-0'
+            title={t('promptCharacterCount')}
+          >
+            {t('promptCharacterCountValue', [characterCount.toString()])}
+          </span>
 
           {/* 分类 */}
           {category && (
@@ -365,19 +378,25 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
               </div>
             )}
 
-            {/* 创建和修改时间 */}
-            <div className='mb-3 space-y-1 text-xs text-gray-500 dark:text-gray-400'>
-              <div className='flex items-center space-x-2'>
+            {/* 元信息 */}
+            <div className='mb-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-500 dark:text-gray-400'>
+              <div className='flex items-center space-x-1.5 whitespace-nowrap'>
                 <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                   <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M8 7V3m8 4V3M5 11h14M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' />
                 </svg>
                 <span>{t('createdAt')}: {formatTime(prompt.createdAt)}</span>
               </div>
-              <div className='flex items-center space-x-2'>
-              <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
-                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' />
-              </svg>
+              <div className='flex items-center space-x-1.5 whitespace-nowrap'>
+                <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' />
+                </svg>
                 <span>{t('lastModified')}: {formatTime(prompt.lastModified)}</span>
+              </div>
+              <div className='flex items-center space-x-1.5 whitespace-nowrap'>
+                <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M4 6h16M4 12h10M4 18h7' />
+                </svg>
+                <span>{t('promptCharacterCount')}: {t('promptCharacterCountValue', [characterCount.toString()])}</span>
               </div>
             </div>
 

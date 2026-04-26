@@ -1193,6 +1193,12 @@
   "notes": {
     "message": "Notes"
   },
+  "promptCharacterCount": {
+    "message": "Characters"
+  },
+  "promptCharacterCountValue": {
+    "message": "$1 chars"
+  },
   "createdAt": {
     "message": "Created"
   },

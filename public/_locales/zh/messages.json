@@ -1193,6 +1193,12 @@
   "notes": {
     "message": "备注"
   },
+  "promptCharacterCount": {
+    "message": "字数"
+  },
+  "promptCharacterCountValue": {
+    "message": "$1 字"
+  },
   "createdAt": {
     "message": "创建时间"
   },

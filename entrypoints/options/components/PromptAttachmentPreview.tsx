@@ -120,8 +120,8 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
             key={attachment.id}
             className={
               compact
-                ? 'flex items-center gap-1.5 min-w-0 max-w-[140px] rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-1.5 py-1'
-                : 'flex items-center gap-2 min-w-0 max-w-full rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1.5'
+                ? `${hasImagePreview ? 'flex flex-col items-start gap-1 max-w-[72px]' : 'flex items-center gap-1.5 max-w-[140px]'} min-w-0 rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-1.5 py-1`
+                : `${hasImagePreview ? 'flex flex-col items-start gap-1.5 max-w-[104px]' : 'flex items-center gap-2 max-w-full'} min-w-0 rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1.5`
             }
           >
             {hasImagePreview && (
@@ -138,7 +138,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
                 />
               </button>
             )}
-            <div className='min-w-0'>
+            <div className='min-w-0 max-w-full'>
               <div className='text-xs font-medium text-gray-700 dark:text-gray-200 truncate'>
                 {attachment.name}
               </div>

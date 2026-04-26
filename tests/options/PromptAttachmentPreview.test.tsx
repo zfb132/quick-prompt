@@ -48,6 +48,7 @@ describe('PromptAttachmentPreview', () => {
     const image = await screen.findByRole('img', { name: 'image.png' })
     expect(image).toHaveAttribute('src', 'blob:preview-url')
     expect(image).toHaveClass('w-20', 'h-20')
+    expect(image.closest('div')).toHaveClass('flex-col')
     expect(screen.getByText('image.png')).toBeInTheDocument()
     expect(screen.getByText('1.5 KB')).toBeInTheDocument()
     expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(File))
