@@ -1627,6 +1627,21 @@
   "webdavRequiredFields": {
     "message": "Server URL, username, and password are required."
   },
+  "webdavInvalidServerUrl": {
+    "message": "Enter a valid WebDAV server URL using http or https."
+  },
+  "webdavInvalidRemoteDirectory": {
+    "message": "Enter a remote directory without empty values or path traversal."
+  },
+  "webdavReauthorizeDescription": {
+    "message": "The stored attachment folder permission is no longer available. Reauthorize the folder before syncing attachments."
+  },
+  "reauthorizeAttachmentDirectory": {
+    "message": "Reauthorize Attachment Folder"
+  },
+  "attachmentStorageReauthorized": {
+    "message": "Attachment folder reauthorized."
+  },
   "webdavUploadTitle": {
     "message": "Upload Local Backup"
   },

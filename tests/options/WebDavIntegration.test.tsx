@@ -25,6 +25,7 @@ vi.mock("@/utils/i18n", () => ({ t: (key: string) => key }));
 
 vi.mock("@/utils/attachments/fileSystem", () => ({
   getAttachmentRootHandle: vi.fn(),
+  pickAndStoreAttachmentRoot: vi.fn(),
   verifyReadWritePermission: vi.fn(),
 }));
 
@@ -67,7 +68,19 @@ const remoteCategory: Category = {
 };
 
 const rootHandle = { name: "Quick Prompt" } as FileSystemDirectoryHandle;
+const restoredRootHandle = { name: "Restored Quick Prompt" } as FileSystemDirectoryHandle;
 const mockBrowser = browser as any;
+
+const createDeferred = <T,>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((promiseResolve, promiseReject) => {
+    resolve = promiseResolve;
+    reject = promiseReject;
+  });
+
+  return { promise, resolve, reject };
+};
 
 describe("WebDavIntegration", () => {
   beforeEach(() => {
@@ -82,6 +95,7 @@ describe("WebDavIntegration", () => {
     });
     vi.mocked(mockBrowser.storage.local.set).mockResolvedValue(undefined);
     vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue(rootHandle);
+    vi.mocked(fs.pickAndStoreAttachmentRoot).mockResolvedValue(restoredRootHandle);
     vi.mocked(fs.verifyReadWritePermission).mockResolvedValue(true);
     vi.mocked(webdavBackup.uploadWebDavBackup).mockResolvedValue({
       success: true,
@@ -226,5 +240,154 @@ describe("WebDavIntegration", () => {
       );
     });
     expect(browser.storage.local.set).not.toHaveBeenCalled();
+  });
+
+  it("blocks manual upload and download when the server URL is invalid", async () => {
+    render(<WebDavIntegration />);
+
+    await screen.findByLabelText("webdavServerUrl");
+    fireEvent.change(screen.getByLabelText("webdavServerUrl"), {
+      target: { value: "ftp://dav.example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavUsername"), {
+      target: { value: "alice" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavPassword"), {
+      target: { value: "secret" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "uploadWebdavBackup" }));
+    fireEvent.click(screen.getByRole("button", { name: "appendWebdavBackup" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("webdavInvalidServerUrl")).toBeInTheDocument();
+    });
+    expect(webdavBackup.uploadWebDavBackup).not.toHaveBeenCalled();
+    expect(webdavBackup.downloadWebDavBackup).not.toHaveBeenCalled();
+  });
+
+  it("blocks save when the remote directory uses path traversal", async () => {
+    render(<WebDavIntegration />);
+
+    await screen.findByLabelText("webdavServerUrl");
+    fireEvent.change(screen.getByLabelText("webdavServerUrl"), {
+      target: { value: "https://dav.example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavUsername"), {
+      target: { value: "alice" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavPassword"), {
+      target: { value: "secret" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavRemoteDirectory"), {
+      target: { value: "../backup" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "saveWebdavSettings" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("webdavInvalidRemoteDirectory")).toBeInTheDocument();
+    });
+    expect(browser.storage.sync.set).not.toHaveBeenCalled();
+  });
+
+  it("blocks manual upload when the remote directory is empty", async () => {
+    render(<WebDavIntegration />);
+
+    await screen.findByLabelText("webdavServerUrl");
+    fireEvent.change(screen.getByLabelText("webdavServerUrl"), {
+      target: { value: "https://dav.example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavUsername"), {
+      target: { value: "alice" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavPassword"), {
+      target: { value: "secret" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavRemoteDirectory"), {
+      target: { value: "   " },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "uploadWebdavBackup" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("webdavInvalidRemoteDirectory")).toBeInTheDocument();
+    });
+    expect(webdavBackup.uploadWebDavBackup).not.toHaveBeenCalled();
+  });
+
+
+  it("disables the save button while settings are saving", async () => {
+    const saveDeferred = createDeferred<void>();
+    vi.mocked(mockBrowser.storage.sync.set).mockReturnValueOnce(saveDeferred.promise);
+
+    render(<WebDavIntegration />);
+
+    await screen.findByLabelText("webdavServerUrl");
+    fireEvent.change(screen.getByLabelText("webdavServerUrl"), {
+      target: { value: "https://dav.example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavUsername"), {
+      target: { value: "alice" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavPassword"), {
+      target: { value: "secret" },
+    });
+
+    const saveButton = screen.getByRole("button", { name: "saveWebdavSettings" });
+    fireEvent.click(saveButton);
+
+    await waitFor(() => expect(saveButton).toBeDisabled());
+    saveDeferred.resolve(undefined);
+    await waitFor(() => expect(saveButton).not.toBeDisabled());
+  });
+
+  it("reverts the auto-upload toggle when persistence fails", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(mockBrowser.storage.sync.set).mockRejectedValueOnce(new Error("quota"));
+    vi.mocked(mockBrowser.storage.sync.get)
+      .mockResolvedValueOnce({})
+      .mockResolvedValueOnce({ [WEBDAV_STORAGE_KEYS.AUTO_SYNC]: false });
+
+    render(<WebDavIntegration />);
+
+    const toggle = await screen.findByRole("switch", { name: "webdavAutoUpload" });
+    fireEvent.click(toggle);
+
+    await waitFor(() => {
+      expect(toggle).toHaveAttribute("aria-checked", "false");
+      expect(screen.getByText("webdavSaveSettingsFailed: quota")).toBeInTheDocument();
+    });
+
+    consoleErrorSpy.mockRestore();
+  });
+
+  it("shows a reauthorize action after permission loss and stores a new root", async () => {
+    vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue(undefined);
+
+    render(<WebDavIntegration />);
+
+    await screen.findByLabelText("webdavServerUrl");
+    fireEvent.change(screen.getByLabelText("webdavServerUrl"), {
+      target: { value: "https://dav.example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavUsername"), {
+      target: { value: "alice" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavPassword"), {
+      target: { value: "secret" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "uploadWebdavBackup" }));
+
+    const reauthorizeButton = await screen.findByRole("button", {
+      name: "reauthorizeAttachmentDirectory",
+    });
+    fireEvent.click(reauthorizeButton);
+
+    await waitFor(() => {
+      expect(fs.pickAndStoreAttachmentRoot).toHaveBeenCalled();
+      expect(screen.getByText("attachmentStorageReauthorized")).toBeInTheDocument();
+    });
   });
 });

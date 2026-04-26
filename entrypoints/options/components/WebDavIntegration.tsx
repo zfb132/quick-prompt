@@ -5,6 +5,7 @@ import { BROWSER_STORAGE_KEY, CATEGORIES_STORAGE_KEY } from "@/utils/constants";
 import type { Category, PromptItem } from "@/utils/types";
 import {
   getAttachmentRootHandle,
+  pickAndStoreAttachmentRoot,
   verifyReadWritePermission,
 } from "@/utils/attachments/fileSystem";
 import {
@@ -30,9 +31,15 @@ const WebDavIntegration: React.FC = () => {
   const [remoteDir, setRemoteDir] = useState(DEFAULT_REMOTE_DIR);
   const [autoSync, setAutoSync] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isAutoSyncSaving, setIsAutoSyncSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [needsAttachmentReauthorization, setNeedsAttachmentReauthorization] = useState(false);
+  const [isReauthorizing, setIsReauthorizing] = useState(false);
   const [message, setMessage] = useState<{ type: MessageType; text: string } | null>(null);
   const messageTimeoutRef = useRef<number | null>(null);
+  const saveRequestIdRef = useRef(0);
+  const autoSyncRequestIdRef = useRef(0);
 
   useEffect(() => {
     loadSettings();
@@ -84,10 +91,26 @@ const WebDavIntegration: React.FC = () => {
   const buildConfig = (): WebDavConfig | null => {
     const normalizedServerUrl = serverUrl.trim();
     const normalizedUsername = username.trim();
-    const normalizedRemoteDir = remoteDir.trim() || DEFAULT_REMOTE_DIR;
+    const normalizedRemoteDir = remoteDir.trim();
 
     if (!normalizedServerUrl || !normalizedUsername || !password) {
       showMessage("error", t("webdavRequiredFields"));
+      return null;
+    }
+
+    try {
+      const parsedUrl = new URL(normalizedServerUrl);
+      if (parsedUrl.protocol !== "http:" && parsedUrl.protocol !== "https:") {
+        showMessage("error", t("webdavInvalidServerUrl"));
+        return null;
+      }
+    } catch {
+      showMessage("error", t("webdavInvalidServerUrl"));
+      return null;
+    }
+
+    if (!normalizedRemoteDir || normalizedRemoteDir.includes("..")) {
+      showMessage("error", t("webdavInvalidRemoteDirectory"));
       return null;
     }
 
@@ -102,11 +125,19 @@ const WebDavIntegration: React.FC = () => {
 
   const handleSaveSettings = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (isSaving) {
+      return;
+    }
+
     const config = buildConfig();
 
     if (!config) {
       return;
     }
+
+    const requestId = saveRequestIdRef.current + 1;
+    saveRequestIdRef.current = requestId;
+    setIsSaving(true);
 
     try {
       await browser.storage.sync.set({
@@ -116,22 +147,51 @@ const WebDavIntegration: React.FC = () => {
         [WEBDAV_STORAGE_KEYS.REMOTE_DIR]: config.remoteDir,
         [WEBDAV_STORAGE_KEYS.AUTO_SYNC]: config.autoSync,
       });
+      if (requestId !== saveRequestIdRef.current) {
+        return;
+      }
       setRemoteDir(config.remoteDir);
       showMessage("success", t("webdavSettingsSaved"));
     } catch (error) {
+      if (requestId !== saveRequestIdRef.current) {
+        return;
+      }
       console.error("Error saving WebDAV settings:", error);
       showMessage("error", `${t("webdavSaveSettingsFailed")}: ${getErrorMessage(error)}`);
+    } finally {
+      if (requestId === saveRequestIdRef.current) {
+        setIsSaving(false);
+      }
     }
   };
 
   const handleAutoSyncToggle = async (enabled: boolean) => {
+    if (isAutoSyncSaving) {
+      return;
+    }
+
+    const requestId = autoSyncRequestIdRef.current + 1;
+    autoSyncRequestIdRef.current = requestId;
     setAutoSync(enabled);
+    setIsAutoSyncSaving(true);
 
     try {
       await browser.storage.sync.set({ [WEBDAV_STORAGE_KEYS.AUTO_SYNC]: enabled });
+      if (requestId !== autoSyncRequestIdRef.current) {
+        return;
+      }
     } catch (error) {
+      if (requestId !== autoSyncRequestIdRef.current) {
+        return;
+      }
       console.error("Error saving WebDAV auto upload setting:", error);
+      const result = await browser.storage.sync.get(WEBDAV_STORAGE_KEYS.AUTO_SYNC);
+      setAutoSync(result[WEBDAV_STORAGE_KEYS.AUTO_SYNC] ?? false);
       showMessage("error", `${t("webdavSaveSettingsFailed")}: ${getErrorMessage(error)}`);
+    } finally {
+      if (requestId === autoSyncRequestIdRef.current) {
+        setIsAutoSyncSaving(false);
+      }
     }
   };
 
@@ -139,11 +199,31 @@ const WebDavIntegration: React.FC = () => {
     const rootHandle = await getAttachmentRootHandle();
 
     if (!rootHandle || !(await verifyReadWritePermission(rootHandle))) {
+      setNeedsAttachmentReauthorization(true);
       showMessage("error", t("attachmentPermissionLost"));
       return null;
     }
 
+    setNeedsAttachmentReauthorization(false);
     return rootHandle;
+  };
+
+  const handleReauthorizeAttachmentDirectory = async () => {
+    if (isReauthorizing) {
+      return;
+    }
+
+    setIsReauthorizing(true);
+    try {
+      await pickAndStoreAttachmentRoot();
+      setNeedsAttachmentReauthorization(false);
+      showMessage("success", t("attachmentStorageReauthorized"));
+    } catch (error) {
+      console.error("Error reauthorizing attachment directory:", error);
+      showMessage("error", `${t("attachmentStoragePermissionRequired")}: ${getErrorMessage(error)}`);
+    } finally {
+      setIsReauthorizing(false);
+    }
   };
 
   const getPromptsAndCategories = async (): Promise<{
@@ -321,15 +401,46 @@ const WebDavIntegration: React.FC = () => {
 
           <button
             type="submit"
+            disabled={isSaving}
             className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
           >
-            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-            </svg>
+            {isSaving ? <Spinner /> : (
+              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+              </svg>
+            )}
             {t("saveWebdavSettings")}
           </button>
         </form>
       </div>
+
+      {needsAttachmentReauthorization && (
+        <div className="bg-amber-50 dark:bg-amber-900/20 rounded-lg border border-amber-200 dark:border-amber-800 p-5 mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-medium text-amber-900 dark:text-amber-200">
+                {t("attachmentPermissionLost")}
+              </h4>
+              <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
+                {t("webdavReauthorizeDescription")}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleReauthorizeAttachmentDirectory}
+              disabled={isReauthorizing}
+              className="inline-flex justify-center items-center px-4 py-2 text-sm font-medium text-amber-900 dark:text-amber-100 bg-white dark:bg-gray-800 border border-amber-300 dark:border-amber-700 hover:bg-amber-100 dark:hover:bg-amber-900/30 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isReauthorizing ? <Spinner /> : (
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 7h18M5 7l1 12h12l1-12M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2" />
+                </svg>
+              )}
+              {t("reauthorizeAttachmentDirectory")}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-5 mb-6">
         <div className="flex items-center justify-between gap-4">
@@ -345,9 +456,10 @@ const WebDavIntegration: React.FC = () => {
             checked={autoSync}
             onChange={handleAutoSyncToggle}
             aria-label={t("webdavAutoUpload")}
+            disabled={isAutoSyncSaving}
             className={`${
               autoSync ? "bg-blue-600" : "bg-gray-200 dark:bg-gray-600"
-            } relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800`}
+            } relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed`}
           >
             <span
               className={`${

@@ -1627,6 +1627,21 @@
   "webdavRequiredFields": {
     "message": "服务器 URL、用户名和密码为必填项。"
   },
+  "webdavInvalidServerUrl": {
+    "message": "请输入使用 http 或 https 的有效 WebDAV 服务器 URL。"
+  },
+  "webdavInvalidRemoteDirectory": {
+    "message": "请输入有效的远程目录，不能为空且不能包含路径穿越。"
+  },
+  "webdavReauthorizeDescription": {
+    "message": "已保存的附件文件夹权限不可用。同步附件前请重新授权该文件夹。"
+  },
+  "reauthorizeAttachmentDirectory": {
+    "message": "重新授权附件文件夹"
+  },
+  "attachmentStorageReauthorized": {
+    "message": "附件文件夹已重新授权。"
+  },
   "webdavUploadTitle": {
     "message": "上传本地备份"
   },
