@@ -89,4 +89,4 @@ declare global {
 
 // This export statement makes the file a module, which is often necessary
 // for global declarations to be picked up correctly in some TypeScript setups.
-export {}; 
+export {};
