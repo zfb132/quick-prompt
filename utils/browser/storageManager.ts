@@ -233,7 +233,6 @@ const runWebDavAutoSync = async (): Promise<void> => {
     await setWebDavSyncStatus({
       id: syncId,
       status: "in_progress",
-      message: "正在自动上传到 WebDAV，请稍候...",
       startTime: Date.now(),
     })
 
@@ -245,7 +244,6 @@ const runWebDavAutoSync = async (): Promise<void> => {
           id: syncId,
           status: "success",
           success: true,
-          message: "WebDAV 自动上传成功!",
           uploadedFiles: result.uploadedFiles,
           completedTime: Date.now(),
         })
@@ -254,7 +252,6 @@ const runWebDavAutoSync = async (): Promise<void> => {
           id: syncId,
           status: "error",
           success: false,
-          message: "WebDAV 自动上传失败",
           error: result.errors.join("\n") || "未知错误",
           uploadedFiles: result.uploadedFiles,
           completedTime: Date.now(),
@@ -265,7 +262,6 @@ const runWebDavAutoSync = async (): Promise<void> => {
         id: syncId,
         status: "error",
         success: false,
-        message: "WebDAV 自动上传失败",
         error: getErrorMessage(error),
         completedTime: Date.now(),
       })

@@ -141,7 +141,6 @@ describe("storageManager WebDAV auto upload", () => {
     expect(mockBrowser.storage.local.set).toHaveBeenCalledWith({
       [WEBDAV_STORAGE_KEYS.SYNC_STATUS]: expect.objectContaining({
         status: "in_progress",
-        message: expect.any(String),
         startTime: expect.any(Number),
       }),
     });
@@ -149,8 +148,12 @@ describe("storageManager WebDAV auto upload", () => {
       [WEBDAV_STORAGE_KEYS.SYNC_STATUS]: expect.objectContaining({
         status: "success",
         success: true,
-        message: expect.any(String),
         completedTime: expect.any(Number),
+      }),
+    });
+    expect(mockBrowser.storage.local.set).not.toHaveBeenCalledWith({
+      [WEBDAV_STORAGE_KEYS.SYNC_STATUS]: expect.objectContaining({
+        message: expect.any(String),
       }),
     });
   });
@@ -228,7 +231,6 @@ describe("storageManager WebDAV auto upload", () => {
       [WEBDAV_STORAGE_KEYS.SYNC_STATUS]: expect.objectContaining({
         status: "error",
         success: false,
-        message: expect.any(String),
         error: "HTTP 401",
         completedTime: expect.any(Number),
       }),
