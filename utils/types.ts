@@ -12,6 +12,18 @@ export interface Category {
 }
 
 /**
+ * Prompt 附件元数据
+ */
+export interface PromptAttachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  relativePath: string;
+  createdAt: string;
+}
+
+/**
  * Prompt 数据结构
  */
 export interface PromptItem {
@@ -27,6 +39,7 @@ export interface PromptItem {
   lastModified?: string; // 最后修改时间（ISO 字符串）
   sortOrder?: number; // 排序字段，用于拖拽排序
   thumbnailUrl?: string; // 缩略图 URL
+  attachments?: PromptAttachment[];
 }
 
 export interface PromptItemWithVariables extends PromptItem {
