@@ -27,22 +27,52 @@ const runHandleStoreRequest = <T>(
 ): Promise<T> => {
   return openAttachmentDatabase().then((db) => {
     return new Promise<T>((resolve, reject) => {
-      const transaction = db.transaction(STORE_NAME, mode);
-      const request = createRequest(transaction.objectStore(STORE_NAME));
+      let requestResult: T | undefined;
+      let settled = false;
 
-      request.onsuccess = () => resolve(request.result);
-      request.onerror = () => reject(request.error);
-      transaction.oncomplete = () => db.close();
-      transaction.onerror = () => {
+      const resolveAndClose = () => {
+        if (settled) return;
+        settled = true;
         db.close();
-        reject(transaction.error);
+        resolve(requestResult as T);
       };
-      transaction.onabort = () => {
+      const rejectAndClose = (error: unknown) => {
+        if (settled) return;
+        settled = true;
         db.close();
-        reject(transaction.error);
+        reject(error);
       };
+
+      try {
+        const transaction = db.transaction(STORE_NAME, mode);
+        const request = createRequest(transaction.objectStore(STORE_NAME));
+
+        request.onsuccess = () => {
+          requestResult = request.result;
+        };
+        request.onerror = () => rejectAndClose(request.error ?? transaction.error);
+        transaction.oncomplete = () => resolveAndClose();
+        transaction.onerror = () => rejectAndClose(transaction.error ?? request.error);
+        transaction.onabort = () => rejectAndClose(transaction.error ?? request.error);
+      } catch (error) {
+        rejectAndClose(error);
+      }
     });
   });
+};
+
+const getAttachmentFilePathParts = (relativePath: string): { parentSegments: string[]; fileName: string } => {
+  const segments = getAttachmentPathSegments(relativePath);
+  const fileName = segments.at(-1);
+
+  if (!fileName) {
+    throw new DOMException("Attachment path is empty", "NotFoundError");
+  }
+
+  return {
+    parentSegments: segments.slice(0, -1),
+    fileName,
+  };
 };
 
 const withTextReader = (file: File): File => {
@@ -84,6 +114,10 @@ export const verifyReadWritePermission = async (handle: FileSystemHandle): Promi
 };
 
 export const pickAndStoreAttachmentRoot = async (): Promise<FileSystemDirectoryHandle> => {
+  if (typeof window.showDirectoryPicker !== "function") {
+    throw new DOMException("File System Access API is not available", "NotSupportedError");
+  }
+
   const handle = await window.showDirectoryPicker({ mode: "readwrite" });
 
   if (!(await verifyReadWritePermission(handle))) {
@@ -113,12 +147,9 @@ export const copyFileToAttachmentRoot = async (
   relativePath: string,
   file: File
 ): Promise<void> => {
-  const segments = getAttachmentPathSegments(relativePath);
-  const fileName = segments.at(-1);
+  const { parentSegments, fileName } = getAttachmentFilePathParts(relativePath);
 
-  if (!fileName) return;
-
-  const directory = await getDirectoryForSegments(rootHandle, segments.slice(0, -1), true);
+  const directory = await getDirectoryForSegments(rootHandle, parentSegments, true);
   const fileHandle = await directory.getFileHandle(fileName, { create: true });
   const writable = await fileHandle.createWritable();
 
@@ -130,14 +161,9 @@ export const getFileFromAttachmentRoot = async (
   rootHandle: FileSystemDirectoryHandle,
   relativePath: string
 ): Promise<File> => {
-  const segments = getAttachmentPathSegments(relativePath);
-  const fileName = segments.at(-1);
+  const { parentSegments, fileName } = getAttachmentFilePathParts(relativePath);
 
-  if (!fileName) {
-    throw new DOMException("Attachment path is empty", "NotFoundError");
-  }
-
-  const directory = await getDirectoryForSegments(rootHandle, segments.slice(0, -1), false);
+  const directory = await getDirectoryForSegments(rootHandle, parentSegments, false);
   const fileHandle = await directory.getFileHandle(fileName);
   return withTextReader(await fileHandle.getFile());
 };
@@ -146,11 +172,8 @@ export const removeAttachmentFileFromRoot = async (
   rootHandle: FileSystemDirectoryHandle,
   relativePath: string
 ): Promise<void> => {
-  const segments = getAttachmentPathSegments(relativePath);
-  const fileName = segments.at(-1);
+  const { parentSegments, fileName } = getAttachmentFilePathParts(relativePath);
 
-  if (!fileName) return;
-
-  const directory = await getDirectoryForSegments(rootHandle, segments.slice(0, -1), false);
+  const directory = await getDirectoryForSegments(rootHandle, parentSegments, false);
   await directory.removeEntry(fileName);
 };

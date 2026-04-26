@@ -1,8 +1,10 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   copyFileToAttachmentRoot,
   getFileFromAttachmentRoot,
+  pickAndStoreAttachmentRoot,
   removeAttachmentFileFromRoot,
+  saveAttachmentRootHandle,
 } from "@/utils/attachments/fileSystem";
 
 const createFakeFileHandle = () => {
@@ -60,6 +62,10 @@ const createFakeDirectory = () => {
 };
 
 describe("attachment file system helpers", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
   it("copies a file into the relative attachment path", async () => {
     const root = createFakeDirectory();
     const file = new File(["hello"], "hello.txt", { type: "text/plain" });
@@ -81,6 +87,18 @@ describe("attachment file system helpers", () => {
     await expect(getFileFromAttachmentRoot(root as any, "attachments/prompt-1/att-1-hello.txt")).rejects.toThrow();
   });
 
+  it("rejects empty paths when copying or removing files", async () => {
+    const root = createFakeDirectory();
+    const file = new File(["hello"], "hello.txt");
+
+    await expect(copyFileToAttachmentRoot(root as any, "", file)).rejects.toMatchObject({
+      name: "NotFoundError",
+    });
+    await expect(removeAttachmentFileFromRoot(root as any, "")).rejects.toMatchObject({
+      name: "NotFoundError",
+    });
+  });
+
   it("returns false when readwrite permission is denied", async () => {
     const root = {
       queryPermission: vi.fn().mockResolvedValue("prompt"),
@@ -89,5 +107,66 @@ describe("attachment file system helpers", () => {
 
     const { verifyReadWritePermission } = await import("@/utils/attachments/fileSystem");
     await expect(verifyReadWritePermission(root as any)).resolves.toBe(false);
+  });
+
+  it("rejects picking an attachment root when the File System Access API is unavailable", async () => {
+    vi.stubGlobal("showDirectoryPicker", undefined);
+
+    await expect(pickAndStoreAttachmentRoot()).rejects.toMatchObject({
+      name: "NotSupportedError",
+    });
+  });
+
+  it("resolves saved root handles only after the IndexedDB transaction commits", async () => {
+    const root = createFakeDirectory();
+    const putRequest = {} as IDBRequest<void>;
+    const store = {
+      put: vi.fn(() => putRequest),
+    };
+    const transaction = {
+      error: null,
+      objectStore: vi.fn(() => store),
+      onabort: null as (() => void) | null,
+      oncomplete: null as (() => void) | null,
+      onerror: null as (() => void) | null,
+    };
+    const db = {
+      close: vi.fn(),
+      objectStoreNames: {
+        contains: vi.fn(() => true),
+      },
+      transaction: vi.fn(() => transaction),
+    };
+    const openRequest = {
+      error: null,
+      result: db,
+      onerror: null as (() => void) | null,
+      onsuccess: null as (() => void) | null,
+      onupgradeneeded: null as (() => void) | null,
+    };
+    let resolved = false;
+
+    vi.stubGlobal("indexedDB", {
+      open: vi.fn(() => openRequest),
+    });
+
+    const promise = saveAttachmentRootHandle(root as any).then(() => {
+      resolved = true;
+    });
+
+    openRequest.onsuccess?.();
+    await Promise.resolve();
+    Object.assign(putRequest, { result: undefined });
+    putRequest.onsuccess?.(new Event("success"));
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(resolved).toBe(false);
+    expect(db.close).not.toHaveBeenCalled();
+
+    transaction.oncomplete?.();
+    await promise;
+
+    expect(resolved).toBe(true);
+    expect(db.close).toHaveBeenCalledTimes(1);
   });
 });
