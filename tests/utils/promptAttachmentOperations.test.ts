@@ -9,6 +9,7 @@ import {
 vi.mock('@/utils/attachments/fileSystem', () => ({
   copyFileToAttachmentRoot: vi.fn(),
   getFileFromAttachmentRoot: vi.fn(),
+  removeAttachmentDirectoryFromRoot: vi.fn(),
   removeAttachmentFileFromRoot: vi.fn(),
 }))
 
@@ -61,6 +62,16 @@ describe('prompt attachment operations', () => {
     }))
 
     expect(fileSystem.removeAttachmentFileFromRoot).toHaveBeenCalledTimes(2)
+    expect(fileSystem.removeAttachmentDirectoryFromRoot).toHaveBeenCalledWith({} as any, 'attachments/prompt-1')
+  })
+
+  it('deletes the prompt attachment directory even when prompt metadata has no attachments', async () => {
+    await deletePromptAttachmentFiles({} as any, createPrompt({
+      attachments: [],
+    }))
+
+    expect(fileSystem.removeAttachmentFileFromRoot).not.toHaveBeenCalled()
+    expect(fileSystem.removeAttachmentDirectoryFromRoot).toHaveBeenCalledWith({} as any, 'attachments/prompt-1')
   })
 
   it('ignores missing attachment files while deleting prompt attachments', async () => {

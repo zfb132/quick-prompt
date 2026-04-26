@@ -56,6 +56,19 @@ describe('AttachmentStorageGate', () => {
     await waitFor(() => expect(screen.getByText('Options Ready')).toBeInTheDocument())
   })
 
+  it('presents external directory storage as the recommended first choice for first-time users', async () => {
+    vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue(undefined)
+
+    render(<AttachmentStorageGate><div>Options Ready</div></AttachmentStorageGate>)
+
+    expect(await screen.findByText('attachmentStorageTitle')).toBeInTheDocument()
+    const buttons = screen.getAllByRole('button')
+
+    expect(buttons[0]).toHaveTextContent('useExternalAttachmentStorage')
+    expect(buttons[0]).toHaveTextContent('attachmentStorageRecommended')
+    expect(buttons[1]).toHaveTextContent('useBuiltInAttachmentStorage')
+  })
+
   it('allows first-time users to choose built-in storage without a directory', async () => {
     vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue(undefined)
     vi.mocked(fs.useInternalAttachmentStorage).mockResolvedValue({ name: 'Built-in' } as any)

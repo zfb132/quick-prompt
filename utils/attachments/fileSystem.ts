@@ -135,6 +135,49 @@ const getFileNameFromRelativePath = (relativePath: string): string => (
   getAttachmentFilePathParts(relativePath).fileName
 );
 
+const getAttachmentDirectoryPathParts = (relativePath: string): { parentSegments: string[]; directoryName: string } => {
+  const segments = getAttachmentPathSegments(relativePath);
+  const directoryName = segments.at(-1);
+
+  if (!directoryName) {
+    throw new DOMException("Attachment directory path is empty", "NotFoundError");
+  }
+
+  return {
+    parentSegments: segments.slice(0, -1),
+    directoryName,
+  };
+};
+
+const isNotFoundError = (error: unknown): boolean => (
+  error instanceof DOMException && error.name === "NotFoundError"
+);
+
+const removeInternalAttachmentDirectory = async (relativePath: string): Promise<void> => {
+  getAttachmentDirectoryPathParts(relativePath);
+  const directoryPrefix = `${relativePath.replace(/\/+$/g, "")}/`;
+  const keys = await runAttachmentFileStoreRequest<IDBValidKey[]>("readonly", (store) =>
+    store.getAllKeys()
+  );
+  const matchingKeys = keys.filter((key): key is string => (
+    typeof key === "string" && key.startsWith(directoryPrefix)
+  ));
+
+  if (matchingKeys.length === 0) {
+    return;
+  }
+
+  await runAttachmentFileStoreRequest("readwrite", (store) => {
+    let request: IDBRequest<undefined> | undefined;
+
+    matchingKeys.forEach((key) => {
+      request = store.delete(key);
+    });
+
+    return request!;
+  });
+};
+
 const getInternalAttachmentFile = async (relativePath: string): Promise<File> => {
   getAttachmentFilePathParts(relativePath);
 
@@ -291,4 +334,27 @@ export const removeAttachmentFileFromRoot = async (
 
   const directory = await getDirectoryForSegments(rootHandle, parentSegments, false);
   await directory.removeEntry(fileName);
+};
+
+export const removeAttachmentDirectoryFromRoot = async (
+  rootHandle: AttachmentStorageRootHandle,
+  relativePath: string
+): Promise<void> => {
+  if (isInternalAttachmentRoot(rootHandle)) {
+    await removeInternalAttachmentDirectory(relativePath);
+    return;
+  }
+
+  const { parentSegments, directoryName } = getAttachmentDirectoryPathParts(relativePath);
+
+  try {
+    const directory = await getDirectoryForSegments(rootHandle, parentSegments, false);
+    await directory.removeEntry(directoryName, { recursive: true });
+  } catch (error) {
+    if (isNotFoundError(error)) {
+      return;
+    }
+
+    throw error;
+  }
 };

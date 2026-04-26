@@ -1,9 +1,13 @@
 import type { PromptAttachment, PromptItem } from '@/utils/types'
-import { buildAttachmentRelativePath } from '@/utils/attachments/metadata'
+import {
+  buildAttachmentRelativePath,
+  buildPromptAttachmentDirectoryPath,
+} from '@/utils/attachments/metadata'
 import {
   type AttachmentStorageRootHandle,
   copyFileToAttachmentRoot,
   getFileFromAttachmentRoot,
+  removeAttachmentDirectoryFromRoot,
   removeAttachmentFileFromRoot,
 } from './fileSystem'
 
@@ -57,6 +61,14 @@ export const deletePromptAttachmentFiles = async (
       if (!isMissingAttachmentFileError(err)) {
         errors.push(err)
       }
+    }
+  }
+
+  try {
+    await removeAttachmentDirectoryFromRoot(rootHandle, buildPromptAttachmentDirectoryPath(prompt.id))
+  } catch (err) {
+    if (!isMissingAttachmentFileError(err)) {
+      errors.push(err)
     }
   }
 

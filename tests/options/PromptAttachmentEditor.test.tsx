@@ -6,6 +6,7 @@ import type { PromptAttachment } from '@/utils/types'
 vi.mock('@/utils/attachments/fileSystem', () => ({
   getAttachmentRootHandle: vi.fn().mockResolvedValue({ name: 'root' }),
   verifyReadWritePermission: vi.fn().mockResolvedValue(true),
+  removeAttachmentDirectoryFromRoot: vi.fn(),
   removeAttachmentFileFromRoot: vi.fn(),
 }))
 
@@ -70,6 +71,37 @@ describe('PromptAttachmentEditor', () => {
     await waitFor(() => {
       expect(onChange).toHaveBeenCalledWith([])
     })
+    expect(fileSystem.removeAttachmentDirectoryFromRoot).toHaveBeenCalledWith(
+      { name: 'root' },
+      'attachments/prompt-1'
+    )
+  })
+
+  it('keeps the prompt attachment directory when other attachments remain', async () => {
+    const onChange = vi.fn()
+    render(
+      <PromptAttachmentEditor
+        promptId="prompt-1"
+        attachments={[
+          createAttachment(),
+          createAttachment({
+            id: 'att-second',
+            name: 'second.pdf',
+            relativePath: 'attachments/prompt-1/att-second-second.pdf',
+          }),
+        ]}
+        onChange={onChange}
+      />
+    )
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'removeAttachment' })[0])
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith([
+        expect.objectContaining({ id: 'att-second' }),
+      ])
+    })
+    expect(fileSystem.removeAttachmentDirectoryFromRoot).not.toHaveBeenCalled()
   })
 
   it('removes attachment metadata when the file is already missing', async () => {

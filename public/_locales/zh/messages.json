@@ -1574,7 +1574,10 @@
     "message": "附件存储"
   },
   "attachmentStorageDescription": {
-    "message": "首次进入管理页前，请选择附件存储方式：使用插件内置存储，或授权一个外部文件夹。"
+    "message": "首次进入管理页前，请选择附件存储方式。推荐授权一个本地文件夹。"
+  },
+  "attachmentStorageRecommended": {
+    "message": "推荐"
   },
   "chooseAttachmentDirectory": {
     "message": "选择附件文件夹"
@@ -1671,6 +1674,9 @@
   },
   "saveWebdavSettings": {
     "message": "保存设置"
+  },
+  "saveAndTestWebdavSettings": {
+    "message": "保存设置并测试连接"
   },
   "testWebdavConnection": {
     "message": "测试连接"

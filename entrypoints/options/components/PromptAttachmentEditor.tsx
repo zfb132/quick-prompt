@@ -3,10 +3,14 @@ import type { PromptAttachment } from '@/utils/types'
 import {
   type AttachmentStorageRootHandle,
   getAttachmentRootHandle,
+  removeAttachmentDirectoryFromRoot,
   removeAttachmentFileFromRoot,
   verifyReadWritePermission,
 } from '@/utils/attachments/fileSystem'
-import { formatFileSize } from '@/utils/attachments/metadata'
+import {
+  buildPromptAttachmentDirectoryPath,
+  formatFileSize,
+} from '@/utils/attachments/metadata'
 import {
   createAttachmentFromFile,
   isMissingAttachmentFileError,
@@ -76,17 +80,24 @@ const PromptAttachmentEditor = ({
   const handleRemove = async (attachment: PromptAttachment) => {
     setBusy(true)
     setError(null)
+    const nextAttachments = attachments.filter((item) => item.id !== attachment.id)
 
     try {
       const root = await getAuthorizedRoot(translate)
-      await removeAttachmentFileFromRoot(root, attachment.relativePath)
-      onChange(attachments.filter((item) => item.id !== attachment.id))
-    } catch (err) {
-      if (isMissingAttachmentFileError(err)) {
-        onChange(attachments.filter((item) => item.id !== attachment.id))
-        return
+      try {
+        await removeAttachmentFileFromRoot(root, attachment.relativePath)
+      } catch (err) {
+        if (!isMissingAttachmentFileError(err)) {
+          throw err
+        }
       }
 
+      if (nextAttachments.length === 0) {
+        await removeAttachmentDirectoryFromRoot(root, buildPromptAttachmentDirectoryPath(promptId))
+      }
+
+      onChange(nextAttachments)
+    } catch (err) {
       console.error(translate('attachmentRemoveFailed'), err)
       setError(err instanceof Error ? err.message : translate('attachmentRemoveFailed'))
     } finally {

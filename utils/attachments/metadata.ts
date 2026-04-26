@@ -23,6 +23,10 @@ export const buildAttachmentRelativePath = (
   return `${ATTACHMENTS_DIR_NAME}/${promptId}/${attachmentId}-${sanitizeFileName(fileName)}`
 }
 
+export const buildPromptAttachmentDirectoryPath = (promptId: string): string => {
+  return `${ATTACHMENTS_DIR_NAME}/${promptId}`
+}
+
 export const getAttachmentPathSegments = (relativePath: string): string[] => {
   return relativePath.split('/').filter(Boolean)
 }

@@ -3,6 +3,7 @@ import {
   copyFileToAttachmentRoot,
   getFileFromAttachmentRoot,
   pickAndStoreAttachmentRoot,
+  removeAttachmentDirectoryFromRoot,
   removeAttachmentFileFromRoot,
   saveAttachmentRootHandle,
 } from "@/utils/attachments/fileSystem";
@@ -85,6 +86,16 @@ describe("attachment file system helpers", () => {
     await removeAttachmentFileFromRoot(root as any, "attachments/prompt-1/att-1-hello.txt");
 
     await expect(getFileFromAttachmentRoot(root as any, "attachments/prompt-1/att-1-hello.txt")).rejects.toThrow();
+  });
+
+  it("removes a prompt attachment directory by relative path", async () => {
+    const root = createFakeDirectory();
+    const attachmentsDir = await root.getDirectoryHandle("attachments", { create: true });
+    await attachmentsDir.getDirectoryHandle("prompt-1", { create: true });
+
+    await removeAttachmentDirectoryFromRoot(root as any, "attachments/prompt-1");
+
+    expect(attachmentsDir.removed).toContain("prompt-1");
   });
 
   it("rejects empty paths when copying or removing files", async () => {

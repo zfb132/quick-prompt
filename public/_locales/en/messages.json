@@ -1574,7 +1574,10 @@
     "message": "Attachment Storage"
   },
   "attachmentStorageDescription": {
-    "message": "Choose how to store attachments before opening the management page: built-in extension storage or an external folder."
+    "message": "Choose how to store attachments before opening the management page. An external local folder is recommended."
+  },
+  "attachmentStorageRecommended": {
+    "message": "Recommended"
   },
   "chooseAttachmentDirectory": {
     "message": "Choose Attachment Folder"
@@ -1671,6 +1674,9 @@
   },
   "saveWebdavSettings": {
     "message": "Save Settings"
+  },
+  "saveAndTestWebdavSettings": {
+    "message": "Save Settings & Test Connection"
   },
   "testWebdavConnection": {
     "message": "Test Connection"

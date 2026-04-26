@@ -129,29 +129,32 @@ const AttachmentStorageGate = ({ children, translate = (key) => key }: Attachmen
         <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
           <button
             type="button"
-            onClick={chooseInternalStorage}
-            disabled={isChecking || isChoosing}
+            onClick={chooseAttachmentDirectory}
+            disabled={isChecking || isExternalStorageUnsupported || isChoosing}
             className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-4 text-left transition-colors hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:border-blue-800 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 dark:disabled:border-gray-700 dark:disabled:bg-gray-800"
           >
+            <span className="mb-2 inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/60 dark:text-blue-200">
+              {translate("attachmentStorageRecommended")}
+            </span>
             <span className="block text-sm font-semibold text-blue-800 dark:text-blue-200">
-              {translate("useBuiltInAttachmentStorage")}
+              {translate("useExternalAttachmentStorage")}
             </span>
             <span className="mt-1 block text-xs leading-5 text-blue-700 dark:text-blue-300">
-              {translate("useBuiltInAttachmentStorageDescription")}
+              {translate("useExternalAttachmentStorageDescription")}
             </span>
           </button>
 
           <button
             type="button"
-            onClick={chooseAttachmentDirectory}
-            disabled={isChecking || isExternalStorageUnsupported || isChoosing}
+            onClick={chooseInternalStorage}
+            disabled={isChecking || isChoosing}
             className="rounded-lg border border-gray-200 bg-white px-4 py-4 text-left transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:disabled:bg-gray-800"
           >
             <span className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
-              {translate("useExternalAttachmentStorage")}
+              {translate("useBuiltInAttachmentStorage")}
             </span>
             <span className="mt-1 block text-xs leading-5 text-gray-600 dark:text-gray-300">
-              {translate("useExternalAttachmentStorageDescription")}
+              {translate("useBuiltInAttachmentStorageDescription")}
             </span>
           </button>
         </div>
