@@ -3,10 +3,14 @@ import { syncLocalDataToNotion } from "@/utils/sync/notionSync"
 import { GIST_STORAGE_KEYS, serializeToGistContent, buildGistUrl } from "@/utils/sync/gistSync"
 import { updateGiteeGist, createGiteeGist, findQuickPromptGist as findGiteeGist } from "@/utils/sync/giteeGistSync"
 import { updateGitHubGist, createGitHubGist, findQuickPromptGist as findGitHubGist } from "@/utils/sync/githubGistSync"
+import { getAttachmentRootHandle, verifyReadWritePermission } from "@/utils/attachments/fileSystem"
+import { uploadWebDavBackup } from "@/utils/sync/webdavBackup"
+import { WEBDAV_STORAGE_KEYS, type WebDavConfig } from "@/utils/sync/webdavSync"
 import type { PromptItem, Category } from "@/utils/types"
 
 // Debounce timer for Gist auto-sync
 let gistSyncTimer: ReturnType<typeof setTimeout> | null = null
+let webDavSyncTimer: ReturnType<typeof setTimeout> | null = null
 
 // Setup storage change listeners for auto-sync
 export const setupStorageChangeListeners = (): void => {
@@ -15,6 +19,7 @@ export const setupStorageChangeListeners = (): void => {
     if (areaName === 'local' && (changes[BROWSER_STORAGE_KEY] || changes[CATEGORIES_STORAGE_KEY])) {
       // Gist auto-sync
       handleGistAutoSync()
+      handleWebDavAutoSync()
 
       if (!changes[BROWSER_STORAGE_KEY]) return
       console.log('Local prompts data changed, checking if Notion sync (Local -> Notion) is needed...');
@@ -135,6 +140,141 @@ const handleGistAutoSync = () => {
     }
   }, 3000)
 }
+
+const getErrorMessage = (error: unknown): string => (
+  error instanceof Error ? error.message : String(error)
+)
+
+const isValidWebDavUrl = (url: string): boolean => {
+  try {
+    const parsed = new URL(url)
+    return parsed.protocol === "http:" || parsed.protocol === "https:"
+  } catch {
+    return false
+  }
+}
+
+const buildWebDavConfig = (settings: Record<string, unknown>): WebDavConfig | null => {
+  const storedServerUrl = settings[WEBDAV_STORAGE_KEYS.SERVER_URL]
+  const storedUsername = settings[WEBDAV_STORAGE_KEYS.USERNAME]
+  const storedPassword = settings[WEBDAV_STORAGE_KEYS.PASSWORD]
+  const storedRemoteDir = settings[WEBDAV_STORAGE_KEYS.REMOTE_DIR]
+
+  const serverUrl = typeof storedServerUrl === "string"
+    ? storedServerUrl.trim()
+    : ""
+  const username = typeof storedUsername === "string"
+    ? storedUsername
+    : ""
+  const password = typeof storedPassword === "string"
+    ? storedPassword
+    : ""
+  const remoteDir = typeof storedRemoteDir === "string"
+    ? storedRemoteDir.trim()
+    : ""
+
+  if (!settings[WEBDAV_STORAGE_KEYS.AUTO_SYNC] || !serverUrl || !username || !password || !remoteDir) {
+    return null
+  }
+
+  if (!isValidWebDavUrl(serverUrl)) {
+    return null
+  }
+
+  return {
+    serverUrl,
+    username,
+    password,
+    remoteDir,
+    autoSync: true,
+  }
+}
+
+const setWebDavSyncStatus = async (status: Record<string, unknown>): Promise<void> => {
+  await browser.storage.local.set({
+    [WEBDAV_STORAGE_KEYS.SYNC_STATUS]: status,
+  })
+}
+
+const runWebDavAutoSync = async (): Promise<void> => {
+  try {
+    const settings = await browser.storage.sync.get([
+      WEBDAV_STORAGE_KEYS.AUTO_SYNC,
+      WEBDAV_STORAGE_KEYS.SERVER_URL,
+      WEBDAV_STORAGE_KEYS.USERNAME,
+      WEBDAV_STORAGE_KEYS.PASSWORD,
+      WEBDAV_STORAGE_KEYS.REMOTE_DIR,
+    ])
+    const config = buildWebDavConfig(settings)
+
+    if (!config) {
+      return
+    }
+
+    const root = await getAttachmentRootHandle()
+    if (!root || !(await verifyReadWritePermission(root))) {
+      return
+    }
+
+    const promptsResult = await browser.storage.local.get(BROWSER_STORAGE_KEY)
+    const categoriesResult = await browser.storage.local.get(CATEGORIES_STORAGE_KEY)
+    const prompts = (promptsResult[BROWSER_STORAGE_KEY] as PromptItem[]) || []
+    const categories = (categoriesResult[CATEGORIES_STORAGE_KEY] as Category[]) || []
+    const syncId = `webdav_auto_${Date.now()}`
+
+    await setWebDavSyncStatus({
+      id: syncId,
+      status: "in_progress",
+      message: "正在自动上传到 WebDAV，请稍候...",
+      startTime: Date.now(),
+    })
+
+    try {
+      const result = await uploadWebDavBackup(config, root, prompts, categories)
+
+      if (result.success && result.errors.length === 0) {
+        await setWebDavSyncStatus({
+          id: syncId,
+          status: "success",
+          success: true,
+          message: "WebDAV 自动上传成功!",
+          uploadedFiles: result.uploadedFiles,
+          completedTime: Date.now(),
+        })
+      } else {
+        await setWebDavSyncStatus({
+          id: syncId,
+          status: "error",
+          success: false,
+          message: "WebDAV 自动上传失败",
+          error: result.errors.join("\n") || "未知错误",
+          uploadedFiles: result.uploadedFiles,
+          completedTime: Date.now(),
+        })
+      }
+    } catch (error) {
+      await setWebDavSyncStatus({
+        id: syncId,
+        status: "error",
+        success: false,
+        message: "WebDAV 自动上传失败",
+        error: getErrorMessage(error),
+        completedTime: Date.now(),
+      })
+    }
+  } catch (error) {
+    console.error("[WEBDAV_AUTO_SYNC] Error:", error)
+  }
+}
+
+const handleWebDavAutoSync = () => {
+  if (webDavSyncTimer) clearTimeout(webDavSyncTimer)
+  webDavSyncTimer = setTimeout(() => {
+    runWebDavAutoSync()
+  }, 3000)
+}
+
+export const handleWebDavAutoSyncForTest = handleWebDavAutoSync
 
 const syncToGistPlatform = async (
   platform: 'gitee' | 'github',
