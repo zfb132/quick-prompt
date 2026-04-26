@@ -10,6 +10,14 @@ import { PromptItem, Category } from "@/utils/types";
 import { BROWSER_STORAGE_KEY, DEFAULT_CATEGORY_ID } from "@/utils/constants";
 import { getCategories, migratePromptsWithCategory } from "@/utils/categoryUtils";
 import {
+  getAttachmentRootHandle,
+  verifyReadWritePermission,
+} from "@/utils/attachments/fileSystem";
+import {
+  deletePromptAttachmentFiles,
+  duplicatePromptAttachmentFiles,
+} from "@/utils/attachments/promptAttachmentOperations";
+import {
   sortPrompts,
   filterPrompts,
   validateAndNormalizePrompts,
@@ -19,6 +27,49 @@ import {
   SortType,
 } from "@/utils/promptUtils";
 import { t } from "../../../utils/i18n";
+
+const getAuthorizedAttachmentRoot = async (): Promise<FileSystemDirectoryHandle> => {
+  const root = await getAttachmentRootHandle();
+
+  if (!root || !(await verifyReadWritePermission(root))) {
+    throw new Error(t('attachmentPermissionLost'));
+  }
+
+  return root;
+};
+
+export const deletePromptWithAttachments = async (
+  root: FileSystemDirectoryHandle,
+  prompts: PromptItem[],
+  id: string
+): Promise<PromptItem[]> => {
+  const prompt = prompts.find((p) => p.id === id);
+
+  if (!prompt) {
+    return prompts;
+  }
+
+  await deletePromptAttachmentFiles(root, prompt);
+  return prompts.filter((p) => p.id !== id);
+};
+
+export const buildPromptDuplicate = async (
+  root: FileSystemDirectoryHandle,
+  prompt: PromptItem,
+  copyLabel: string
+): Promise<PromptItem> => {
+  const newPromptId = crypto.randomUUID();
+  const attachments = await duplicatePromptAttachmentFiles(root, prompt, newPromptId);
+
+  return {
+    ...prompt,
+    id: newPromptId,
+    title: `${prompt.title} (${copyLabel})`,
+    lastModified: new Date().toISOString(),
+    pinned: false, // 副本默认不置顶
+    attachments,
+  };
+};
 
 const PromptManager = () => {
   const [prompts, setPrompts] = useState<PromptItem[]>([]);
@@ -213,11 +264,17 @@ const PromptManager = () => {
 
   const handleConfirmDelete = async () => {
     if (promptToDelete) {
-      const newPrompts = prompts.filter((p) => p.id !== promptToDelete);
-      await savePrompts(newPrompts);
+      try {
+        const root = await getAuthorizedAttachmentRoot();
+        const newPrompts = await deletePromptWithAttachments(root, prompts, promptToDelete);
+        await savePrompts(newPrompts);
 
-      if (editingPrompt?.id === promptToDelete) {
-        setEditingPrompt(null);
+        if (editingPrompt?.id === promptToDelete) {
+          setEditingPrompt(null);
+        }
+      } catch (err) {
+        console.error(t('attachmentRemoveFailed'), err);
+        setError(err instanceof Error ? err.message : t('attachmentRemoveFailed'));
       }
     }
   };
@@ -292,16 +349,15 @@ const PromptManager = () => {
     const prompt = prompts.find((p) => p.id === id);
     if (!prompt) return;
 
-    const newPrompt: PromptItem = {
-      ...prompt,
-      id: crypto.randomUUID(),
-      title: `${prompt.title} (${t('copyLabel')})`,
-      lastModified: new Date().toISOString(),
-      pinned: false, // 副本默认不置顶
-    };
-
-    const newPrompts = [newPrompt, ...prompts];
-    await savePrompts(newPrompts);
+    try {
+      const root = await getAuthorizedAttachmentRoot();
+      const newPrompt = await buildPromptDuplicate(root, prompt, t('copyLabel'));
+      const newPrompts = [newPrompt, ...prompts];
+      await savePrompts(newPrompts);
+    } catch (err) {
+      console.error(t('attachmentAddFailed'), err);
+      setError(err instanceof Error ? err.message : t('attachmentAddFailed'));
+    }
   };
 
   // 添加拖拽排序处理函数

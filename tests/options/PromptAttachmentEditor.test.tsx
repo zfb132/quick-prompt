@@ -24,6 +24,7 @@ vi.mock('@/utils/i18n', () => ({
   t: (key: string) => key,
 }))
 
+const fileSystem = await import('@/utils/attachments/fileSystem')
 const { default: PromptAttachmentEditor } = await import('@/entrypoints/options/components/PromptAttachmentEditor')
 
 const createAttachment = (overrides: Partial<PromptAttachment> = {}): PromptAttachment => ({
@@ -64,5 +65,19 @@ describe('PromptAttachmentEditor', () => {
     await waitFor(() => {
       expect(onChange).toHaveBeenCalledWith([])
     })
+  })
+
+  it('removes attachment metadata when the file is already missing', async () => {
+    vi.mocked(fileSystem.removeAttachmentFileFromRoot).mockRejectedValue(new DOMException('Missing', 'NotFoundError'))
+    const onChange = vi.fn()
+
+    render(<PromptAttachmentEditor promptId="prompt-1" attachments={[createAttachment()]} onChange={onChange} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'removeAttachment' }))
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith([])
+    })
+    expect(screen.queryByText('attachmentRemoveFailed')).not.toBeInTheDocument()
   })
 })

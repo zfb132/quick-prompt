@@ -32,6 +32,23 @@ const getAttachmentType = (attachment: PromptAttachment): string => {
   return attachment.type || 'application/octet-stream'
 }
 
+const isMissingAttachmentFileError = (err: unknown): boolean => {
+  if (err instanceof DOMException && err.name === 'NotFoundError') {
+    return true
+  }
+
+  if (err instanceof Error) {
+    const message = err.message.toLowerCase()
+    return err.name === 'NotFoundError'
+      || message.includes('notfound')
+      || message.includes('not found')
+      || message.includes('missing')
+      || message.includes('no such file')
+  }
+
+  return false
+}
+
 const PromptAttachmentEditor = ({
   promptId,
   attachments,
@@ -78,6 +95,11 @@ const PromptAttachmentEditor = ({
       await removeAttachmentFileFromRoot(root, attachment.relativePath)
       onChange(attachments.filter((item) => item.id !== attachment.id))
     } catch (err) {
+      if (isMissingAttachmentFileError(err)) {
+        onChange(attachments.filter((item) => item.id !== attachment.id))
+        return
+      }
+
       console.error(translate('attachmentRemoveFailed'), err)
       setError(err instanceof Error ? err.message : translate('attachmentRemoveFailed'))
     } finally {
