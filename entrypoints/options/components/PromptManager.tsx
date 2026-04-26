@@ -7,7 +7,6 @@ import ConfirmModal from "./ConfirmModal";
 import "../App.css";
 import "~/assets/tailwind.css";
 import { PromptItem, Category } from "@/utils/types";
-import { DEFAULT_CATEGORY_ID } from "@/utils/constants";
 import { getCategories, migratePromptsWithCategory } from "@/utils/categoryUtils";
 import { getAllPrompts, setAllPrompts } from "@/utils/promptStore";
 import {
@@ -86,7 +85,6 @@ const PromptManager = () => {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [initialContent, setInitialContent] = useState<string | null>(null);
-  const [draftPromptId, setDraftPromptId] = useState(() => crypto.randomUUID());
   const fileInputRef = useRef<HTMLInputElement>(null);
   // 添加远程导入相关状态
   const [isRemoteImportModalOpen, setIsRemoteImportModalOpen] = useState(false);
@@ -367,7 +365,6 @@ const PromptManager = () => {
 
   // Open modal for adding a new prompt
   const openAddModal = () => {
-    setDraftPromptId(crypto.randomUUID());
     setEditingPrompt(null);
     setIsModalOpen(true);
   };
@@ -922,31 +919,8 @@ const PromptManager = () => {
         >
           <PromptForm
             onSubmit={handlePromptSubmit}
-            initialData={
-              editingPrompt
-                ? {
-                    ...editingPrompt,
-                  }
-                : initialContent
-                ? {
-                    id: draftPromptId,
-                    title: "",
-                    content: initialContent,
-                    tags: [],
-                    enabled: true, // 默认启用
-                    categoryId: DEFAULT_CATEGORY_ID, // 添加默认分类ID
-                    attachments: [],
-                  }
-                : {
-                    id: draftPromptId,
-                    title: "",
-                    content: "",
-                    tags: [],
-                    enabled: true,
-                    categoryId: DEFAULT_CATEGORY_ID,
-                    attachments: [],
-                  }
-            }
+            initialData={editingPrompt ? { ...editingPrompt } : null}
+            initialContent={initialContent}
             onCancel={cancelEdit}
             isEditing={!!editingPrompt}
             availableTags={availableTags}

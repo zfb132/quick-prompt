@@ -11,12 +11,20 @@ import { t } from '../../../utils/i18n'
 interface PromptFormProps {
   onSubmit: (prompt: PromptItem | Omit<PromptItem, 'id'>) => Promise<void>
   initialData: PromptItem | null
+  initialContent?: string | null
   onCancel: () => void
   isEditing: boolean
   availableTags?: string[]
 }
 
-const PromptForm = ({ onSubmit, initialData, onCancel, isEditing, availableTags = [] }: PromptFormProps) => {
+const PromptForm = ({
+  onSubmit,
+  initialData,
+  initialContent,
+  onCancel,
+  isEditing,
+  availableTags = [],
+}: PromptFormProps) => {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [tags, setTags] = useState<string[]>([])
@@ -29,6 +37,8 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing, availableTags 
   const [error, setError] = useState<string | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
+  const [newPromptId, setNewPromptId] = useState(() => crypto.randomUUID())
+  const promptId = initialData?.id || newPromptId
 
   // 加载分类列表并初始化表单
   useEffect(() => {
@@ -50,7 +60,7 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing, availableTags 
           setCategoryId(getValidCategoryId(initialData.categoryId, enabledCategories))
         } else {
           setTitle('')
-          setContent('')
+          setContent(initialContent || '')
           setTags([])
           setNotes('')
           setAttachments([])
@@ -67,7 +77,7 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing, availableTags 
     }
 
     initForm()
-  }, [initialData])
+  }, [initialData, initialContent])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -93,9 +103,10 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing, availableTags 
 
     try {
       const now = new Date().toISOString()
+      const submittedPromptId = initialData?.id || newPromptId
       // Create prompt object
       const promptData = {
-        ...(initialData ? { id: initialData.id } : {}),
+        ...(submittedPromptId ? { id: submittedPromptId } : {}),
         title: title.trim(),
         content: content.trim(),
         tags,
@@ -118,6 +129,7 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing, availableTags 
         setNotes('')
         setAttachments([])
         setThumbnailUrl('')
+        setNewPromptId(crypto.randomUUID())
         // 保持当前分类选中，而不是重置为可能无效的默认分类
       }
     } catch (err) {
@@ -247,7 +259,7 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing, availableTags 
         </div>
 
         <PromptAttachmentEditor
-          promptId={initialData?.id || ''}
+          promptId={promptId}
           attachments={attachments}
           onChange={setAttachments}
           translate={t}
