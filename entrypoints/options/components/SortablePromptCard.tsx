@@ -3,6 +3,7 @@ import { useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import type { PromptItem, Category } from '@/utils/types'
 import { t } from '../../../utils/i18n'
+import PromptAttachmentPreview from './PromptAttachmentPreview'
 
 interface SortablePromptCardProps {
   prompt: PromptItem
@@ -152,6 +153,8 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
               {prompt.content}
             </span>
           </div>
+
+          <PromptAttachmentPreview attachments={prompt.attachments} compact />
 
           {/* 分类 */}
           {category && (
@@ -329,6 +332,8 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
             >
               {prompt.content}
             </p>
+
+            <PromptAttachmentPreview attachments={prompt.attachments} />
 
             {/* 备注 */}
             {prompt.notes && prompt.notes.trim() && (

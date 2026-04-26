@@ -253,6 +253,58 @@ export function getPromptSelectorStyles(): string {
       flex-wrap: wrap !important;
     }
 
+    .qp-attachments {
+      display: flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      flex-wrap: wrap !important;
+      margin-bottom: 8px !important;
+      max-width: 100% !important;
+    }
+
+    .qp-attachment {
+      display: inline-flex !important;
+      align-items: center !important;
+      gap: 6px !important;
+      max-width: 180px !important;
+      min-width: 0 !important;
+      padding: 3px 6px !important;
+      border: 1px solid var(--qp-border-color) !important;
+      border-radius: 4px !important;
+      background-color: var(--qp-bg-secondary) !important;
+      color: var(--qp-text-secondary) !important;
+    }
+
+    .qp-attachment-image {
+      width: 28px !important;
+      height: 28px !important;
+      object-fit: cover !important;
+      border-radius: 3px !important;
+      border: 1px solid var(--qp-border-color) !important;
+      flex-shrink: 0 !important;
+    }
+
+    .qp-attachment-meta {
+      display: flex !important;
+      flex-direction: column !important;
+      min-width: 0 !important;
+      line-height: 1.15 !important;
+    }
+
+    .qp-attachment-name {
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
+      color: var(--qp-text-primary) !important;
+      font-size: 11px !important;
+      font-weight: 500 !important;
+    }
+
+    .qp-attachment-size {
+      color: var(--qp-text-secondary) !important;
+      font-size: 10px !important;
+    }
+
     /* 分类显示 */
     .qp-prompt-category {
       display: flex !important;
@@ -638,4 +690,4 @@ export function getPromptSelectorStyles(): string {
       flex-shrink: 0 !important;
     }
   `;
-} 
+}

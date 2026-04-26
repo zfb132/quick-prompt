@@ -9,6 +9,7 @@ import { getCategories } from "@/utils/categoryUtils";
 import { getGlobalSetting } from "@/utils/globalSettings";
 import { t } from "@/utils/i18n";
 import { getNewlineStrategy, setElementContentByStrategy } from "@/utils/newlineRules";
+import PromptAttachmentPreview from "./PromptAttachmentPreview";
 
 interface PromptSelectorProps {
   prompts: PromptItemWithVariables[];
@@ -544,6 +545,7 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
                     <div className={`qp-prompt-body ${prompt.thumbnailUrl ? 'qp-has-thumbnail' : ''}`}>
                       <div className="qp-prompt-content">
                         <div className="qp-prompt-preview">{prompt.content}</div>
+                        <PromptAttachmentPreview attachments={prompt.attachments} />
                         <div className="qp-prompt-meta">
                           {category && (
                             <div className="qp-prompt-category">

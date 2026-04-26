@@ -1,14 +1,65 @@
 import { BROWSER_STORAGE_KEY } from "@/utils/constants"
 import { authenticateWithGoogle, logoutGoogle, USER_INFO_STORAGE_KEY } from "@/utils/auth/googleAuth"
 import { syncFromNotionToLocal, syncLocalDataToNotion } from "@/utils/sync/notionSync"
-import type { PromptItem } from "@/utils/types"
+import type { PromptAttachment, PromptItem } from "@/utils/types"
 import { t } from "@/utils/i18n"
+import { isImageAttachment } from "@/utils/attachments/metadata"
+import {
+  getAttachmentRootHandle,
+  getFileFromAttachmentRoot,
+  verifyReadWritePermission,
+} from "@/utils/attachments/fileSystem"
+
+export type AttachmentPreviewResponse =
+  | { success: true; buffer: ArrayBuffer; contentType: string }
+  | { success: false; error: string }
+
+const readFileAsArrayBuffer = (file: File): Promise<ArrayBuffer> => {
+  if (typeof file.arrayBuffer === 'function') {
+    return file.arrayBuffer()
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as ArrayBuffer)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsArrayBuffer(file)
+  })
+}
+
+export const buildAttachmentPreviewResponse = async (
+  attachment: PromptAttachment
+): Promise<AttachmentPreviewResponse> => {
+  if (!isImageAttachment(attachment)) {
+    return { success: false, error: 'attachmentPreviewUnavailable' }
+  }
+
+  try {
+    const root = await getAttachmentRootHandle()
+    if (!root || !(await verifyReadWritePermission(root))) {
+      return { success: false, error: t('attachmentPermissionLost') }
+    }
+
+    const file = await getFileFromAttachmentRoot(root, attachment.relativePath)
+    return {
+      success: true,
+      buffer: await readFileAsArrayBuffer(file),
+      contentType: file.type || attachment.type,
+    }
+  } catch (error: any) {
+    return { success: false, error: error?.message || t('attachmentPermissionLost') }
+  }
+}
 
 // Main message handler
 export const handleRuntimeMessage = async (message: any, sender: Browser.runtime.MessageSender, sendResponse: (response?: any) => void) => {
   console.log('[MSG_RECEIVED V3] Background received message:', message, 'from sender:', sender);
 
   // Existing message handlers
+  if (message.action === 'getAttachmentPreview') {
+    return buildAttachmentPreviewResponse(message.attachment)
+  }
+
   if (message.action === 'getPrompts') {
     try {
       const result = await browser.storage.local.get(BROWSER_STORAGE_KEY);
