@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import type { PromptItem, Category } from '@/utils/types'
+import type { PromptItem, Category, PromptAttachment } from '@/utils/types'
 import { getCategories } from '@/utils/categoryUtils'
 import { DEFAULT_CATEGORY_ID } from '@/utils/constants'
 import { getValidCategoryId } from '@/utils/promptUtils'
+import PromptAttachmentEditor from './PromptAttachmentEditor'
 import { t } from '../../../utils/i18n'
 
 interface PromptFormProps {
@@ -18,6 +19,7 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
   const [content, setContent] = useState('')
   const [tags, setTags] = useState('')
   const [notes, setNotes] = useState('')
+  const [attachments, setAttachments] = useState<PromptAttachment[]>([])
   const [thumbnailUrl, setThumbnailUrl] = useState('')
   const [enabled, setEnabled] = useState(true)
   const [categoryId, setCategoryId] = useState(DEFAULT_CATEGORY_ID)
@@ -40,6 +42,7 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
           setContent(initialData.content)
           setTags(initialData.tags.join(', '))
           setNotes(initialData.notes || '')
+          setAttachments(initialData.attachments || [])
           setThumbnailUrl(initialData.thumbnailUrl || '')
           setEnabled(initialData.enabled !== undefined ? initialData.enabled : true)
           setCategoryId(getValidCategoryId(initialData.categoryId, enabledCategories))
@@ -48,6 +51,7 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
           setContent('')
           setTags('')
           setNotes('')
+          setAttachments([])
           setThumbnailUrl('')
           setEnabled(true)
           setCategoryId(getValidCategoryId(DEFAULT_CATEGORY_ID, enabledCategories))
@@ -99,6 +103,7 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
         content: content.trim(),
         tags: tagList,
         notes: notes.trim(),
+        attachments,
         thumbnailUrl: thumbnailUrl.trim() || undefined,
         enabled,
         categoryId,
@@ -113,6 +118,7 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
         setContent('')
         setTags('')
         setNotes('')
+        setAttachments([])
         setThumbnailUrl('')
         // 保持当前分类选中，而不是重置为可能无效的默认分类
       }
@@ -243,6 +249,13 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
             {t('notesHelp')}
           </div>
         </div>
+
+        <PromptAttachmentEditor
+          promptId={initialData?.id || ''}
+          attachments={attachments}
+          onChange={setAttachments}
+          translate={t}
+        />
 
         <div>
           <label htmlFor='thumbnailUrl' className='block text-sm font-medium text-gray-700 mb-1'>

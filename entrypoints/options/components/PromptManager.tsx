@@ -28,6 +28,7 @@ const PromptManager = () => {
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [initialContent, setInitialContent] = useState<string | null>(null);
+  const [draftPromptId, setDraftPromptId] = useState(() => crypto.randomUUID());
   const fileInputRef = useRef<HTMLInputElement>(null);
   // 添加远程导入相关状态
   const [isRemoteImportModalOpen, setIsRemoteImportModalOpen] = useState(false);
@@ -161,10 +162,11 @@ const PromptManager = () => {
   };
 
   // Add a new prompt
-  const addPrompt = async (prompt: Omit<PromptItem, "id">) => {
+  const addPrompt = async (prompt: Omit<PromptItem, "id"> | PromptItem) => {
+    const submittedId = "id" in prompt ? prompt.id : undefined;
     const newPrompt: PromptItem = {
       ...prompt,
-      id: crypto.randomUUID(),
+      id: submittedId || crypto.randomUUID(),
       enabled: prompt.enabled !== undefined ? prompt.enabled : true, // 确保新建的提示词默认启用
       lastModified: prompt.lastModified || new Date().toISOString(), // 确保有lastModified字段
     };
@@ -187,7 +189,7 @@ const PromptManager = () => {
   const handlePromptSubmit = async (
     prompt: PromptItem | Omit<PromptItem, "id">
   ) => {
-    if ("id" in prompt && prompt?.id) {
+    if ("id" in prompt && prompt?.id && prompts.some((item) => item.id === prompt.id)) {
       // It's an update operation
       await updatePrompt(prompt as PromptItem);
     } else {
@@ -244,6 +246,7 @@ const PromptManager = () => {
 
   // Open modal for adding a new prompt
   const openAddModal = () => {
+    setDraftPromptId(crypto.randomUUID());
     setEditingPrompt(null);
     setIsModalOpen(true);
   };
@@ -774,14 +777,23 @@ const PromptManager = () => {
                   }
                 : initialContent
                 ? {
-                    id: "",
+                    id: draftPromptId,
                     title: "",
                     content: initialContent,
                     tags: [],
                     enabled: true, // 默认启用
                     categoryId: DEFAULT_CATEGORY_ID, // 添加默认分类ID
+                    attachments: [],
                   }
-                : null
+                : {
+                    id: draftPromptId,
+                    title: "",
+                    content: "",
+                    tags: [],
+                    enabled: true,
+                    categoryId: DEFAULT_CATEGORY_ID,
+                    attachments: [],
+                  }
             }
             onCancel={cancelEdit}
             isEditing={!!editingPrompt}

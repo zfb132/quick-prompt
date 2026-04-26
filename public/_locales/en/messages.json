@@ -1551,5 +1551,26 @@
   },
   "attachmentStorageUnsupported": {
     "message": "This browser does not support File System Access API."
+  },
+  "attachmentsLabel": {
+    "message": "Attachments"
+  },
+  "attachmentsOptional": {
+    "message": "Optional"
+  },
+  "addAttachment": {
+    "message": "Add attachment"
+  },
+  "removeAttachment": {
+    "message": "Remove attachment"
+  },
+  "attachmentPermissionLost": {
+    "message": "Attachment folder permission is missing. Reauthorize the folder and try again."
+  },
+  "attachmentAddFailed": {
+    "message": "Failed to add attachment."
+  },
+  "attachmentRemoveFailed": {
+    "message": "Failed to remove attachment."
   }
 }

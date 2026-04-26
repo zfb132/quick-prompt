@@ -1551,5 +1551,26 @@
   },
   "attachmentStorageUnsupported": {
     "message": "当前浏览器不支持 File System Access API。"
+  },
+  "attachmentsLabel": {
+    "message": "附件"
+  },
+  "attachmentsOptional": {
+    "message": "可选"
+  },
+  "addAttachment": {
+    "message": "添加附件"
+  },
+  "removeAttachment": {
+    "message": "移除附件"
+  },
+  "attachmentPermissionLost": {
+    "message": "附件目录权限已失效，请重新授权后再试。"
+  },
+  "attachmentAddFailed": {
+    "message": "添加附件失败。"
+  },
+  "attachmentRemoveFailed": {
+    "message": "移除附件失败。"
   }
 }
