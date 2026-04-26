@@ -120,6 +120,18 @@ describe("attachment file system helpers", () => {
     await expect(verifyReadWritePermission(root as any)).resolves.toBe(false);
   });
 
+  it("checks readwrite permission without requesting it", async () => {
+    const root = {
+      queryPermission: vi.fn().mockResolvedValue("prompt"),
+      requestPermission: vi.fn().mockResolvedValue("granted"),
+    };
+
+    const { hasReadWritePermission } = await import("@/utils/attachments/fileSystem");
+    await expect(hasReadWritePermission(root as any)).resolves.toBe(false);
+    expect(root.queryPermission).toHaveBeenCalledWith({ mode: "readwrite" });
+    expect(root.requestPermission).not.toHaveBeenCalled();
+  });
+
   it("rejects picking an attachment root when the File System Access API is unavailable", async () => {
     vi.stubGlobal("showDirectoryPicker", undefined);
 

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { browser } from '#imports'
 import type { PromptAttachment } from '@/utils/types'
 import { formatFileSize, isImageAttachment } from '@/utils/attachments/metadata'
+import { t } from '@/utils/i18n'
 
 interface PromptAttachmentPreviewProps {
   attachments?: PromptAttachment[]
@@ -172,7 +173,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
           className="qp-image-viewer"
           role="dialog"
           aria-modal="true"
-          aria-label="imagePreviewDialog"
+          aria-label={t('imagePreviewDialog')}
           onClick={() => setActiveImageId(null)}
         >
           <div className="qp-image-viewer-inner" onClick={(event) => event.stopPropagation()}>
@@ -184,7 +185,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
             <button
               type="button"
               className="qp-image-viewer-close"
-              aria-label="closeImagePreview"
+              aria-label={t('closeImagePreview')}
               onClick={() => setActiveImageId(null)}
             >
               <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -196,7 +197,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
                 <button
                   type="button"
                   className="qp-image-viewer-nav qp-image-viewer-prev"
-                  aria-label="previousImage"
+                  aria-label={t('previousImage')}
                   onClick={showPreviousImage}
                 >
                   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -206,7 +207,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
                 <button
                   type="button"
                   className="qp-image-viewer-nav qp-image-viewer-next"
-                  aria-label="nextImage"
+                  aria-label={t('nextImage')}
                   onClick={showNextImage}
                 >
                   <svg viewBox="0 0 24 24" aria-hidden="true">

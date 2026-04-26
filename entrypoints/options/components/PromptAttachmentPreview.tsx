@@ -4,7 +4,7 @@ import { formatFileSize, isImageAttachment } from '@/utils/attachments/metadata'
 import {
   getAttachmentRootHandle,
   getFileFromAttachmentRoot,
-  verifyReadWritePermission,
+  hasReadWritePermission,
 } from '@/utils/attachments/fileSystem'
 import { t } from '@/utils/i18n'
 
@@ -70,7 +70,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
 
       try {
         const root = await getAttachmentRootHandle()
-        if (!root || !(await verifyReadWritePermission(root))) {
+        if (!root || !(await hasReadWritePermission(root))) {
           throw new Error(t('attachmentPermissionLost'))
         }
 

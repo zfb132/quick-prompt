@@ -7,12 +7,14 @@ import { isImageAttachment } from "@/utils/attachments/metadata"
 import {
   getAttachmentRootHandle,
   getFileFromAttachmentRoot,
-  verifyReadWritePermission,
+  hasReadWritePermission,
 } from "@/utils/attachments/fileSystem"
 
 export type AttachmentPreviewResponse =
   | { success: true; base64: string; contentType: string }
   | { success: false; error: string }
+
+const BASE64_CHUNK_SIZE = 0x6000
 
 const readFileAsArrayBuffer = (file: File): Promise<ArrayBuffer> => {
   if (typeof file.arrayBuffer === 'function') {
@@ -29,13 +31,20 @@ const readFileAsArrayBuffer = (file: File): Promise<ArrayBuffer> => {
 
 const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
   const bytes = new Uint8Array(buffer)
-  let binary = ''
+  const chunks: string[] = []
 
-  for (let index = 0; index < bytes.length; index++) {
-    binary += String.fromCharCode(bytes[index])
+  for (let offset = 0; offset < bytes.length; offset += BASE64_CHUNK_SIZE) {
+    const chunk = bytes.subarray(offset, offset + BASE64_CHUNK_SIZE)
+    let binary = ''
+
+    for (let index = 0; index < chunk.length; index++) {
+      binary += String.fromCharCode(chunk[index])
+    }
+
+    chunks.push(btoa(binary))
   }
 
-  return btoa(binary)
+  return chunks.join('')
 }
 
 export const buildAttachmentPreviewResponse = async (
@@ -47,7 +56,7 @@ export const buildAttachmentPreviewResponse = async (
 
   try {
     const root = await getAttachmentRootHandle()
-    if (!root || !(await verifyReadWritePermission(root))) {
+    if (!root || !(await hasReadWritePermission(root))) {
       return { success: false, error: t('attachmentPermissionLost') }
     }
 

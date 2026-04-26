@@ -240,18 +240,26 @@ export const getAttachmentRootHandle = async (): Promise<AttachmentStorageRootHa
   return handle;
 };
 
-export const verifyReadWritePermission = async (handle: AttachmentStorageRootHandle | FileSystemHandle): Promise<boolean> => {
+const READ_WRITE_PERMISSION: FileSystemHandlePermissionDescriptor = { mode: "readwrite" };
+
+export const hasReadWritePermission = async (handle: AttachmentStorageRootHandle | FileSystemHandle): Promise<boolean> => {
   if (isInternalAttachmentRoot(handle)) {
     return true;
   }
 
-  const descriptor: FileSystemHandlePermissionDescriptor = { mode: "readwrite" };
+  return (await handle.queryPermission(READ_WRITE_PERMISSION)) === "granted";
+};
 
-  if ((await handle.queryPermission(descriptor)) === "granted") {
+export const verifyReadWritePermission = async (handle: AttachmentStorageRootHandle | FileSystemHandle): Promise<boolean> => {
+  if (await hasReadWritePermission(handle)) {
     return true;
   }
 
-  return (await handle.requestPermission(descriptor)) === "granted";
+  if (isInternalAttachmentRoot(handle)) {
+    return true;
+  }
+
+  return (await handle.requestPermission(READ_WRITE_PERMISSION)) === "granted";
 };
 
 export const pickAndStoreAttachmentRoot = async (): Promise<FileSystemDirectoryHandle> => {

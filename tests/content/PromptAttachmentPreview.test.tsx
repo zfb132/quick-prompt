@@ -13,6 +13,8 @@ vi.mock('#imports', () => ({
   },
 }))
 
+vi.mock('@/utils/i18n', () => ({ t: (key: string) => `localized:${key}` }))
+
 const { default: PromptAttachmentPreview } = await import('@/entrypoints/content/components/PromptAttachmentPreview')
 
 const createAttachment = (overrides: Partial<PromptAttachment> = {}): PromptAttachment => ({
@@ -117,12 +119,14 @@ describe('content PromptAttachmentPreview', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: 'first.png' }))
 
-    const dialog = screen.getByRole('dialog', { name: 'imagePreviewDialog' })
+    const dialog = screen.getByRole('dialog', { name: 'localized:imagePreviewDialog' })
     expect(dialog).toBeInTheDocument()
     expect(within(dialog).getByRole('img', { name: 'first.png' })).toHaveAttribute('src', 'blob:first-content-preview')
 
-    fireEvent.click(screen.getByRole('button', { name: 'nextImage' }))
+    fireEvent.click(screen.getByRole('button', { name: 'localized:nextImage' }))
     expect(within(dialog).getByRole('img', { name: 'second.png' })).toHaveAttribute('src', 'blob:second-content-preview')
+    expect(screen.getByRole('button', { name: 'localized:closeImagePreview' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'localized:previousImage' })).toBeInTheDocument()
   })
 
   it('loads immediately when IntersectionObserver is unavailable and revokes object URLs on unmount', async () => {

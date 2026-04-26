@@ -6,6 +6,7 @@ vi.mock('@/utils/i18n', () => ({ t: (key: string) => key }))
 vi.mock('@/utils/attachments/fileSystem', () => ({
   getAttachmentRootHandle: vi.fn(),
   getFileFromAttachmentRoot: vi.fn(),
+  hasReadWritePermission: vi.fn(),
   verifyReadWritePermission: vi.fn(),
 }))
 
@@ -29,7 +30,7 @@ describe('buildAttachmentPreviewResponse', () => {
 
   it('returns JSON-safe base64 and content type for image attachments', async () => {
     vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue({ name: 'root' } as any)
-    vi.mocked(fs.verifyReadWritePermission).mockResolvedValue(true)
+    vi.mocked(fs.hasReadWritePermission).mockResolvedValue(true)
     vi.mocked(fs.getFileFromAttachmentRoot).mockResolvedValue(new File(['data'], 'image.png', { type: 'image/png' }))
 
     const response = await buildAttachmentPreviewResponse(createAttachment())
@@ -44,6 +45,7 @@ describe('buildAttachmentPreviewResponse', () => {
     expect(JSON.parse(JSON.stringify(response))).toEqual(response)
     expect(atob(response.base64)).toBe('data')
     expect(response.contentType).toBe('image/png')
+    expect(fs.verifyReadWritePermission).not.toHaveBeenCalled()
   })
 
   it('returns a failure when the root handle is unavailable', async () => {
@@ -57,11 +59,32 @@ describe('buildAttachmentPreviewResponse', () => {
 
   it('returns a failure when root permission is unavailable', async () => {
     vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue({ name: 'root' } as any)
-    vi.mocked(fs.verifyReadWritePermission).mockResolvedValue(false)
+    vi.mocked(fs.hasReadWritePermission).mockResolvedValue(false)
 
     const response = await buildAttachmentPreviewResponse(createAttachment())
 
     expect(response).toEqual({ success: false, error: 'attachmentPermissionLost' })
     expect(fs.getFileFromAttachmentRoot).not.toHaveBeenCalled()
+  })
+
+  it('encodes large image previews without enforcing a fixed size limit', async () => {
+    const largeImageBytes = new Uint8Array(5 * 1024 * 1024 + 1)
+    largeImageBytes.fill(65)
+    vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue({ name: 'root' } as any)
+    vi.mocked(fs.hasReadWritePermission).mockResolvedValue(true)
+    vi.mocked(fs.getFileFromAttachmentRoot).mockResolvedValue(new File(
+      [largeImageBytes],
+      'large.png',
+      { type: 'image/png' }
+    ))
+
+    const response = await buildAttachmentPreviewResponse(createAttachment({
+      name: 'large.png',
+      size: 5 * 1024 * 1024 + 1,
+    }))
+
+    expect(response.success).toBe(true)
+    if (!response.success) throw new Error('Expected success response')
+    expect(atob(response.base64)).toHaveLength(largeImageBytes.length)
   })
 })

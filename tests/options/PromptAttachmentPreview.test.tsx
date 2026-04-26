@@ -8,6 +8,7 @@ vi.mock('@/utils/i18n', () => ({ t: (key: string) => key }))
 vi.mock('@/utils/attachments/fileSystem', () => ({
   getAttachmentRootHandle: vi.fn(),
   getFileFromAttachmentRoot: vi.fn(),
+  hasReadWritePermission: vi.fn(),
   verifyReadWritePermission: vi.fn(),
 }))
 
@@ -40,7 +41,7 @@ describe('PromptAttachmentPreview', () => {
 
   it('renders an image preview when the stored attachment file can be read', async () => {
     vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue({ name: 'root' } as any)
-    vi.mocked(fs.verifyReadWritePermission).mockResolvedValue(true)
+    vi.mocked(fs.hasReadWritePermission).mockResolvedValue(true)
     vi.mocked(fs.getFileFromAttachmentRoot).mockResolvedValue(new File(['image-bytes'], 'image.png', { type: 'image/png' }))
 
     render(<PromptAttachmentPreview attachments={[createAttachment()]} />)
@@ -52,6 +53,7 @@ describe('PromptAttachmentPreview', () => {
     expect(screen.getByText('image.png')).toBeInTheDocument()
     expect(screen.getByText('1.5 KB')).toBeInTheDocument()
     expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(File))
+    expect(fs.verifyReadWritePermission).not.toHaveBeenCalled()
   })
 
   it('opens a large image viewer and switches between image attachments', async () => {
@@ -59,7 +61,7 @@ describe('PromptAttachmentPreview', () => {
       .mockReturnValueOnce('blob:first-preview')
       .mockReturnValueOnce('blob:second-preview')
     vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue({ name: 'root' } as any)
-    vi.mocked(fs.verifyReadWritePermission).mockResolvedValue(true)
+    vi.mocked(fs.hasReadWritePermission).mockResolvedValue(true)
     vi.mocked(fs.getFileFromAttachmentRoot).mockResolvedValue(new File(['image-bytes'], 'image.png', { type: 'image/png' }))
 
     render(
@@ -97,7 +99,7 @@ describe('PromptAttachmentPreview', () => {
 
   it('revokes image preview object URLs on unmount', async () => {
     vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue({ name: 'root' } as any)
-    vi.mocked(fs.verifyReadWritePermission).mockResolvedValue(true)
+    vi.mocked(fs.hasReadWritePermission).mockResolvedValue(true)
     vi.mocked(fs.getFileFromAttachmentRoot).mockResolvedValue(new File(['image-bytes'], 'image.png', { type: 'image/png' }))
 
     const { unmount } = render(<PromptAttachmentPreview attachments={[createAttachment()]} />)
