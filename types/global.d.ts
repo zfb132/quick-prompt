@@ -26,8 +26,64 @@ interface NavigatorUAData extends UADataValues {
 }
 
 declare global {
+  type FileSystemPermissionMode = "read" | "readwrite";
+
+  interface FileSystemHandlePermissionDescriptor {
+    mode?: FileSystemPermissionMode;
+  }
+
+  interface FileSystemHandle {
+    readonly kind: "file" | "directory";
+    readonly name: string;
+    queryPermission(descriptor?: FileSystemHandlePermissionDescriptor): Promise<PermissionState>;
+    requestPermission(descriptor?: FileSystemHandlePermissionDescriptor): Promise<PermissionState>;
+  }
+
+  interface FileSystemCreateWritableOptions {
+    keepExistingData?: boolean;
+  }
+
+  interface FileSystemWritableFileStream {
+    write(data: Blob): Promise<void>;
+    close(): Promise<void>;
+  }
+
+  interface FileSystemFileHandle extends FileSystemHandle {
+    readonly kind: "file";
+    createWritable(options?: FileSystemCreateWritableOptions): Promise<FileSystemWritableFileStream>;
+    getFile(): Promise<File>;
+  }
+
+  interface FileSystemGetDirectoryOptions {
+    create?: boolean;
+  }
+
+  interface FileSystemGetFileOptions {
+    create?: boolean;
+  }
+
+  interface FileSystemRemoveOptions {
+    recursive?: boolean;
+  }
+
+  interface FileSystemDirectoryHandle extends FileSystemHandle {
+    readonly kind: "directory";
+    getDirectoryHandle(name: string, options?: FileSystemGetDirectoryOptions): Promise<FileSystemDirectoryHandle>;
+    getFileHandle(name: string, options?: FileSystemGetFileOptions): Promise<FileSystemFileHandle>;
+    removeEntry(name: string, options?: FileSystemRemoveOptions): Promise<void>;
+  }
+
+  interface DirectoryPickerOptions {
+    mode?: FileSystemPermissionMode;
+    startIn?: string | FileSystemHandle;
+  }
+
   interface Navigator {
     readonly userAgentData?: NavigatorUAData;
+  }
+
+  interface Window {
+    showDirectoryPicker(options?: DirectoryPickerOptions): Promise<FileSystemDirectoryHandle>;
   }
 }
 
