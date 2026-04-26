@@ -59,8 +59,9 @@ const configSettings = {
 };
 
 const flushPromises = async () => {
-  await Promise.resolve();
-  await Promise.resolve();
+  for (let i = 0; i < 20; i++) {
+    await Promise.resolve();
+  }
 };
 
 describe("storageManager WebDAV auto upload", () => {
@@ -158,6 +159,25 @@ describe("storageManager WebDAV auto upload", () => {
     });
   });
 
+  it("runs WebDAV upload when only categories change", async () => {
+    const { setupStorageChangeListeners } = await import("@/utils/browser/storageManager");
+    setupStorageChangeListeners();
+
+    storageChangeListener?.({ [CATEGORIES_STORAGE_KEY]: {} }, "local");
+    await vi.advanceTimersByTimeAsync(3000);
+    await flushPromises();
+
+    expect(webdavBackup.uploadWebDavBackup).toHaveBeenCalledWith(
+      expect.objectContaining({
+        serverUrl: "https://dav.example.com",
+        remoteDir: "quick-prompt",
+      }),
+      rootHandle,
+      [prompt],
+      [category]
+    );
+  });
+
   it("does not upload when WebDAV auto sync is disabled", async () => {
     mockBrowser.storage.sync.get.mockResolvedValueOnce({
       ...configSettings,
@@ -215,6 +235,23 @@ describe("storageManager WebDAV auto upload", () => {
     });
   });
 
+  it("does not upload or write status when serverUrl protocol is invalid", async () => {
+    mockBrowser.storage.sync.get.mockResolvedValueOnce({
+      ...configSettings,
+      [WEBDAV_STORAGE_KEYS.SERVER_URL]: "ftp://dav.example.com",
+    });
+    const { handleWebDavAutoSyncForTest } = await import("@/utils/browser/storageManager");
+
+    handleWebDavAutoSyncForTest();
+    await vi.advanceTimersByTimeAsync(3000);
+    await flushPromises();
+
+    expect(webdavBackup.uploadWebDavBackup).not.toHaveBeenCalled();
+    expect(mockBrowser.storage.local.set).not.toHaveBeenCalledWith({
+      [WEBDAV_STORAGE_KEYS.SYNC_STATUS]: expect.anything(),
+    });
+  });
+
   it("writes an error status when WebDAV upload fails", async () => {
     vi.mocked(webdavBackup.uploadWebDavBackup).mockResolvedValueOnce({
       success: false,
@@ -235,5 +272,83 @@ describe("storageManager WebDAV auto upload", () => {
         completedTime: expect.any(Number),
       }),
     });
+  });
+
+  it("does not write a hardcoded fallback error when WebDAV upload returns no error details", async () => {
+    vi.mocked(webdavBackup.uploadWebDavBackup).mockResolvedValueOnce({
+      success: false,
+      uploadedFiles: [],
+      errors: [],
+    });
+    const { handleWebDavAutoSyncForTest } = await import("@/utils/browser/storageManager");
+
+    handleWebDavAutoSyncForTest();
+    await vi.advanceTimersByTimeAsync(3000);
+    await flushPromises();
+
+    expect(mockBrowser.storage.local.set).toHaveBeenCalledWith({
+      [WEBDAV_STORAGE_KEYS.SYNC_STATUS]: expect.objectContaining({
+        status: "error",
+        success: false,
+        completedTime: expect.any(Number),
+      }),
+    });
+    expect(mockBrowser.storage.local.set).not.toHaveBeenCalledWith({
+      [WEBDAV_STORAGE_KEYS.SYNC_STATUS]: expect.objectContaining({
+        error: expect.any(String),
+      }),
+    });
+  });
+
+  it("queues one latest WebDAV upload while another upload is in progress", async () => {
+    const updatedPrompt = { ...prompt, title: "Prompt 1 updated" };
+    let storedPrompts = [prompt];
+    mockBrowser.storage.local.get.mockImplementation(async (key: string) => {
+      if (key === BROWSER_STORAGE_KEY) return { [BROWSER_STORAGE_KEY]: storedPrompts };
+      if (key === CATEGORIES_STORAGE_KEY) return { [CATEGORIES_STORAGE_KEY]: [category] };
+      return {};
+    });
+
+    let resolveFirstUpload!: (result: { success: boolean; uploadedFiles: string[]; errors: string[] }) => void;
+    vi.mocked(webdavBackup.uploadWebDavBackup)
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        resolveFirstUpload = resolve;
+      }))
+      .mockResolvedValueOnce({
+        success: true,
+        uploadedFiles: ["quick-prompt-backup.json"],
+        errors: [],
+      });
+
+    const { handleWebDavAutoSyncForTest } = await import("@/utils/browser/storageManager");
+
+    handleWebDavAutoSyncForTest();
+    await vi.advanceTimersByTimeAsync(3000);
+    await flushPromises();
+    expect(webdavBackup.uploadWebDavBackup).toHaveBeenCalledTimes(1);
+
+    storedPrompts = [updatedPrompt];
+    handleWebDavAutoSyncForTest();
+    await vi.advanceTimersByTimeAsync(3000);
+    await flushPromises();
+
+    expect(webdavBackup.uploadWebDavBackup).toHaveBeenCalledTimes(1);
+
+    await vi.advanceTimersByTimeAsync(1);
+    resolveFirstUpload({
+      success: true,
+      uploadedFiles: ["quick-prompt-backup.json"],
+      errors: [],
+    });
+    await flushPromises();
+
+    expect(webdavBackup.uploadWebDavBackup).toHaveBeenCalledTimes(2);
+    expect(webdavBackup.uploadWebDavBackup).toHaveBeenNthCalledWith(
+      2,
+      expect.any(Object),
+      rootHandle,
+      [updatedPrompt],
+      [category]
+    );
   });
 });

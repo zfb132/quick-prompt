@@ -11,6 +11,9 @@ import type { PromptItem, Category } from "@/utils/types"
 // Debounce timer for Gist auto-sync
 let gistSyncTimer: ReturnType<typeof setTimeout> | null = null
 let webDavSyncTimer: ReturnType<typeof setTimeout> | null = null
+let webDavSyncInProgress = false
+let webDavSyncPending = false
+let webDavSyncSequence = 0
 
 // Setup storage change listeners for auto-sync
 export const setupStorageChangeListeners = (): void => {
@@ -228,7 +231,7 @@ const runWebDavAutoSync = async (): Promise<void> => {
     const categoriesResult = await browser.storage.local.get(CATEGORIES_STORAGE_KEY)
     const prompts = (promptsResult[BROWSER_STORAGE_KEY] as PromptItem[]) || []
     const categories = (categoriesResult[CATEGORIES_STORAGE_KEY] as Category[]) || []
-    const syncId = `webdav_auto_${Date.now()}`
+    const syncId = `webdav_auto_${Date.now()}_${++webDavSyncSequence}`
 
     await setWebDavSyncStatus({
       id: syncId,
@@ -248,11 +251,12 @@ const runWebDavAutoSync = async (): Promise<void> => {
           completedTime: Date.now(),
         })
       } else {
+        const error = result.errors.join("\n")
         await setWebDavSyncStatus({
           id: syncId,
           status: "error",
           success: false,
-          error: result.errors.join("\n") || "未知错误",
+          ...(error ? { error } : {}),
           uploadedFiles: result.uploadedFiles,
           completedTime: Date.now(),
         })
@@ -271,10 +275,28 @@ const runWebDavAutoSync = async (): Promise<void> => {
   }
 }
 
+const requestWebDavAutoSync = async (): Promise<void> => {
+  if (webDavSyncInProgress) {
+    webDavSyncPending = true
+    return
+  }
+
+  webDavSyncInProgress = true
+  try {
+    do {
+      webDavSyncPending = false
+      await runWebDavAutoSync()
+    } while (webDavSyncPending)
+  } finally {
+    webDavSyncInProgress = false
+  }
+}
+
 const handleWebDavAutoSync = () => {
   if (webDavSyncTimer) clearTimeout(webDavSyncTimer)
   webDavSyncTimer = setTimeout(() => {
-    runWebDavAutoSync()
+    webDavSyncTimer = null
+    void requestWebDavAutoSync()
   }, 3000)
 }
 
