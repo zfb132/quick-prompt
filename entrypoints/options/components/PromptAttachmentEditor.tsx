@@ -6,7 +6,10 @@ import {
   verifyReadWritePermission,
 } from '@/utils/attachments/fileSystem'
 import { formatFileSize } from '@/utils/attachments/metadata'
-import { createAttachmentFromFile } from '@/utils/attachments/promptAttachmentOperations'
+import {
+  createAttachmentFromFile,
+  isMissingAttachmentFileError,
+} from '@/utils/attachments/promptAttachmentOperations'
 import type { t as repoTranslate } from '@/utils/i18n'
 
 interface PromptAttachmentEditorProps {
@@ -30,23 +33,6 @@ const getAuthorizedRoot = async (translate: typeof repoTranslate): Promise<FileS
 
 const getAttachmentType = (attachment: PromptAttachment): string => {
   return attachment.type || 'application/octet-stream'
-}
-
-const isMissingAttachmentFileError = (err: unknown): boolean => {
-  if (err instanceof DOMException && err.name === 'NotFoundError') {
-    return true
-  }
-
-  if (err instanceof Error) {
-    const message = err.message.toLowerCase()
-    return err.name === 'NotFoundError'
-      || message.includes('notfound')
-      || message.includes('not found')
-      || message.includes('missing')
-      || message.includes('no such file')
-  }
-
-  return false
 }
 
 const PromptAttachmentEditor = ({

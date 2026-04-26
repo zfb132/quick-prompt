@@ -63,6 +63,51 @@ describe('prompt attachment operations', () => {
     expect(fileSystem.removeAttachmentFileFromRoot).toHaveBeenCalledTimes(2)
   })
 
+  it('ignores missing attachment files while deleting prompt attachments', async () => {
+    vi.mocked(fileSystem.removeAttachmentFileFromRoot).mockRejectedValueOnce(new DOMException('Missing', 'NotFoundError'))
+
+    await expect(deletePromptAttachmentFiles({} as any, createPrompt({
+      attachments: [
+        { id: 'a', name: 'a.txt', type: 'text/plain', size: 1, relativePath: 'attachments/prompt-1/a-a.txt', createdAt: 'now' },
+      ],
+    }))).resolves.toBeUndefined()
+  })
+
+  it('attempts every attachment deletion when one has a hard failure', async () => {
+    vi.mocked(fileSystem.removeAttachmentFileFromRoot)
+      .mockRejectedValueOnce(new Error('disk write failed'))
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined)
+
+    await expect(deletePromptAttachmentFiles({} as any, createPrompt({
+      attachments: [
+        { id: 'a', name: 'a.txt', type: 'text/plain', size: 1, relativePath: 'attachments/prompt-1/a-a.txt', createdAt: 'now' },
+        { id: 'b', name: 'b.txt', type: 'text/plain', size: 1, relativePath: 'attachments/prompt-1/b-b.txt', createdAt: 'now' },
+        { id: 'c', name: 'c.txt', type: 'text/plain', size: 1, relativePath: 'attachments/prompt-1/c-c.txt', createdAt: 'now' },
+      ],
+    }))).rejects.toThrow('Failed to delete 1 attachment file')
+
+    expect(fileSystem.removeAttachmentFileFromRoot).toHaveBeenCalledTimes(3)
+  })
+
+  it('reports hard deletion failures after all attempts', async () => {
+    const error = new Error('permission denied')
+    vi.mocked(fileSystem.removeAttachmentFileFromRoot)
+      .mockRejectedValueOnce(error)
+      .mockRejectedValueOnce(new Error('No such file'))
+
+    await expect(deletePromptAttachmentFiles({} as any, createPrompt({
+      attachments: [
+        { id: 'a', name: 'a.txt', type: 'text/plain', size: 1, relativePath: 'attachments/prompt-1/a-a.txt', createdAt: 'now' },
+        { id: 'b', name: 'b.txt', type: 'text/plain', size: 1, relativePath: 'attachments/prompt-1/b-b.txt', createdAt: 'now' },
+      ],
+    }))).rejects.toMatchObject({
+      message: expect.stringContaining('Failed to delete 1 attachment file'),
+    })
+
+    expect(fileSystem.removeAttachmentFileFromRoot).toHaveBeenCalledTimes(2)
+  })
+
   it('duplicates files and rewrites metadata for a new prompt id', async () => {
     vi.mocked(fileSystem.getFileFromAttachmentRoot).mockResolvedValue(new File(['data'], 'source.txt', { type: 'text/plain' }))
     vi.spyOn(crypto, 'randomUUID').mockReturnValueOnce(mockUuid('copy-1'))

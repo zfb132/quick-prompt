@@ -18,6 +18,11 @@ vi.mock('@/utils/attachments/promptAttachmentOperations', () => ({
     relativePath: 'attachments/prompt-1/att-1-hello.txt',
     createdAt: '2024-01-01T00:00:00.000Z',
   }),
+  isMissingAttachmentFileError: (err: unknown) => {
+    const error = err as { name?: string; message?: string }
+    const message = error.message?.toLowerCase() || ''
+    return error.name === 'NotFoundError' || message.includes('missing')
+  },
 }))
 
 vi.mock('@/utils/i18n', () => ({
