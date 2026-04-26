@@ -8,6 +8,7 @@ import {
   normalizePromptAttachments,
   sanitizeFileName,
 } from '@/utils/attachments/metadata'
+import type { PromptItemWithAttachments } from '@/utils/attachments/metadata'
 
 const createPrompt = (overrides: Partial<PromptItem> = {}): PromptItem => ({
   id: 'prompt-1',
@@ -41,12 +42,14 @@ describe('attachment metadata helpers', () => {
   })
 
   it('detects image attachments by mime type', () => {
-    expect(isImageAttachment({ id: '1', name: 'a', type: 'image/png', size: 1, relativePath: 'x', createdAt: 'now' })).toBe(true)
-    expect(isImageAttachment({ id: '2', name: 'a', type: 'application/pdf', size: 1, relativePath: 'x', createdAt: 'now' })).toBe(false)
+    expect(isImageAttachment({ type: 'image/png' })).toBe(true)
+    expect(isImageAttachment({ type: 'application/pdf' })).toBe(false)
   })
 
   it('normalizes prompts to always have an attachments array', () => {
-    expect(normalizePromptAttachments(createPrompt()).attachments).toEqual([])
+    const normalized: PromptItemWithAttachments = normalizePromptAttachments(createPrompt())
+
+    expect(normalized.attachments).toEqual([])
     expect(
       normalizePromptAttachments(createPrompt({
         attachments: [{ id: 'a', name: 'f.txt', type: '', size: 1, relativePath: 'attachments/prompt-1/a-f.txt', createdAt: '2024-01-01T00:00:00.000Z' }],

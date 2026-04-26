@@ -1,5 +1,7 @@
 import type { PromptAttachment, PromptItem } from '@/utils/types'
 
+export type PromptItemWithAttachments = PromptItem & { attachments: PromptAttachment[] }
+
 export const ATTACHMENTS_DIR_NAME = 'attachments'
 
 export const sanitizeFileName = (fileName: string): string => {
@@ -25,7 +27,7 @@ export const getAttachmentPathSegments = (relativePath: string): string[] => {
   return relativePath.split('/').filter(Boolean)
 }
 
-export const isImageAttachment = (attachment: PromptAttachment): boolean => {
+export const isImageAttachment = (attachment: Pick<PromptAttachment, 'type'>): boolean => {
   return attachment.type.toLowerCase().startsWith('image/')
 }
 
@@ -45,7 +47,7 @@ export const formatFileSize = (size: number): string => {
   return `${formatted} ${units[unitIndex]}`
 }
 
-export const normalizePromptAttachments = (prompt: PromptItem): PromptItem => {
+export const normalizePromptAttachments = (prompt: PromptItem): PromptItemWithAttachments => {
   return {
     ...prompt,
     attachments: Array.isArray(prompt.attachments) ? prompt.attachments : [],
