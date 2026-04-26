@@ -34,7 +34,6 @@ const WebDavIntegration: React.FC = () => {
   const [autoSync, setAutoSync] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
-  const [isTesting, setIsTesting] = useState(false);
   const [isAutoSyncSaving, setIsAutoSyncSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [needsAttachmentReauthorization, setNeedsAttachmentReauthorization] = useState(false);
@@ -141,8 +140,12 @@ const WebDavIntegration: React.FC = () => {
     const requestId = saveRequestIdRef.current + 1;
     saveRequestIdRef.current = requestId;
     setIsSaving(true);
+    showMessage("info", t("testingConnection"));
 
+    let connectionTestSucceeded = false;
     try {
+      await testWebDavConnection(config);
+      connectionTestSucceeded = true;
       await browser.storage.sync.set({
         [WEBDAV_STORAGE_KEYS.SERVER_URL]: config.serverUrl,
         [WEBDAV_STORAGE_KEYS.USERNAME]: config.username,
@@ -154,41 +157,18 @@ const WebDavIntegration: React.FC = () => {
         return;
       }
       setRemoteDir(config.remoteDir);
-      showMessage("success", t("webdavSettingsSaved"));
+      showMessage("success", `${t("webdavConnectionSuccess")} ${t("webdavSettingsSaved")}`);
     } catch (error) {
       if (requestId !== saveRequestIdRef.current) {
         return;
       }
       console.error("Error saving WebDAV settings:", error);
-      showMessage("error", `${t("webdavSaveSettingsFailed")}: ${getErrorMessage(error)}`);
+      const messageKey = connectionTestSucceeded ? "webdavSaveSettingsFailed" : "webdavConnectionFailed";
+      showMessage("error", `${t(messageKey)}: ${getErrorMessage(error)}`);
     } finally {
       if (requestId === saveRequestIdRef.current) {
         setIsSaving(false);
       }
-    }
-  };
-
-  const handleTestConnection = async () => {
-    if (isTesting) {
-      return;
-    }
-
-    const config = buildConfig();
-    if (!config) {
-      return;
-    }
-
-    setIsTesting(true);
-    showMessage("info", t("testingConnection"));
-
-    try {
-      await testWebDavConnection(config);
-      showMessage("success", t("webdavConnectionSuccess"));
-    } catch (error) {
-      console.error("Error testing WebDAV connection:", error);
-      showMessage("error", `${t("webdavConnectionFailed")}: ${getErrorMessage(error)}`);
-    } finally {
-      setIsTesting(false);
     }
   };
 
@@ -439,20 +419,7 @@ const WebDavIntegration: React.FC = () => {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                 </svg>
               )}
-              {t("saveWebdavSettings")}
-            </button>
-            <button
-              type="button"
-              onClick={handleTestConnection}
-              disabled={isTesting}
-              className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isTesting ? <Spinner /> : (
-                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h8m-4-4v8m8-4a8 8 0 11-16 0 8 8 0 0116 0z" />
-                </svg>
-              )}
-              {t("testWebdavConnection")}
+              {t("saveAndTestWebdavSettings")}
             </button>
           </div>
         </form>

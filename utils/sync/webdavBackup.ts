@@ -1,19 +1,25 @@
 import {
   WEBDAV_FILENAME,
+  WEBDAV_PROMPTS_DIR,
+  buildWebDavPromptFileReference,
   deleteWebDavFile,
   deserializeFromWebDavContent,
+  deserializeWebDavPromptContent,
   ensureWebDavDirectory,
   getWebDavBlobFile,
   getWebDavTextFile,
   putWebDavFile,
-  serializeToWebDavContent,
+  serializeWebDavManifestContent,
+  serializeWebDavPromptContent,
   type WebDavConfig,
+  type WebDavPromptFileReference,
 } from "@/utils/sync/webdavSync";
 import {
   type AttachmentStorageRootHandle,
   copyFileToAttachmentRoot,
   getFileFromAttachmentRoot,
 } from "@/utils/attachments/fileSystem";
+import { buildPromptAttachmentDirectoryPath } from "@/utils/attachments/metadata";
 import type { Category, PromptAttachment, PromptItem } from "@/utils/types";
 
 export type WebDavBackupDownloadMode = "append" | "replace";
@@ -45,13 +51,51 @@ const getAttachmentPaths = (prompts: PromptItem[]): Set<string> => (
   new Set(prompts.flatMap(getPromptAttachments).map((attachment) => attachment.relativePath))
 );
 
-const getRemoteAttachmentPaths = async (config: WebDavConfig): Promise<Set<string>> => {
+interface WebDavRemoteBackupSnapshot {
+  prompts: PromptItem[];
+  categories: Category[];
+  promptFiles: WebDavPromptFileReference[];
+}
+
+const readRemoteBackupSnapshot = async (config: WebDavConfig): Promise<WebDavRemoteBackupSnapshot> => {
+  const content = await getWebDavTextFile(config, WEBDAV_FILENAME);
+  const data = deserializeFromWebDavContent(content);
+
+  if (!data.promptFiles?.length) {
+    return {
+      prompts: data.prompts,
+      categories: data.categories,
+      promptFiles: [],
+    };
+  }
+
+  const prompts: PromptItem[] = [];
+
+  for (const promptFile of data.promptFiles) {
+    try {
+      const promptContent = await getWebDavTextFile(config, promptFile.path);
+      prompts.push(deserializeWebDavPromptContent(promptContent));
+    } catch (error) {
+      throw new Error(`${promptFile.path}: ${getErrorMessage(error)}`);
+    }
+  }
+
+  return {
+    prompts,
+    categories: data.categories,
+    promptFiles: data.promptFiles,
+  };
+};
+
+const getRemoteBackupSnapshotForUpload = async (config: WebDavConfig): Promise<WebDavRemoteBackupSnapshot> => {
   try {
-    const content = await getWebDavTextFile(config, WEBDAV_FILENAME);
-    const data = deserializeFromWebDavContent(content);
-    return getAttachmentPaths(data.prompts);
+    return await readRemoteBackupSnapshot(config);
   } catch {
-    return new Set();
+    return {
+      prompts: [],
+      categories: [],
+      promptFiles: [],
+    };
   }
 };
 
@@ -85,6 +129,20 @@ const uploadAttachment = async (
   );
 };
 
+const uploadPromptFile = async (
+  config: WebDavConfig,
+  prompt: PromptItem
+): Promise<string> => {
+  const promptFile = buildWebDavPromptFileReference(prompt);
+  await putWebDavFile(
+    config,
+    promptFile.path,
+    serializeWebDavPromptContent(prompt),
+    "application/json"
+  );
+  return promptFile.path;
+};
+
 const downloadAttachment = async (
   config: WebDavConfig,
   rootHandle: AttachmentStorageRootHandle,
@@ -103,10 +161,39 @@ export const uploadWebDavBackup = async (
   const uploadedFiles: string[] = [];
   const deletedFiles: string[] = [];
   const errors: string[] = [];
-  const attachments = prompts.flatMap(getPromptAttachments);
+  const remoteSnapshot = await getRemoteBackupSnapshotForUpload(config);
+  const remotePromptFilesById = new Map(remoteSnapshot.promptFiles.map((promptFile) => [promptFile.id, promptFile]));
+  const currentPromptFileReferences = prompts.map(buildWebDavPromptFileReference);
+  const currentPromptFilePaths = new Set(currentPromptFileReferences.map((promptFile) => promptFile.path));
+  const promptsToUpload = prompts.filter((prompt) => {
+    const localPromptFile = buildWebDavPromptFileReference(prompt);
+    const remotePromptFile = remotePromptFilesById.get(prompt.id);
+
+    return (
+      !remotePromptFile ||
+      remotePromptFile.path !== localPromptFile.path ||
+      remotePromptFile.checksum !== localPromptFile.checksum
+    );
+  });
+  const attachments = promptsToUpload.flatMap(getPromptAttachments);
   const currentAttachmentPaths = getAttachmentPaths(prompts);
-  const staleRemoteAttachmentPaths = Array.from(await getRemoteAttachmentPaths(config))
+  const localPromptsById = new Map(prompts.map((prompt) => [prompt.id, prompt]));
+  const staleRemoteAttachmentPaths = Array.from(getAttachmentPaths(remoteSnapshot.prompts))
     .filter((relativePath) => !currentAttachmentPaths.has(relativePath));
+  const staleRemoteAttachmentDirectoryPaths = Array.from(new Set(
+    remoteSnapshot.prompts
+      .filter((remotePrompt) => {
+        const localPrompt = localPromptsById.get(remotePrompt.id);
+        return !localPrompt || (
+          getPromptAttachments(remotePrompt).length > 0 &&
+          getPromptAttachments(localPrompt).length === 0
+        );
+      })
+      .map((remotePrompt) => buildPromptAttachmentDirectoryPath(remotePrompt.id))
+  ));
+  const staleRemotePromptFilePaths = remoteSnapshot.promptFiles
+    .map((promptFile) => promptFile.path)
+    .filter((path) => !currentPromptFilePaths.has(path));
   const attachmentParentPaths = Array.from(
     new Set(attachments.map((attachment) => getRemoteParentPath(attachment.relativePath)))
   );
@@ -130,6 +217,12 @@ export const uploadWebDavBackup = async (
     }
   }
 
+  try {
+    await ensureWebDavDirectory(config, WEBDAV_PROMPTS_DIR);
+  } catch (error) {
+    errors.push(`${WEBDAV_PROMPTS_DIR}: ${getErrorMessage(error)}`);
+  }
+
   if (errors.length === 0) {
     for (const attachment of attachments) {
       try {
@@ -137,6 +230,17 @@ export const uploadWebDavBackup = async (
         uploadedFiles.push(attachment.relativePath);
       } catch (error) {
         errors.push(`${attachment.relativePath}: ${getErrorMessage(error)}`);
+      }
+    }
+  }
+
+  if (errors.length === 0) {
+    for (const prompt of promptsToUpload) {
+      const promptFilePath = buildWebDavPromptFileReference(prompt).path;
+      try {
+        uploadedFiles.push(await uploadPromptFile(config, prompt));
+      } catch (error) {
+        errors.push(`${promptFilePath}: ${getErrorMessage(error)}`);
       }
     }
   }
@@ -154,7 +258,7 @@ export const uploadWebDavBackup = async (
     await putWebDavFile(
       config,
       WEBDAV_FILENAME,
-      serializeToWebDavContent(prompts, categories),
+      serializeWebDavManifestContent(prompts, categories),
       "application/json"
     );
     uploadedFiles.push(WEBDAV_FILENAME);
@@ -167,12 +271,34 @@ export const uploadWebDavBackup = async (
     };
   }
 
+  for (const relativePath of staleRemotePromptFilePaths) {
+    try {
+      await deleteWebDavFile(config, relativePath);
+      deletedFiles.push(relativePath);
+    } catch (error) {
+      errors.push(`${relativePath}: ${getErrorMessage(error)}`);
+    }
+  }
+
+  const errorsBeforeAttachmentDeletes = errors.length;
+
   for (const relativePath of staleRemoteAttachmentPaths) {
     try {
       await deleteWebDavFile(config, relativePath);
       deletedFiles.push(relativePath);
     } catch (error) {
       errors.push(`${relativePath}: ${getErrorMessage(error)}`);
+    }
+  }
+
+  if (errors.length === errorsBeforeAttachmentDeletes) {
+    for (const relativePath of staleRemoteAttachmentDirectoryPaths) {
+      try {
+        await deleteWebDavFile(config, relativePath);
+        deletedFiles.push(relativePath);
+      } catch (error) {
+        errors.push(`${relativePath}: ${getErrorMessage(error)}`);
+      }
     }
   }
 
@@ -194,14 +320,10 @@ export const downloadWebDavBackup = async (
   const downloadedFiles: string[] = [];
   const errors: string[] = [];
 
-  let remotePrompts: PromptItem[];
-  let remoteCategories: Category[];
+  let remoteSnapshot: WebDavRemoteBackupSnapshot;
 
   try {
-    const content = await getWebDavTextFile(config, WEBDAV_FILENAME);
-    const data = deserializeFromWebDavContent(content);
-    remotePrompts = data.prompts;
-    remoteCategories = data.categories;
+    remoteSnapshot = await readRemoteBackupSnapshot(config);
   } catch (error) {
     return {
       success: false,
@@ -212,6 +334,8 @@ export const downloadWebDavBackup = async (
     };
   }
 
+  const remotePrompts = remoteSnapshot.prompts;
+  const remoteCategories = remoteSnapshot.categories;
   const promptsToDownload = mode === "replace"
     ? remotePrompts
     : remotePrompts.filter((prompt) => !localPrompts.some((localPrompt) => localPrompt.id === prompt.id));

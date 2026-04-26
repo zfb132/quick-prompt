@@ -116,6 +116,7 @@ describe("webdav backup orchestration", () => {
       uploadedFiles: [
         "attachments/prompt-1/attachment-1-guide.pdf",
         "attachments/prompt-1/attachment-2-notes.txt",
+        "prompts/prompt-1.json",
         WEBDAV_FILENAME,
       ],
       deletedFiles: [],
@@ -124,7 +125,7 @@ describe("webdav backup orchestration", () => {
     expect(fileSystem.getFileFromAttachmentRoot).toHaveBeenCalledTimes(2);
 
     const putCalls = fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT");
-    expect(putCalls).toHaveLength(3);
+    expect(putCalls).toHaveLength(4);
     expect(putCalls[0]).toMatchObject([
       "https://dav.example.com/root/quick-prompt/attachments/prompt-1/attachment-1-guide.pdf",
       {
@@ -147,7 +148,22 @@ describe("webdav backup orchestration", () => {
       },
     ]);
     expect(await readBodyAsText(putCalls[1][1]?.body)).toBe("note content");
-    expect(putCalls[2]).toMatchObject([
+    const promptFileCall = putCalls.find(([url]) => String(url).endsWith("/prompts/prompt-1.json"));
+    expect(promptFileCall).toMatchObject([
+      "https://dav.example.com/root/quick-prompt/prompts/prompt-1.json",
+      {
+        method: "PUT",
+        headers: {
+          Authorization: "Basic YWxpY2U6c2VjcmV0",
+          "Content-Type": "application/json",
+        },
+      },
+    ]);
+    expect(JSON.parse(await readBodyAsText(promptFileCall?.[1]?.body))).toMatchObject({
+      prompt,
+    });
+    const manifestCall = putCalls.find(([url]) => String(url).endsWith(WEBDAV_FILENAME));
+    expect(manifestCall).toMatchObject([
       "https://dav.example.com/root/quick-prompt/quick-prompt-backup.json",
       {
         method: "PUT",
@@ -157,8 +173,9 @@ describe("webdav backup orchestration", () => {
         },
       },
     ]);
-    expect(JSON.parse(await readBodyAsText(putCalls[2][1]?.body))).toMatchObject({
-      prompts: [prompt],
+    expect(JSON.parse(await readBodyAsText(manifestCall?.[1]?.body))).toMatchObject({
+      storageFormat: "prompt-files",
+      promptFiles: [expect.objectContaining({ id: "prompt-1", path: "prompts/prompt-1.json" })],
       categories,
     });
 
@@ -166,6 +183,156 @@ describe("webdav backup orchestration", () => {
       .filter(([, init]) => init?.method === "MKCOL")
       .map(([url]) => url);
     expect(mkcolUrls.filter((url) => url === "https://dav.example.com/root/quick-prompt/attachments/prompt-1")).toHaveLength(1);
+  });
+
+  it("stores prompts as individual WebDAV JSON files and keeps the manifest lightweight", async () => {
+    const prompts = [
+      createPrompt({ id: "prompt-1", title: "First prompt", lastModified: "2024-01-01T00:00:00.000Z" }),
+      createPrompt({ id: "prompt-2", title: "Second prompt", attachments: [], lastModified: "2024-01-02T00:00:00.000Z" }),
+    ];
+    vi.mocked(fileSystem.getFileFromAttachmentRoot).mockResolvedValue(
+      new File(["pdf content"], "guide.pdf", { type: "application/pdf" })
+    );
+    const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 201 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await uploadWebDavBackup(config, rootHandle, prompts, []);
+
+    expect(result.success).toBe(true);
+    expect(result.uploadedFiles).toEqual([
+      "attachments/prompt-1/attachment-1-guide.pdf",
+      "prompts/prompt-1.json",
+      "prompts/prompt-2.json",
+      WEBDAV_FILENAME,
+    ]);
+
+    const putCalls = fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT");
+    const manifestCall = putCalls.find(([url]) => String(url).endsWith(WEBDAV_FILENAME));
+    const firstPromptCall = putCalls.find(([url]) => String(url).endsWith("/prompts/prompt-1.json"));
+    const secondPromptCall = putCalls.find(([url]) => String(url).endsWith("/prompts/prompt-2.json"));
+
+    expect(firstPromptCall).toBeTruthy();
+    expect(JSON.parse(await readBodyAsText(firstPromptCall?.[1]?.body))).toMatchObject({
+      prompt: prompts[0],
+    });
+    expect(secondPromptCall).toBeTruthy();
+    expect(JSON.parse(await readBodyAsText(secondPromptCall?.[1]?.body))).toMatchObject({
+      prompt: prompts[1],
+    });
+
+    const manifest = JSON.parse(await readBodyAsText(manifestCall?.[1]?.body));
+    expect(manifest.prompts).toBeUndefined();
+    expect(manifest.promptFiles).toEqual([
+      expect.objectContaining({ id: "prompt-1", path: "prompts/prompt-1.json" }),
+      expect.objectContaining({ id: "prompt-2", path: "prompts/prompt-2.json" }),
+    ]);
+  });
+
+  it("uploads only changed prompt JSON files when the remote manifest has matching checksums", async () => {
+    const originalPrompts = [
+      createPrompt({ id: "prompt-1", title: "First prompt", lastModified: "2024-01-01T00:00:00.000Z" }),
+      createPrompt({ id: "prompt-2", title: "Second prompt", attachments: [], lastModified: "2024-01-02T00:00:00.000Z" }),
+    ];
+    const updatedPrompts = [
+      originalPrompts[0],
+      { ...originalPrompts[1], title: "Second prompt updated", lastModified: "2024-01-03T00:00:00.000Z" },
+    ];
+    vi.mocked(fileSystem.getFileFromAttachmentRoot).mockResolvedValue(
+      new File(["pdf content"], "guide.pdf", { type: "application/pdf" })
+    );
+
+    let remoteManifest = "";
+    const remotePromptFiles = new Map<string, string>();
+    const firstFetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 201 }));
+    vi.stubGlobal("fetch", firstFetchMock);
+
+    await uploadWebDavBackup(config, rootHandle, originalPrompts, []);
+
+    for (const [url, init] of firstFetchMock.mock.calls) {
+      if (init?.method !== "PUT") continue;
+      const body = await readBodyAsText(init.body);
+      if (String(url).endsWith(WEBDAV_FILENAME)) {
+        remoteManifest = body;
+      }
+      if (String(url).includes("/prompts/")) {
+        remotePromptFiles.set(String(url), body);
+      }
+    }
+
+    const secondFetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "GET" && url.endsWith(WEBDAV_FILENAME)) {
+        return new Response(remoteManifest, { status: 200 });
+      }
+      if (init?.method === "GET" && remotePromptFiles.has(url)) {
+        return new Response(remotePromptFiles.get(url), { status: 200 });
+      }
+
+      return new Response(null, { status: 201 });
+    });
+    vi.stubGlobal("fetch", secondFetchMock);
+
+    const result = await uploadWebDavBackup(config, rootHandle, updatedPrompts, []);
+
+    expect(result.success).toBe(true);
+    expect(result.uploadedFiles).toEqual([
+      "prompts/prompt-2.json",
+      WEBDAV_FILENAME,
+    ]);
+    const putUrls = secondFetchMock.mock.calls
+      .filter(([, init]) => init?.method === "PUT")
+      .map(([url]) => String(url));
+    expect(putUrls).toEqual([
+      "https://dav.example.com/root/quick-prompt/prompts/prompt-2.json",
+      "https://dav.example.com/root/quick-prompt/quick-prompt-backup.json",
+    ]);
+  });
+
+  it("downloads prompts from individual WebDAV JSON files in replace mode", async () => {
+    const remotePrompt = createPrompt({ id: "prompt-remote", title: "Remote prompt" });
+    const remoteCategories = [createCategory({ id: "remote-category" })];
+    const manifest = JSON.stringify({
+      version: "1.0",
+      exportedAt: "2024-01-10T00:00:00.000Z",
+      storageFormat: "prompt-files",
+      promptFiles: [
+        {
+          id: "prompt-remote",
+          path: "prompts/prompt-remote.json",
+          checksum: "existing",
+        },
+      ],
+      categories: remoteCategories,
+    });
+    const promptFile = JSON.stringify({
+      version: "1.0",
+      exportedAt: "2024-01-10T00:00:00.000Z",
+      prompt: remotePrompt,
+    });
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "GET" && url.endsWith(WEBDAV_FILENAME)) {
+        return new Response(manifest, { status: 200 });
+      }
+      if (init?.method === "GET" && url.endsWith("prompts/prompt-remote.json")) {
+        return new Response(promptFile, { status: 200 });
+      }
+
+      return new Response("pdf content", {
+        status: 200,
+        headers: { "Content-Type": "application/pdf" },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await downloadWebDavBackup(config, rootHandle, [], [], "replace");
+
+    expect(result.success).toBe(true);
+    expect(result.prompts).toEqual([remotePrompt]);
+    expect(result.categories).toEqual(remoteCategories);
+    expect(fileSystem.copyFileToAttachmentRoot).toHaveBeenCalledWith(
+      rootHandle,
+      "attachments/prompt-1/attachment-1-guide.pdf",
+      expect.any(File)
+    );
   });
 
   it("copies all remote attachments and returns remote data in replace mode", async () => {
@@ -363,6 +530,56 @@ describe("webdav backup orchestration", () => {
     );
   });
 
+  it("deletes the remote prompt attachment directory when all attachments are removed locally", async () => {
+    const remotePrompt = createPrompt();
+    const localPrompt = createPrompt({ attachments: [] });
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "GET" && url.endsWith(WEBDAV_FILENAME)) {
+        return new Response(serializeToWebDavContent([remotePrompt], []), { status: 200 });
+      }
+
+      return new Response(null, { status: init?.method === "DELETE" ? 204 : 201 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await uploadWebDavBackup(config, rootHandle, [localPrompt], []);
+
+    expect(result.success).toBe(true);
+    expect(result.deletedFiles).toEqual([
+      "attachments/prompt-1/attachment-1-guide.pdf",
+      "attachments/prompt-1",
+    ]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://dav.example.com/root/quick-prompt/attachments/prompt-1",
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: "Basic YWxpY2U6c2VjcmV0",
+        },
+      }
+    );
+  });
+
+  it("deletes the remote prompt attachment directory when the prompt is removed locally", async () => {
+    const remotePrompt = createPrompt();
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "GET" && url.endsWith(WEBDAV_FILENAME)) {
+        return new Response(serializeToWebDavContent([remotePrompt], []), { status: 200 });
+      }
+
+      return new Response(null, { status: init?.method === "DELETE" ? 204 : 201 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await uploadWebDavBackup(config, rootHandle, [], []);
+
+    expect(result.success).toBe(true);
+    expect(result.deletedFiles).toEqual([
+      "attachments/prompt-1/attachment-1-guide.pdf",
+      "attachments/prompt-1",
+    ]);
+  });
+
   it("does not delete remote files that are not listed in the previous WebDAV manifest", async () => {
     const localPrompt = createPrompt({ attachments: [] });
     const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -410,7 +627,7 @@ describe("webdav backup orchestration", () => {
     const result = await uploadWebDavBackup(config, rootHandle, [localPrompt], []);
 
     expect(result.success).toBe(false);
-    expect(result.uploadedFiles).toEqual([WEBDAV_FILENAME]);
+    expect(result.uploadedFiles).toEqual(["prompts/prompt-1.json", WEBDAV_FILENAME]);
     expect(result.deletedFiles).toEqual([]);
     expect(result.errors).toEqual([
       "attachments/prompt-1/attachment-old-old.pdf: WebDAV DELETE failed: HTTP 423 Locked - locked",
@@ -434,7 +651,10 @@ describe("webdav backup orchestration", () => {
     const result = await uploadWebDavBackup(config, rootHandle, [prompt], []);
 
     expect(result.success).toBe(false);
-    expect(result.uploadedFiles).toEqual(["attachments/prompt-1/attachment-1-guide.pdf"]);
+    expect(result.uploadedFiles).toEqual([
+      "attachments/prompt-1/attachment-1-guide.pdf",
+      "prompts/prompt-1.json",
+    ]);
     expect(result.errors).toEqual(["quick-prompt-backup.json: WebDAV PUT failed: HTTP 423 Locked - locked"]);
     expect(fileSystem.getFileFromAttachmentRoot).toHaveBeenCalledTimes(1);
   });

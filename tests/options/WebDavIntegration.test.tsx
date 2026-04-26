@@ -141,37 +141,6 @@ describe("WebDavIntegration", () => {
     });
   });
 
-  it("tests the WebDAV connection with the current settings", async () => {
-    render(<WebDavIntegration />);
-
-    await screen.findByLabelText("webdavServerUrl");
-    fireEvent.change(screen.getByLabelText("webdavServerUrl"), {
-      target: { value: "https://dav.example.com" },
-    });
-    fireEvent.change(screen.getByLabelText("webdavUsername"), {
-      target: { value: "alice" },
-    });
-    fireEvent.change(screen.getByLabelText("webdavPassword"), {
-      target: { value: "secret" },
-    });
-    fireEvent.change(screen.getByLabelText("webdavRemoteDirectory"), {
-      target: { value: "backups" },
-    });
-
-    fireEvent.click(screen.getByRole("button", { name: "testWebdavConnection" }));
-
-    await waitFor(() => {
-      expect(webdavSync.testWebDavConnection).toHaveBeenCalledWith({
-        serverUrl: "https://dav.example.com",
-        username: "alice",
-        password: "secret",
-        remoteDir: "backups",
-        autoSync: false,
-      });
-      expect(screen.getByText("webdavConnectionSuccess")).toBeInTheDocument();
-    });
-  });
-
   it("persists all settings and the automatic upload toggle", async () => {
     render(<WebDavIntegration />);
 
@@ -189,7 +158,7 @@ describe("WebDavIntegration", () => {
       target: { value: "backups" },
     });
     fireEvent.click(screen.getByRole("switch", { name: "webdavAutoUpload" }));
-    fireEvent.click(screen.getByRole("button", { name: "saveWebdavSettings" }));
+    fireEvent.click(screen.getByRole("button", { name: "saveAndTestWebdavSettings" }));
 
     await waitFor(() => {
       expect(browser.storage.sync.set).toHaveBeenCalledWith({
@@ -200,6 +169,73 @@ describe("WebDavIntegration", () => {
         [WEBDAV_STORAGE_KEYS.AUTO_SYNC]: true,
       });
     });
+  });
+
+  it("tests the WebDAV connection before saving settings from the combined action", async () => {
+    render(<WebDavIntegration />);
+
+    await screen.findByLabelText("webdavServerUrl");
+    fireEvent.change(screen.getByLabelText("webdavServerUrl"), {
+      target: { value: "https://dav.example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavUsername"), {
+      target: { value: "alice" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavPassword"), {
+      target: { value: "secret" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavRemoteDirectory"), {
+      target: { value: "backups" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "saveAndTestWebdavSettings" }));
+
+    await waitFor(() => {
+      expect(webdavSync.testWebDavConnection).toHaveBeenCalledWith({
+        serverUrl: "https://dav.example.com",
+        username: "alice",
+        password: "secret",
+        remoteDir: "backups",
+        autoSync: false,
+      });
+      expect(browser.storage.sync.set).toHaveBeenCalledWith({
+        [WEBDAV_STORAGE_KEYS.SERVER_URL]: "https://dav.example.com",
+        [WEBDAV_STORAGE_KEYS.USERNAME]: "alice",
+        [WEBDAV_STORAGE_KEYS.PASSWORD]: "secret",
+        [WEBDAV_STORAGE_KEYS.REMOTE_DIR]: "backups",
+        [WEBDAV_STORAGE_KEYS.AUTO_SYNC]: false,
+      });
+      expect(vi.mocked(webdavSync.testWebDavConnection).mock.invocationCallOrder[0])
+        .toBeLessThan(mockBrowser.storage.sync.set.mock.invocationCallOrder[0]);
+      expect(screen.getByText("webdavConnectionSuccess webdavSettingsSaved")).toBeInTheDocument();
+    });
+  });
+
+  it("does not save WebDAV settings when the combined connection test fails", async () => {
+    const consoleErrorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    vi.mocked(webdavSync.testWebDavConnection).mockRejectedValueOnce(new Error("401"));
+
+    render(<WebDavIntegration />);
+
+    await screen.findByLabelText("webdavServerUrl");
+    fireEvent.change(screen.getByLabelText("webdavServerUrl"), {
+      target: { value: "https://dav.example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavUsername"), {
+      target: { value: "alice" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavPassword"), {
+      target: { value: "secret" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "saveAndTestWebdavSettings" }));
+
+    await waitFor(() => {
+      expect(webdavSync.testWebDavConnection).toHaveBeenCalled();
+      expect(screen.getByText("webdavConnectionFailed: 401")).toBeInTheDocument();
+    });
+    expect(browser.storage.sync.set).not.toHaveBeenCalled();
+    consoleErrorSpy.mockRestore();
   });
 
   it("uploads local prompts and categories with an authorized attachment root", async () => {
@@ -351,7 +387,7 @@ describe("WebDavIntegration", () => {
       target: { value: "../backup" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "saveWebdavSettings" }));
+    fireEvent.click(screen.getByRole("button", { name: "saveAndTestWebdavSettings" }));
 
     await waitFor(() => {
       expect(screen.getByText("webdavInvalidRemoteDirectory")).toBeInTheDocument();
@@ -402,7 +438,7 @@ describe("WebDavIntegration", () => {
       target: { value: "secret" },
     });
 
-    const saveButton = screen.getByRole("button", { name: "saveWebdavSettings" });
+    const saveButton = screen.getByRole("button", { name: "saveAndTestWebdavSettings" });
     fireEvent.click(saveButton);
 
     await waitFor(() => expect(saveButton).toBeDisabled());

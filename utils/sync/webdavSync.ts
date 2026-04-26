@@ -2,6 +2,8 @@ import type { Category, PromptItem } from "@/utils/types";
 
 export const WEBDAV_FILENAME = "quick-prompt-backup.json";
 export const WEBDAV_CURRENT_VERSION = "1.0";
+export const WEBDAV_PROMPTS_DIR = "prompts";
+export const WEBDAV_PROMPT_FILES_FORMAT = "prompt-files";
 
 export const WEBDAV_STORAGE_KEYS = {
   SERVER_URL: "webdavServerUrl",
@@ -24,7 +26,22 @@ export interface WebDavExportData {
   version: string;
   exportedAt: string;
   prompts: PromptItem[];
+  promptFiles?: WebDavPromptFileReference[];
   categories: Category[];
+  storageFormat?: string;
+}
+
+export interface WebDavPromptFileReference {
+  id: string;
+  path: string;
+  checksum: string;
+  lastModified?: string;
+}
+
+interface WebDavPromptFileContent {
+  version: string;
+  exportedAt: string;
+  prompt: PromptItem;
 }
 
 export const normalizeWebDavBaseUrl = (url: string): string => url.trim().replace(/\/+$/, "");
@@ -42,6 +59,36 @@ export const buildWebDavUrl = (serverUrl: string, ...parts: string[]): string =>
 
   return path ? `${baseUrl}/${path}` : baseUrl;
 };
+
+const hashString = (value: string): string => {
+  let hash = 2166136261;
+
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return (hash >>> 0).toString(36);
+};
+
+const encodePromptIdForFileName = (promptId: string): string => (
+  encodeURIComponent(promptId).replace(/~/g, "~7E").replace(/%/g, "~")
+);
+
+export const buildWebDavPromptFilePath = (promptId: string): string => (
+  joinWebDavPath(WEBDAV_PROMPTS_DIR, `${encodePromptIdForFileName(promptId)}.json`)
+);
+
+export const getWebDavPromptChecksum = (prompt: PromptItem): string => (
+  hashString(JSON.stringify(prompt))
+);
+
+export const buildWebDavPromptFileReference = (prompt: PromptItem): WebDavPromptFileReference => ({
+  id: prompt.id,
+  path: buildWebDavPromptFilePath(prompt.id),
+  checksum: getWebDavPromptChecksum(prompt),
+  ...(prompt.lastModified ? { lastModified: prompt.lastModified } : {}),
+});
 
 const getSafeWebDavPathSegments = (path: string): string[] => {
   const segments = path.trim().replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
@@ -108,18 +155,80 @@ export const serializeToWebDavContent = (
   return JSON.stringify(data, null, 2);
 };
 
+export const serializeWebDavManifestContent = (
+  prompts: PromptItem[],
+  categories: Category[]
+): string => {
+  const data = {
+    version: WEBDAV_CURRENT_VERSION,
+    exportedAt: new Date().toISOString(),
+    storageFormat: WEBDAV_PROMPT_FILES_FORMAT,
+    promptFiles: prompts.map(buildWebDavPromptFileReference),
+    categories,
+  };
+
+  return JSON.stringify(data, null, 2);
+};
+
+export const serializeWebDavPromptContent = (prompt: PromptItem): string => {
+  const data: WebDavPromptFileContent = {
+    version: WEBDAV_CURRENT_VERSION,
+    exportedAt: new Date().toISOString(),
+    prompt,
+  };
+
+  return JSON.stringify(data, null, 2);
+};
+
+export const deserializeWebDavPromptContent = (content: string): PromptItem => {
+  const data = JSON.parse(content);
+  const prompt = data && typeof data === "object" && "prompt" in data
+    ? (data as WebDavPromptFileContent).prompt
+    : data;
+
+  if (!prompt || typeof prompt !== "object" || typeof (prompt as PromptItem).id !== "string") {
+    throw new Error("WebDAV prompt file must include a prompt object");
+  }
+
+  return prompt as PromptItem;
+};
+
+const normalizePromptFileReferences = (promptFiles: unknown): WebDavPromptFileReference[] => {
+  if (!Array.isArray(promptFiles)) {
+    return [];
+  }
+
+  return promptFiles
+    .filter((item): item is Partial<WebDavPromptFileReference> => (
+      typeof item === "object" &&
+      item !== null &&
+      typeof (item as WebDavPromptFileReference).id === "string" &&
+      typeof (item as WebDavPromptFileReference).path === "string"
+    ))
+    .map((item) => ({
+      id: item.id!,
+      path: item.path!,
+      checksum: typeof item.checksum === "string" ? item.checksum : "",
+      ...(typeof item.lastModified === "string" ? { lastModified: item.lastModified } : {}),
+    }));
+};
+
 export const deserializeFromWebDavContent = (content: string): WebDavExportData => {
   const data = JSON.parse(content);
+  const promptFiles = normalizePromptFileReferences(data.promptFiles);
+  const isPromptFileManifest = data.storageFormat === WEBDAV_PROMPT_FILES_FORMAT || Array.isArray(data.promptFiles);
 
-  if (!Array.isArray(data.prompts)) {
-    throw new Error("WebDAV backup data must include a prompts array");
+  if (!Array.isArray(data.prompts) && !isPromptFileManifest) {
+    throw new Error("WebDAV backup data must include a prompts array or promptFiles array");
   }
 
   return {
     version: data.version || WEBDAV_CURRENT_VERSION,
     exportedAt: data.exportedAt || new Date().toISOString(),
-    prompts: data.prompts,
+    prompts: Array.isArray(data.prompts) ? data.prompts : [],
+    promptFiles,
     categories: Array.isArray(data.categories) ? data.categories : [],
+    ...(typeof data.storageFormat === "string" ? { storageFormat: data.storageFormat } : {}),
   };
 };
 
