@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PromptItem } from '@/utils/types'
 import {
   createAttachmentFromFile,
@@ -31,6 +31,10 @@ describe('prompt attachment operations', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     vi.spyOn(crypto, 'randomUUID').mockReturnValue(mockUuid('att-1'))
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
   })
 
   it('copies a selected file and returns metadata', async () => {
