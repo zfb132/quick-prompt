@@ -32,6 +32,8 @@ interface PromptListProps {
   onToggleEnabled?: (id: string, enabled: boolean) => void
   onTogglePinned?: (id: string, pinned: boolean) => void
   selectedCategoryId?: string | null
+  selectedTag?: string | null
+  onTagSelect?: (tag: string) => void
   compact?: boolean
   sortType?: SortType
 }
@@ -48,6 +50,8 @@ const PromptList = ({
   onToggleEnabled,
   onTogglePinned,
   selectedCategoryId,
+  selectedTag,
+  onTagSelect,
   compact = false,
   sortType = 'custom',
 }: PromptListProps) => {
@@ -148,6 +152,8 @@ const PromptList = ({
               copiedId={copiedId}
               compact={compact}
               isDragEnabled={false}
+              selectedTag={selectedTag}
+              onTagSelect={onTagSelect}
             />
           )
         })}
@@ -184,6 +190,8 @@ const PromptList = ({
                 copiedId={copiedId}
                 compact={compact}
                 isDragEnabled={true}
+                selectedTag={selectedTag}
+                onTagSelect={onTagSelect}
               />
             )
           })}
@@ -206,6 +214,8 @@ const PromptList = ({
               onDuplicate={() => {}}
               compact={compact}
               isDragEnabled={true}
+              selectedTag={selectedTag}
+              onTagSelect={onTagSelect}
             />
           </div>
         ) : null}

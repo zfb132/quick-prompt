@@ -1,8 +1,8 @@
-import { BROWSER_STORAGE_KEY } from "@/utils/constants"
 import { authenticateWithGoogle, logoutGoogle, USER_INFO_STORAGE_KEY } from "@/utils/auth/googleAuth"
 import { syncFromNotionToLocal, syncLocalDataToNotion } from "@/utils/sync/notionSync"
 import type { PromptAttachment, PromptItem } from "@/utils/types"
 import { t } from "@/utils/i18n"
+import { getAllPrompts } from "@/utils/promptStore"
 import { isImageAttachment } from "@/utils/attachments/metadata"
 import {
   getAttachmentRootHandle,
@@ -73,8 +73,7 @@ export const handleRuntimeMessage = async (message: any, sender: Browser.runtime
 
   if (message.action === 'getPrompts') {
     try {
-      const result = await browser.storage.local.get(BROWSER_STORAGE_KEY);
-      const allPrompts = (result[BROWSER_STORAGE_KEY as keyof typeof result] as PromptItem[]) || [];
+      const allPrompts = await getAllPrompts();
       const enabledPrompts = allPrompts.filter((prompt: PromptItem) => prompt.enabled !== false);
       console.log(t('backgroundPromptsLoaded'), allPrompts.length, t('backgroundPromptsEnabled'), enabledPrompts.length, t('backgroundPromptsEnabledSuffix'));
       return { success: true, data: enabledPrompts };

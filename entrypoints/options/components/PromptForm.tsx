@@ -92,6 +92,7 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing, availableTags 
     setError(null)
 
     try {
+      const now = new Date().toISOString()
       // Create prompt object
       const promptData = {
         ...(initialData ? { id: initialData.id } : {}),
@@ -103,7 +104,8 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing, availableTags 
         thumbnailUrl: thumbnailUrl.trim() || undefined,
         enabled,
         categoryId,
-        lastModified: new Date().toISOString(),
+        createdAt: initialData?.createdAt || now,
+        lastModified: now,
       }
 
       await onSubmit(promptData as any) // Type assertion to handle both new and edited prompts

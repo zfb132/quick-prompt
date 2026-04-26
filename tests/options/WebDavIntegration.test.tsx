@@ -2,7 +2,8 @@ import React from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { browser } from "#imports";
-import { BROWSER_STORAGE_KEY, CATEGORIES_STORAGE_KEY } from "@/utils/constants";
+import { CATEGORIES_STORAGE_KEY } from "@/utils/constants";
+import { PROMPT_STORAGE_INDEX_KEY, PROMPT_STORAGE_ITEM_PREFIX } from "@/utils/promptStore";
 import { WEBDAV_STORAGE_KEYS } from "@/utils/sync/webdavSync";
 import type { Category, PromptItem } from "@/utils/types";
 
@@ -45,6 +46,10 @@ const prompt: PromptItem = {
   tags: [],
   enabled: true,
   categoryId: "cat-1",
+  notes: "",
+  createdAt: "2025-01-01T00:00:00.000Z",
+  lastModified: "2025-01-01T00:00:00.000Z",
+  attachments: [],
 };
 
 const category: Category = {
@@ -70,6 +75,12 @@ const remoteCategory: Category = {
 const rootHandle = { name: "Quick Prompt" } as FileSystemDirectoryHandle;
 const restoredRootHandle = { name: "Restored Quick Prompt" } as FileSystemDirectoryHandle;
 const mockBrowser = browser as any;
+const promptIndex = {
+  version: 2,
+  ids: ["prompt-1"],
+  updatedAt: "2025-01-01T00:00:00.000Z",
+};
+const promptItemKey = `${PROMPT_STORAGE_ITEM_PREFIX}prompt-1`;
 
 const createDeferred = <T,>() => {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -88,8 +99,16 @@ describe("WebDavIntegration", () => {
 
     vi.mocked(mockBrowser.storage.sync.get).mockResolvedValue({});
     vi.mocked(mockBrowser.storage.sync.set).mockResolvedValue(undefined);
-    vi.mocked(mockBrowser.storage.local.get).mockImplementation(async (key: string) => {
-      if (key === BROWSER_STORAGE_KEY) return { [BROWSER_STORAGE_KEY]: [prompt] };
+    vi.mocked(mockBrowser.storage.local.get).mockImplementation(async (key: string | string[]) => {
+      if (Array.isArray(key)) {
+        return Object.fromEntries(key.map((item) => [
+          item,
+          item === promptItemKey ? prompt : undefined,
+        ]));
+      }
+
+      if (key === PROMPT_STORAGE_INDEX_KEY) return { [PROMPT_STORAGE_INDEX_KEY]: promptIndex };
+      if (key === promptItemKey) return { [promptItemKey]: prompt };
       if (key === CATEGORIES_STORAGE_KEY) return { [CATEGORIES_STORAGE_KEY]: [category] };
       return {};
     });
@@ -201,9 +220,16 @@ describe("WebDavIntegration", () => {
         "append"
       );
       expect(browser.storage.local.set).toHaveBeenCalledWith({
-        [BROWSER_STORAGE_KEY]: [prompt, remotePrompt],
         [CATEGORIES_STORAGE_KEY]: [category, remoteCategory],
       });
+      expect(browser.storage.local.set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          "userPrompts:index": expect.objectContaining({
+            ids: ["prompt-1", "prompt-remote"],
+          }),
+          "userPrompts:item:prompt-remote": remotePrompt,
+        })
+      );
     });
   });
 

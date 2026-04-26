@@ -1193,8 +1193,20 @@
   "notes": {
     "message": "备注"
   },
+  "createdAt": {
+    "message": "创建时间"
+  },
   "lastModified": {
     "message": "最后修改时间"
+  },
+  "filterByTag": {
+    "message": "按标签筛选"
+  },
+  "allTags": {
+    "message": "全部标签"
+  },
+  "viewAllTags": {
+    "message": "查看全部标签"
   },
   "notesLabel": {
     "message": "备注"

@@ -157,6 +157,22 @@ describe('filterPrompts', () => {
   })
 
   describe('组合筛选', () => {
+    it('应该按标签精确筛选提示词', () => {
+      const filtered = filterPrompts(prompts, { tag: 'frontend' })
+
+      expect(filtered).toHaveLength(2)
+      expect(filtered.map((prompt) => prompt.id)).toEqual(['1', '2'])
+    })
+
+    it('应该同时按分类和标签筛选', () => {
+      const filtered = filterPrompts(prompts, {
+        categoryId: 'lifestyle',
+        tag: 'frontend',
+      })
+
+      expect(filtered).toHaveLength(0)
+    })
+
     it('应该同时按分类和搜索词筛选', () => {
       const filtered = filterPrompts(prompts, {
         categoryId: 'programming',

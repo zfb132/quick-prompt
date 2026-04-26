@@ -1,9 +1,8 @@
-import { storage } from '#imports'
 import { isDarkMode } from '@/utils/tools'
 import { showPromptSelector } from './components/PromptSelector'
 import { extractVariables } from './utils/variableParser'
-import { BROWSER_STORAGE_KEY } from '@/utils/constants'
 import { migratePromptsWithCategory } from '@/utils/categoryUtils'
+import { getAllPrompts } from '@/utils/promptStore'
 import type { EditableElement, PromptItem, PromptItemWithVariables } from '@/utils/types'
 import { t, initLocale } from '@/utils/i18n'
 
@@ -169,7 +168,7 @@ export default defineContentScript({
         await migratePromptsWithCategory()
 
         // 从存储中获取所有提示词
-        const allPrompts = (await storage.getItem<PromptItem[]>(`local:${BROWSER_STORAGE_KEY}`)) || []
+        const allPrompts = await getAllPrompts()
         
         // 过滤只保留启用的提示词
         const prompts : PromptItemWithVariables[] = allPrompts.filter(prompt => prompt.enabled !== false)

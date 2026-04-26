@@ -15,6 +15,8 @@ interface SortablePromptCardProps {
   onTogglePinned?: (id: string, pinned: boolean) => void
   onCopy: (content: string, id: string) => void
   copiedId: string | null
+  selectedTag?: string | null
+  onTagSelect?: (tag: string) => void
   compact?: boolean
   isDragEnabled?: boolean
 }
@@ -29,6 +31,8 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
   onTogglePinned,
   onCopy,
   copiedId,
+  selectedTag,
+  onTagSelect,
   compact = false,
   isDragEnabled = true,
 }) => {
@@ -54,12 +58,11 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
     zIndex: isDragging ? 1000 : 'auto',
   }
 
-  // 格式化最后修改时间
-  const formatLastModified = (lastModified?: string) => {
-    if (!lastModified) return t('noModificationTime')
+  const formatTime = (timestamp?: string) => {
+    if (!timestamp) return t('noModificationTime')
     
     try {
-      const date = new Date(lastModified)
+      const date = new Date(timestamp)
       if (isNaN(date.getTime())) {
         return t('invalidTime')
       }
@@ -88,9 +91,14 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
         return date.toLocaleDateString()
       }
     } catch (err) {
-      console.error('格式化时间出错:', err, 'lastModified:', lastModified)
+      console.error('格式化时间出错:', err, 'timestamp:', timestamp)
       return t('invalidTime')
     }
+  }
+
+  const selectTag = (event: React.MouseEvent, tag: string) => {
+    event.stopPropagation()
+    onTagSelect?.(tag)
   }
 
   if (compact) {
@@ -311,12 +319,19 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
               {prompt.tags && prompt.tags.length > 0 ? (
                 <div className='flex flex-wrap gap-1.5'>
                   {prompt.tags.map((tag) => (
-                    <span
+                    <button
                       key={tag}
-                      className='inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300'
+                      type='button'
+                      onClick={(event) => selectTag(event, tag)}
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                        selectedTag === tag
+                          ? 'bg-blue-600 text-white dark:bg-blue-500'
+                          : 'bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-300 hover:bg-blue-200 dark:hover:bg-blue-800/70'
+                      }`}
+                      title={t('filterByTag')}
                     >
                       #{tag}
-                    </span>
+                    </button>
                   ))}
                 </div>
               ) : (
@@ -350,12 +365,20 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
               </div>
             )}
 
-            {/* 最后修改时间 */}
-            <div className='mb-3 flex items-center space-x-2 text-xs text-gray-500 dark:text-gray-400'>
+            {/* 创建和修改时间 */}
+            <div className='mb-3 space-y-1 text-xs text-gray-500 dark:text-gray-400'>
+              <div className='flex items-center space-x-2'>
+                <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
+                  <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M8 7V3m8 4V3M5 11h14M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z' />
+                </svg>
+                <span>{t('createdAt')}: {formatTime(prompt.createdAt)}</span>
+              </div>
+              <div className='flex items-center space-x-2'>
               <svg className='w-4 h-4' fill='none' stroke='currentColor' viewBox='0 0 24 24'>
                 <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d='M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' />
               </svg>
-              <span>{t('lastModified')}: {formatLastModified(prompt.lastModified)}</span>
+                <span>{t('lastModified')}: {formatTime(prompt.lastModified)}</span>
+              </div>
             </div>
 
             {/* 启用状态 */}

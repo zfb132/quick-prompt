@@ -1,8 +1,8 @@
-import { BROWSER_STORAGE_KEY } from '@/utils/constants'
 import { useState, useEffect } from 'react'
 import Logo from '~/assets/icon.png'
 import '~/assets/tailwind.css'
 import { t, initLocale } from '@/utils/i18n'
+import { getAllPrompts } from '@/utils/promptStore'
 
 function App() {
   const [promptCount, setPromptCount] = useState<number>(0)
@@ -20,8 +20,7 @@ function App() {
 
       // 直接从本地存储获取数据
       try {
-        const result = await browser.storage.local.get(BROWSER_STORAGE_KEY)
-        const allPrompts = result.userPrompts || []
+        const allPrompts = await getAllPrompts()
 
         if (Array.isArray(allPrompts)) {
           // 只计算启用的提示词数量

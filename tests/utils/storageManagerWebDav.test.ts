@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { BROWSER_STORAGE_KEY, CATEGORIES_STORAGE_KEY } from "@/utils/constants";
+import { PROMPT_STORAGE_INDEX_KEY, PROMPT_STORAGE_ITEM_PREFIX } from "@/utils/promptStore";
 import { WEBDAV_STORAGE_KEYS } from "@/utils/sync/webdavSync";
 import type { Category, PromptItem } from "@/utils/types";
 
@@ -38,6 +39,10 @@ const prompt: PromptItem = {
   tags: [],
   enabled: true,
   categoryId: "cat-1",
+  notes: "",
+  createdAt: "2025-01-01T00:00:00.000Z",
+  lastModified: "2025-01-01T00:00:00.000Z",
+  attachments: [],
 };
 
 const category: Category = {
@@ -49,6 +54,12 @@ const category: Category = {
 };
 
 const rootHandle = { name: "Quick Prompt" } as FileSystemDirectoryHandle;
+const promptIndex = {
+  version: 2,
+  ids: ["prompt-1"],
+  updatedAt: "2025-01-01T00:00:00.000Z",
+};
+const promptItemKey = `${PROMPT_STORAGE_ITEM_PREFIX}prompt-1`;
 
 const configSettings = {
   [WEBDAV_STORAGE_KEYS.AUTO_SYNC]: true,
@@ -92,7 +103,16 @@ describe("storageManager WebDAV auto upload", () => {
           set: vi.fn(),
         },
         local: {
-          get: vi.fn(async (key: string) => {
+          get: vi.fn(async (key: string | string[]) => {
+            if (Array.isArray(key)) {
+              return Object.fromEntries(key.map((item) => [
+                item,
+                item === promptItemKey ? prompt : undefined,
+              ]));
+            }
+
+            if (key === PROMPT_STORAGE_INDEX_KEY) return { [PROMPT_STORAGE_INDEX_KEY]: promptIndex };
+            if (key === promptItemKey) return { [promptItemKey]: prompt };
             if (key === BROWSER_STORAGE_KEY) return { [BROWSER_STORAGE_KEY]: [prompt] };
             if (key === CATEGORIES_STORAGE_KEY) return { [CATEGORIES_STORAGE_KEY]: [category] };
             return {};
@@ -306,7 +326,16 @@ describe("storageManager WebDAV auto upload", () => {
   it("queues one latest WebDAV upload while another upload is in progress", async () => {
     const updatedPrompt = { ...prompt, title: "Prompt 1 updated" };
     let storedPrompts = [prompt];
-    mockBrowser.storage.local.get.mockImplementation(async (key: string) => {
+    mockBrowser.storage.local.get.mockImplementation(async (key: string | string[]) => {
+      if (Array.isArray(key)) {
+        return Object.fromEntries(key.map((item) => [
+          item,
+          item === promptItemKey ? storedPrompts[0] : undefined,
+        ]));
+      }
+
+      if (key === PROMPT_STORAGE_INDEX_KEY) return { [PROMPT_STORAGE_INDEX_KEY]: promptIndex };
+      if (key === promptItemKey) return { [promptItemKey]: storedPrompts[0] };
       if (key === BROWSER_STORAGE_KEY) return { [BROWSER_STORAGE_KEY]: storedPrompts };
       if (key === CATEGORIES_STORAGE_KEY) return { [CATEGORIES_STORAGE_KEY]: [category] };
       return {};

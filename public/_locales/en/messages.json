@@ -1193,8 +1193,20 @@
   "notes": {
     "message": "Notes"
   },
+  "createdAt": {
+    "message": "Created"
+  },
   "lastModified": {
     "message": "Last Modified"
+  },
+  "filterByTag": {
+    "message": "Filter by tag"
+  },
+  "allTags": {
+    "message": "All tags"
+  },
+  "viewAllTags": {
+    "message": "View all tags"
   },
   "notesLabel": {
     "message": "Notes"

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { storage } from "#imports";
 import PromptForm from "./PromptForm";
 import PromptList from "./PromptList";
 import Modal from "./Modal";
@@ -8,8 +7,9 @@ import ConfirmModal from "./ConfirmModal";
 import "../App.css";
 import "~/assets/tailwind.css";
 import { PromptItem, Category } from "@/utils/types";
-import { BROWSER_STORAGE_KEY, DEFAULT_CATEGORY_ID } from "@/utils/constants";
+import { DEFAULT_CATEGORY_ID } from "@/utils/constants";
 import { getCategories, migratePromptsWithCategory } from "@/utils/categoryUtils";
+import { getAllPrompts, setAllPrompts } from "@/utils/promptStore";
 import {
   getAttachmentRootHandle,
   verifyReadWritePermission,
@@ -61,12 +61,14 @@ export const buildPromptDuplicate = async (
 ): Promise<PromptItem> => {
   const newPromptId = crypto.randomUUID();
   const attachments = await duplicatePromptAttachmentFiles(root, prompt, newPromptId);
+  const now = new Date().toISOString();
 
   return {
     ...prompt,
     id: newPromptId,
     title: `${prompt.title} (${copyLabel})`,
-    lastModified: new Date().toISOString(),
+    createdAt: now,
+    lastModified: now,
     pinned: false, // 副本默认不置顶
     attachments,
   };
@@ -75,6 +77,7 @@ export const buildPromptDuplicate = async (
 const PromptManager = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoryFromUrl = searchParams.get("category");
+  const tagFromUrl = searchParams.get("tag");
   const [prompts, setPrompts] = useState<PromptItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPrompt, setEditingPrompt] = useState<PromptItem | null>(null);
@@ -103,6 +106,7 @@ const PromptManager = () => {
   // 添加分类相关状态
   const [categories, setCategories] = useState<Category[]>([]);
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(() => categoryFromUrl || null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(() => tagFromUrl || null);
 
   const availableTags = useMemo(() => {
     const tagsByKey = new Map<string, string>();
@@ -150,17 +154,39 @@ const PromptManager = () => {
     setSelectedCategoryId(categoryFromUrl || null);
   }, [categoryFromUrl]);
 
-  const updateSelectedCategory = (categoryId: string | null) => {
-    setSelectedCategoryId(categoryId);
+  useEffect(() => {
+    setSelectedTag(tagFromUrl || null);
+  }, [tagFromUrl]);
+
+  const updateFilters = (nextFilters: { categoryId?: string | null; tag?: string | null }) => {
+    const nextCategoryId = nextFilters.categoryId !== undefined ? nextFilters.categoryId : selectedCategoryId;
+    const nextTag = nextFilters.tag !== undefined ? nextFilters.tag : selectedTag;
+
+    setSelectedCategoryId(nextCategoryId);
+    setSelectedTag(nextTag);
 
     const nextSearchParams = new URLSearchParams(searchParams);
-    if (categoryId) {
-      nextSearchParams.set("category", categoryId);
+    if (nextCategoryId) {
+      nextSearchParams.set("category", nextCategoryId);
     } else {
       nextSearchParams.delete("category");
     }
 
+    if (nextTag) {
+      nextSearchParams.set("tag", nextTag);
+    } else {
+      nextSearchParams.delete("tag");
+    }
+
     setSearchParams(nextSearchParams, { replace: true });
+  };
+
+  const updateSelectedCategory = (categoryId: string | null) => {
+    updateFilters({ categoryId });
+  };
+
+  const updateSelectedTag = (tag: string | null) => {
+    updateFilters({ tag });
   };
 
   // Load prompts and categories from storage
@@ -173,17 +199,15 @@ const PromptManager = () => {
         await migratePromptsWithCategory();
 
         // 加载提示词
-        const storedPrompts = await storage.getItem<PromptItem[]>(
-          `local:${BROWSER_STORAGE_KEY}`
-        );
+        const storedPrompts = await getAllPrompts();
 
-        setPrompts(storedPrompts || []);
+        setPrompts(storedPrompts);
 
         // 加载分类
         const storedCategories = await getCategories();
         setCategories(storedCategories);
 
-        console.log(t('optionsPageLoadPrompts'), storedPrompts?.length || 0);
+        console.log(t('optionsPageLoadPrompts'), storedPrompts.length);
         console.log(t('optionsPageLoadCategories'), storedCategories.length);
       } catch (err) {
         console.error(t('optionsPageLoadDataError'), err);
@@ -198,14 +222,14 @@ const PromptManager = () => {
 
   // 使用 useMemo 计算筛选和排序后的提示词
   const filteredPrompts = useMemo(() => {
-    const filtered = filterPrompts(prompts, { searchTerm, categoryId: selectedCategoryId });
+    const filtered = filterPrompts(prompts, { searchTerm, categoryId: selectedCategoryId, tag: selectedTag });
     return sortPrompts(filtered, sortType);
-  }, [prompts, searchTerm, selectedCategoryId, sortType]);
+  }, [prompts, searchTerm, selectedCategoryId, selectedTag, sortType]);
 
   // Save prompts to storage
   const savePrompts = async (newPrompts: PromptItem[]) => {
     try {
-      await storage.setItem<PromptItem[]>(`local:${BROWSER_STORAGE_KEY}`, newPrompts);
+      await setAllPrompts(newPrompts);
       console.log(t('optionsPagePromptsSaved'));
       setPrompts(newPrompts);
     } catch (err) {
@@ -252,11 +276,13 @@ const PromptManager = () => {
   // Add a new prompt
   const addPrompt = async (prompt: Omit<PromptItem, "id"> | PromptItem) => {
     const submittedId = "id" in prompt ? prompt.id : undefined;
+    const now = new Date().toISOString();
     const newPrompt: PromptItem = {
       ...prompt,
       id: submittedId || crypto.randomUUID(),
       enabled: prompt.enabled !== undefined ? prompt.enabled : true, // 确保新建的提示词默认启用
-      lastModified: prompt.lastModified || new Date().toISOString(), // 确保有lastModified字段
+      createdAt: prompt.createdAt || now,
+      lastModified: prompt.lastModified || now, // 确保有lastModified字段
     };
 
     const newPrompts = [newPrompt, ...prompts];
@@ -663,6 +689,28 @@ const PromptManager = () => {
                 </div>
               </div>
 
+              {/* 标签筛选 */}
+              <div className="relative">
+                <select
+                  value={selectedTag || ""}
+                  onChange={(e) => updateSelectedTag(e.target.value || null)}
+                  className="block w-full pl-3 pr-7 py-1.5 text-sm bg-white/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all appearance-none cursor-pointer"
+                  title={t('filterByTag')}
+                >
+                  <option value="">{t('allTags')}</option>
+                  {availableTags.map((tag) => (
+                    <option key={tag} value={tag}>
+                      {tag}
+                    </option>
+                  ))}
+                </select>
+                <div className="absolute inset-y-0 right-0 flex items-center pr-2 pointer-events-none">
+                  <svg className="h-3.5 w-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+              </div>
+
               {/* 排序方式 */}
               <div className="relative">
                 <select
@@ -799,6 +847,8 @@ const PromptManager = () => {
           selectedCategoryId={selectedCategoryId}
           compact={compactLayout}
           sortType={sortType}
+          selectedTag={selectedTag}
+          onTagSelect={updateSelectedTag}
         />
 
         {/* 无结果提示 */}
@@ -811,7 +861,7 @@ const PromptManager = () => {
                 </svg>
               </div>
 
-              {searchTerm || selectedCategoryId ? (
+              {searchTerm || selectedCategoryId || selectedTag ? (
                 <div className="space-y-3">
                   <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('noMatchingPrompts')}</h3>
                   <div className="flex flex-wrap justify-center gap-2">
@@ -832,6 +882,14 @@ const PromptManager = () => {
                         className="cursor-pointer inline-flex items-center px-3 py-1.5 text-xs bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors font-medium"
                       >
                         {t('viewAllCategories')}
+                      </button>
+                    )}
+                    {selectedTag && (
+                      <button
+                        onClick={() => updateSelectedTag(null)}
+                        className="cursor-pointer inline-flex items-center px-3 py-1.5 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors font-medium"
+                      >
+                        {t('viewAllTags')}
                       </button>
                     )}
                   </div>

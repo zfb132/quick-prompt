@@ -58,11 +58,10 @@ export const sortPrompts = (items: PromptItem[], sortType: SortType = 'custom'):
         return b.title.localeCompare(a.title, 'zh-CN')
 
       case 'created-newest':
-        // 假设 id 包含时间信息，或使用 lastModified 作为创建时间的近似
-        return (b.lastModified || '').localeCompare(a.lastModified || '')
+        return (b.createdAt || b.lastModified || '').localeCompare(a.createdAt || a.lastModified || '')
 
       case 'created-oldest':
-        return (a.lastModified || '').localeCompare(b.lastModified || '')
+        return (a.createdAt || a.lastModified || '').localeCompare(b.createdAt || b.lastModified || '')
 
       case 'modified-newest':
         return (b.lastModified || '').localeCompare(a.lastModified || '')
@@ -102,14 +101,22 @@ export const filterPrompts = (
   options: {
     searchTerm?: string
     categoryId?: string | null
+    tag?: string | null
   }
 ): PromptItem[] => {
-  const { searchTerm, categoryId } = options
+  const { searchTerm, categoryId, tag } = options
   let filtered = prompts
 
   // 按分类筛选
   if (categoryId) {
     filtered = filtered.filter(prompt => prompt.categoryId === categoryId)
+  }
+
+  if (tag?.trim()) {
+    const normalizedTag = tag.trim().toLowerCase()
+    filtered = filtered.filter(prompt =>
+      prompt.tags.some((item) => item.toLowerCase() === normalizedTag)
+    )
   }
 
   // 按搜索词筛选
@@ -152,6 +159,7 @@ export const normalizePromptItem = (prompt: PromptItem): PromptItem => {
     ...promptWithAttachments,
     categoryId: prompt.categoryId || DEFAULT_CATEGORY_ID,
     enabled: prompt.enabled !== undefined ? prompt.enabled : true,
+    createdAt: prompt.createdAt || prompt.lastModified || new Date().toISOString(),
     lastModified: prompt.lastModified || new Date().toISOString(),
     notes: prompt.notes || '',
   }

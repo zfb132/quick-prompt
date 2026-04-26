@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Switch } from "@headlessui/react";
 import { browser } from "#imports";
-import { BROWSER_STORAGE_KEY, CATEGORIES_STORAGE_KEY } from "@/utils/constants";
+import { CATEGORIES_STORAGE_KEY } from "@/utils/constants";
 import type { Category, PromptItem } from "@/utils/types";
+import { getAllPrompts, setAllPrompts } from "@/utils/promptStore";
 import {
   getAttachmentRootHandle,
   pickAndStoreAttachmentRoot,
@@ -230,11 +231,10 @@ const WebDavIntegration: React.FC = () => {
     prompts: PromptItem[];
     categories: Category[];
   }> => {
-    const promptsResult = await browser.storage.local.get(BROWSER_STORAGE_KEY);
     const categoriesResult = await browser.storage.local.get(CATEGORIES_STORAGE_KEY);
 
     return {
-      prompts: (promptsResult[BROWSER_STORAGE_KEY] as PromptItem[]) || [],
+      prompts: await getAllPrompts(),
       categories: (categoriesResult[CATEGORIES_STORAGE_KEY] as Category[]) || [],
     };
   };
@@ -292,8 +292,8 @@ const WebDavIntegration: React.FC = () => {
         return;
       }
 
+      await setAllPrompts(result.prompts);
       await browser.storage.local.set({
-        [BROWSER_STORAGE_KEY]: result.prompts,
         [CATEGORIES_STORAGE_KEY]: result.categories,
       });
       showMessage("success", t("webdavDownloadSuccess", [String(result.downloadedFiles.length)]));

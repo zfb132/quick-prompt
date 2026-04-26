@@ -1,4 +1,4 @@
-import { BROWSER_STORAGE_KEY, CATEGORIES_STORAGE_KEY } from "@/utils/constants"
+import { CATEGORIES_STORAGE_KEY } from "@/utils/constants"
 import { syncLocalDataToNotion } from "@/utils/sync/notionSync"
 import { GIST_STORAGE_KEYS, serializeToGistContent, buildGistUrl } from "@/utils/sync/gistSync"
 import { updateGiteeGist, createGiteeGist, findQuickPromptGist as findGiteeGist } from "@/utils/sync/giteeGistSync"
@@ -6,7 +6,8 @@ import { updateGitHubGist, createGitHubGist, findQuickPromptGist as findGitHubGi
 import { getAttachmentRootHandle, verifyReadWritePermission } from "@/utils/attachments/fileSystem"
 import { uploadWebDavBackup } from "@/utils/sync/webdavBackup"
 import { WEBDAV_STORAGE_KEYS, type WebDavConfig } from "@/utils/sync/webdavSync"
-import type { PromptItem, Category } from "@/utils/types"
+import type { Category } from "@/utils/types"
+import { getAllPrompts, isPromptStorageChange } from "@/utils/promptStore"
 
 // Debounce timer for Gist auto-sync
 let gistSyncTimer: ReturnType<typeof setTimeout> | null = null
@@ -19,12 +20,14 @@ let webDavSyncSequence = 0
 export const setupStorageChangeListeners = (): void => {
   // Added: storage.onChanged listener for auto-sync Local -> Notion
   browser.storage.onChanged.addListener(async (changes, areaName) => {
-    if (areaName === 'local' && (changes[BROWSER_STORAGE_KEY] || changes[CATEGORIES_STORAGE_KEY])) {
+    const promptDataChanged = isPromptStorageChange(changes)
+
+    if (areaName === 'local' && (promptDataChanged || changes[CATEGORIES_STORAGE_KEY])) {
       // Gist auto-sync
       handleGistAutoSync()
       handleWebDavAutoSync()
 
-      if (!changes[BROWSER_STORAGE_KEY]) return
+      if (!promptDataChanged) return
       console.log('Local prompts data changed, checking if Notion sync (Local -> Notion) is needed...');
       const syncSettings = await browser.storage.sync.get('notionSyncToNotionEnabled');
       if (!!syncSettings.notionSyncToNotionEnabled) {
@@ -123,9 +126,8 @@ const handleGistAutoSync = () => {
         GIST_STORAGE_KEYS.GITHUB_PUBLIC,
       ])
 
-      const promptsResult = await browser.storage.local.get(BROWSER_STORAGE_KEY)
       const categoriesResult = await browser.storage.local.get(CATEGORIES_STORAGE_KEY)
-      const prompts = (promptsResult[BROWSER_STORAGE_KEY] as PromptItem[]) || []
+      const prompts = await getAllPrompts()
       const categories = (categoriesResult[CATEGORIES_STORAGE_KEY] as Category[]) || []
       const content = serializeToGistContent(prompts, categories)
 
@@ -227,9 +229,8 @@ const runWebDavAutoSync = async (): Promise<void> => {
       return
     }
 
-    const promptsResult = await browser.storage.local.get(BROWSER_STORAGE_KEY)
     const categoriesResult = await browser.storage.local.get(CATEGORIES_STORAGE_KEY)
-    const prompts = (promptsResult[BROWSER_STORAGE_KEY] as PromptItem[]) || []
+    const prompts = await getAllPrompts()
     const categories = (categoriesResult[CATEGORIES_STORAGE_KEY] as Category[]) || []
     const syncId = `webdav_auto_${Date.now()}_${++webDavSyncSequence}`
 
