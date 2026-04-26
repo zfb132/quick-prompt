@@ -69,6 +69,30 @@ describe('serializeToGistContent', () => {
 
     expect(() => JSON.parse(result)).not.toThrow()
   })
+
+  it('应该序列化附件元数据但不内联附件内容', () => {
+    const prompts = [
+      createPrompt({
+        attachments: [
+          {
+            id: 'attachment-1',
+            name: 'image.png',
+            type: 'image/png',
+            size: 4096,
+            relativePath: 'attachments/test-id/attachment-1-image.png',
+            createdAt: '2024-01-01T00:00:00.000Z',
+          },
+        ],
+      }),
+    ]
+
+    const result = serializeToGistContent(prompts, [])
+    const parsed = JSON.parse(result)
+
+    expect(parsed.prompts[0].attachments).toEqual(prompts[0].attachments)
+    expect(result).not.toContain('data:')
+    expect(result).not.toContain('base64')
+  })
 })
 
 describe('deserializeFromGistContent', () => {

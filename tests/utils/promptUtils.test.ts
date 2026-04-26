@@ -272,6 +272,28 @@ describe('normalizePromptItem', () => {
     expect(normalized.notes).toBe('')
   })
 
+  it('应该填充缺失的 attachments 为空数组', () => {
+    const normalized = normalizePromptItem(createPrompt())
+
+    expect(normalized.attachments).toEqual([])
+  })
+
+  it('应该保留已有的附件元数据', () => {
+    const attachments = [
+      {
+        id: 'attachment-1',
+        name: 'guide.pdf',
+        type: 'application/pdf',
+        size: 2048,
+        relativePath: 'attachments/test-id/attachment-1-guide.pdf',
+        createdAt: '2024-01-01T00:00:00.000Z',
+      },
+    ]
+    const normalized = normalizePromptItem(createPrompt({ attachments }))
+
+    expect(normalized.attachments).toEqual(attachments)
+  })
+
   vi.useRealTimers()
 })
 

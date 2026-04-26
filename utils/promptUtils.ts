@@ -1,5 +1,6 @@
 import type { PromptItem } from './types'
 import { DEFAULT_CATEGORY_ID } from './constants'
+import { normalizePromptAttachments } from './attachments/metadata'
 
 function hashString(str: string): number {
   let hash = 0;
@@ -145,8 +146,10 @@ export const isValidPromptItem = (prompt: unknown): prompt is PromptItem => {
  * 规范化提示词数据，填充默认值
  */
 export const normalizePromptItem = (prompt: PromptItem): PromptItem => {
+  const promptWithAttachments = normalizePromptAttachments(prompt)
+
   return {
-    ...prompt,
+    ...promptWithAttachments,
     categoryId: prompt.categoryId || DEFAULT_CATEGORY_ID,
     enabled: prompt.enabled !== undefined ? prompt.enabled : true,
     lastModified: prompt.lastModified || new Date().toISOString(),
@@ -237,4 +240,4 @@ export const getValidCategoryId = (
     return preferredId
   }
   return availableCategories[0]?.id || ''
-} 
+}
