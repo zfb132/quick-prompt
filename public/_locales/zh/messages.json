@@ -1607,7 +1607,7 @@
     "message": "远程目录"
   },
   "webdavRemoteDirectoryHelp": {
-    "message": "备份会存储在 WebDAV 服务器的此目录中。"
+    "message": "请先在 WebDAV 服务器上创建此目录。Quick Prompt 只会在该目录内写入。"
   },
   "webdavAutoUpload": {
     "message": "自动上传"

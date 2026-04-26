@@ -142,30 +142,34 @@ describe("webdav sync helpers", () => {
     });
   });
 
-  it("creates every nested WebDAV directory level in order", async () => {
+  it("creates only nested directories inside the configured remote directory", async () => {
     const fetchMock = vi.fn(async () => new Response(null, { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
 
     await ensureWebDavDirectory(config, "attachments/prompt-id");
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://dav.example.com/root/quick-prompt", {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://dav.example.com/root/quick-prompt/attachments", {
       method: "MKCOL",
       headers: {
         Authorization: "Basic YWxpY2U6c2VjcmV0",
       },
     });
-    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://dav.example.com/root/quick-prompt/attachments", {
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://dav.example.com/root/quick-prompt/attachments/prompt-id", {
       method: "MKCOL",
       headers: {
         Authorization: "Basic YWxpY2U6c2VjcmV0",
       },
     });
-    expect(fetchMock).toHaveBeenNthCalledWith(3, "https://dav.example.com/root/quick-prompt/attachments/prompt-id", {
-      method: "MKCOL",
-      headers: {
-        Authorization: "Basic YWxpY2U6c2VjcmV0",
-      },
-    });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not create the configured remote directory itself", async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 201 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await ensureWebDavDirectory(config, "");
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("treats MKCOL 405 as an existing WebDAV directory", async () => {
@@ -173,7 +177,24 @@ describe("webdav sync helpers", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(ensureWebDavDirectory(config, "nested")).resolves.toBeUndefined();
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it("rejects paths that would leave the configured remote directory before sending WebDAV requests", async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 201 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(putWebDavFile(config, "../outside.txt", "escape")).rejects.toThrow(
+      "outside the configured WebDAV remote directory"
+    );
+    await expect(getWebDavTextFile(config, "attachments/%2e%2e/outside.txt")).rejects.toThrow(
+      "outside the configured WebDAV remote directory"
+    );
+    await expect(ensureWebDavDirectory(config, "attachments/../outside")).rejects.toThrow(
+      "outside the configured WebDAV remote directory"
+    );
+
+    expect(fetchMock).not.toHaveBeenCalled();
   });
 
   it("downloads text files with WebDAV headers", async () => {

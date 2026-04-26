@@ -1607,7 +1607,7 @@
     "message": "Remote Directory"
   },
   "webdavRemoteDirectoryHelp": {
-    "message": "Backups are stored in this directory on your WebDAV server."
+    "message": "Create this directory on your WebDAV server first. Quick Prompt only writes inside it."
   },
   "webdavAutoUpload": {
     "message": "Automatic upload"

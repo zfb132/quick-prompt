@@ -43,6 +43,41 @@ export const buildWebDavUrl = (serverUrl: string, ...parts: string[]): string =>
   return path ? `${baseUrl}/${path}` : baseUrl;
 };
 
+const getSafeWebDavPathSegments = (path: string): string[] => {
+  const segments = path.trim().replace(/^\/+|\/+$/g, "").split("/").filter(Boolean);
+
+  for (const segment of segments) {
+    let decodedSegment: string;
+    try {
+      decodedSegment = decodeURIComponent(segment);
+    } catch {
+      throw new Error("WebDAV path is outside the configured WebDAV remote directory");
+    }
+
+    if (
+      decodedSegment === "." ||
+      decodedSegment === ".." ||
+      decodedSegment.includes("/") ||
+      decodedSegment.includes("\\")
+    ) {
+      throw new Error("WebDAV path is outside the configured WebDAV remote directory");
+    }
+  }
+
+  return segments;
+};
+
+const buildConfiguredWebDavPath = (config: WebDavConfig, relativePath: string): string => {
+  const remoteDirSegments = getSafeWebDavPathSegments(config.remoteDir);
+  const relativePathSegments = getSafeWebDavPathSegments(relativePath);
+
+  if (remoteDirSegments.length === 0) {
+    throw new Error("WebDAV remote directory is required");
+  }
+
+  return joinWebDavPath(...remoteDirSegments, ...relativePathSegments);
+};
+
 export const getWebDavHeaders = (
   username: string,
   password: string,
@@ -106,7 +141,7 @@ export const parseWebDavMultiStatus = (xml: string): string[] => {
 };
 
 const buildConfiguredWebDavUrl = (config: WebDavConfig, relativePath: string): string => (
-  buildWebDavUrl(config.serverUrl, config.remoteDir, relativePath)
+  buildWebDavUrl(config.serverUrl, buildConfiguredWebDavPath(config, relativePath))
 );
 
 const getResponseBodySnippet = async (response: Response): Promise<string> => {
@@ -134,11 +169,22 @@ export const ensureWebDavDirectory = async (
   config: WebDavConfig,
   path: string
 ): Promise<void> => {
-  const fullPath = joinWebDavPath(config.remoteDir, path);
-  const pathSegments = fullPath.split("/").filter(Boolean);
+  const remoteDirSegments = getSafeWebDavPathSegments(config.remoteDir);
+  const pathSegments = getSafeWebDavPathSegments(path);
+
+  if (remoteDirSegments.length === 0) {
+    throw new Error("WebDAV remote directory is required");
+  }
+
+  if (pathSegments.length === 0) {
+    return;
+  }
 
   for (let index = 0; index < pathSegments.length; index += 1) {
-    const directoryPath = pathSegments.slice(0, index + 1).join("/");
+    const directoryPath = joinWebDavPath(
+      ...remoteDirSegments,
+      ...pathSegments.slice(0, index + 1)
+    );
     const response = await fetch(buildWebDavUrl(config.serverUrl, directoryPath), {
       method: "MKCOL",
       headers: getWebDavHeaders(config.username, config.password),
