@@ -1,9 +1,33 @@
 import { getAttachmentPathSegments } from "@/utils/attachments/metadata";
 
 const DB_NAME = "quick-prompt-attachments";
-const DB_VERSION = 1;
-const STORE_NAME = "handles";
+const DB_VERSION = 2;
+const HANDLE_STORE_NAME = "handles";
+const FILE_STORE_NAME = "files";
 const ATTACHMENT_ROOT_KEY = "attachmentRoot";
+const ATTACHMENT_STORAGE_MODE_KEY = "attachmentStorageMode";
+
+export type AttachmentStorageMode = "internal" | "external";
+
+export type InternalAttachmentRootHandle = {
+  kind: "directory";
+  name: string;
+  readonly __quickPromptInternalAttachmentRoot: true;
+};
+
+export type AttachmentStorageRootHandle = FileSystemDirectoryHandle | InternalAttachmentRootHandle;
+
+const INTERNAL_ATTACHMENT_ROOT_HANDLE: InternalAttachmentRootHandle = Object.freeze({
+  kind: "directory",
+  name: "Quick Prompt Built-in Storage",
+  __quickPromptInternalAttachmentRoot: true,
+});
+
+export const isInternalAttachmentRoot = (
+  handle: AttachmentStorageRootHandle | FileSystemHandle
+): handle is InternalAttachmentRootHandle => (
+  Boolean((handle as Partial<InternalAttachmentRootHandle>).__quickPromptInternalAttachmentRoot)
+);
 
 const openAttachmentDatabase = (): Promise<IDBDatabase> => {
   return new Promise((resolve, reject) => {
@@ -11,8 +35,11 @@ const openAttachmentDatabase = (): Promise<IDBDatabase> => {
 
     request.onupgradeneeded = () => {
       const db = request.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        db.createObjectStore(STORE_NAME);
+      if (!db.objectStoreNames.contains(HANDLE_STORE_NAME)) {
+        db.createObjectStore(HANDLE_STORE_NAME);
+      }
+      if (!db.objectStoreNames.contains(FILE_STORE_NAME)) {
+        db.createObjectStore(FILE_STORE_NAME);
       }
     };
 
@@ -22,6 +49,17 @@ const openAttachmentDatabase = (): Promise<IDBDatabase> => {
 };
 
 const runHandleStoreRequest = <T>(
+  mode: IDBTransactionMode,
+  createRequest: (store: IDBObjectStore) => IDBRequest<T>
+): Promise<T> => runStoreRequest(HANDLE_STORE_NAME, mode, createRequest);
+
+const runAttachmentFileStoreRequest = <T>(
+  mode: IDBTransactionMode,
+  createRequest: (store: IDBObjectStore) => IDBRequest<T>
+): Promise<T> => runStoreRequest(FILE_STORE_NAME, mode, createRequest);
+
+const runStoreRequest = <T>(
+  storeName: string,
   mode: IDBTransactionMode,
   createRequest: (store: IDBObjectStore) => IDBRequest<T>
 ): Promise<T> => {
@@ -44,8 +82,8 @@ const runHandleStoreRequest = <T>(
       };
 
       try {
-        const transaction = db.transaction(STORE_NAME, mode);
-        const request = createRequest(transaction.objectStore(STORE_NAME));
+        const transaction = db.transaction(storeName, mode);
+        const request = createRequest(transaction.objectStore(storeName));
 
         request.onsuccess = () => {
           requestResult = request.result;
@@ -93,17 +131,77 @@ const withTextReader = (file: File): File => {
   return file;
 };
 
+const getFileNameFromRelativePath = (relativePath: string): string => (
+  getAttachmentFilePathParts(relativePath).fileName
+);
+
+const getInternalAttachmentFile = async (relativePath: string): Promise<File> => {
+  getAttachmentFilePathParts(relativePath);
+
+  const storedFile = await runAttachmentFileStoreRequest<File | Blob | undefined>("readonly", (store) =>
+    store.get(relativePath)
+  );
+
+  if (!storedFile) {
+    throw new DOMException("Attachment file not found", "NotFoundError");
+  }
+
+  if (storedFile instanceof File) {
+    return withTextReader(storedFile);
+  }
+
+  return withTextReader(new File([storedFile], getFileNameFromRelativePath(relativePath), {
+    type: storedFile.type || "application/octet-stream",
+  }));
+};
+
 export const saveAttachmentRootHandle = (handle: FileSystemDirectoryHandle): Promise<void> => {
   return runHandleStoreRequest("readwrite", (store) => store.put(handle, ATTACHMENT_ROOT_KEY)).then(() => {});
 };
 
-export const getAttachmentRootHandle = (): Promise<FileSystemDirectoryHandle | undefined> => {
+const getStoredAttachmentRootHandle = (): Promise<FileSystemDirectoryHandle | undefined> => {
   return runHandleStoreRequest<FileSystemDirectoryHandle | undefined>("readonly", (store) =>
     store.get(ATTACHMENT_ROOT_KEY)
   );
 };
 
-export const verifyReadWritePermission = async (handle: FileSystemHandle): Promise<boolean> => {
+export const getAttachmentStorageMode = async (): Promise<AttachmentStorageMode | undefined> => {
+  const mode = await runHandleStoreRequest<AttachmentStorageMode | undefined>("readonly", (store) =>
+    store.get(ATTACHMENT_STORAGE_MODE_KEY)
+  );
+
+  return mode === "internal" || mode === "external" ? mode : undefined;
+};
+
+export const saveAttachmentStorageMode = (mode: AttachmentStorageMode): Promise<void> => {
+  return runHandleStoreRequest("readwrite", (store) => store.put(mode, ATTACHMENT_STORAGE_MODE_KEY)).then(() => {});
+};
+
+export const useInternalAttachmentStorage = async (): Promise<InternalAttachmentRootHandle> => {
+  await saveAttachmentStorageMode("internal");
+  return INTERNAL_ATTACHMENT_ROOT_HANDLE;
+};
+
+export const getAttachmentRootHandle = async (): Promise<AttachmentStorageRootHandle | undefined> => {
+  const mode = await getAttachmentStorageMode();
+
+  if (mode === "internal") {
+    return INTERNAL_ATTACHMENT_ROOT_HANDLE;
+  }
+
+  const handle = await getStoredAttachmentRootHandle();
+  if (handle && !mode) {
+    await saveAttachmentStorageMode("external");
+  }
+
+  return handle;
+};
+
+export const verifyReadWritePermission = async (handle: AttachmentStorageRootHandle | FileSystemHandle): Promise<boolean> => {
+  if (isInternalAttachmentRoot(handle)) {
+    return true;
+  }
+
   const descriptor: FileSystemHandlePermissionDescriptor = { mode: "readwrite" };
 
   if ((await handle.queryPermission(descriptor)) === "granted") {
@@ -125,6 +223,7 @@ export const pickAndStoreAttachmentRoot = async (): Promise<FileSystemDirectoryH
   }
 
   await saveAttachmentRootHandle(handle);
+  await saveAttachmentStorageMode("external");
   return handle;
 };
 
@@ -143,10 +242,16 @@ export const getDirectoryForSegments = async (
 };
 
 export const copyFileToAttachmentRoot = async (
-  rootHandle: FileSystemDirectoryHandle,
+  rootHandle: AttachmentStorageRootHandle,
   relativePath: string,
   file: File
 ): Promise<void> => {
+  if (isInternalAttachmentRoot(rootHandle)) {
+    getAttachmentFilePathParts(relativePath);
+    await runAttachmentFileStoreRequest("readwrite", (store) => store.put(file, relativePath));
+    return;
+  }
+
   const { parentSegments, fileName } = getAttachmentFilePathParts(relativePath);
 
   const directory = await getDirectoryForSegments(rootHandle, parentSegments, true);
@@ -158,9 +263,13 @@ export const copyFileToAttachmentRoot = async (
 };
 
 export const getFileFromAttachmentRoot = async (
-  rootHandle: FileSystemDirectoryHandle,
+  rootHandle: AttachmentStorageRootHandle,
   relativePath: string
 ): Promise<File> => {
+  if (isInternalAttachmentRoot(rootHandle)) {
+    return getInternalAttachmentFile(relativePath);
+  }
+
   const { parentSegments, fileName } = getAttachmentFilePathParts(relativePath);
 
   const directory = await getDirectoryForSegments(rootHandle, parentSegments, false);
@@ -169,9 +278,15 @@ export const getFileFromAttachmentRoot = async (
 };
 
 export const removeAttachmentFileFromRoot = async (
-  rootHandle: FileSystemDirectoryHandle,
+  rootHandle: AttachmentStorageRootHandle,
   relativePath: string
 ): Promise<void> => {
+  if (isInternalAttachmentRoot(rootHandle)) {
+    await getInternalAttachmentFile(relativePath);
+    await runAttachmentFileStoreRequest("readwrite", (store) => store.delete(relativePath));
+    return;
+  }
+
   const { parentSegments, fileName } = getAttachmentFilePathParts(relativePath);
 
   const directory = await getDirectoryForSegments(rootHandle, parentSegments, false);

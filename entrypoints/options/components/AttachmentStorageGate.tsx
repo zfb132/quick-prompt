@@ -1,12 +1,14 @@
 import { ReactNode, useCallback, useEffect, useState } from "react";
 import {
+  getAttachmentStorageMode,
   getAttachmentRootHandle,
   pickAndStoreAttachmentRoot,
+  useInternalAttachmentStorage,
   verifyReadWritePermission,
 } from "@/utils/attachments/fileSystem";
 import type { t as repoTranslate } from "@/utils/i18n";
 
-type GateStatus = "checking" | "ready" | "needs-permission" | "unsupported";
+type GateStatus = "checking" | "ready" | "needs-choice";
 
 type AttachmentStorageGateProps = {
   children: ReactNode;
@@ -16,34 +18,45 @@ type AttachmentStorageGateProps = {
 const AttachmentStorageGate = ({ children, translate = (key) => key }: AttachmentStorageGateProps) => {
   const [status, setStatus] = useState<GateStatus>("checking");
   const [error, setError] = useState<string | null>(null);
-  const [isChoosing, setIsChoosing] = useState(false);
+  const [isChoosingInternal, setIsChoosingInternal] = useState(false);
+  const [isChoosingExternal, setIsChoosingExternal] = useState(false);
+  const [isExternalStorageUnsupported, setIsExternalStorageUnsupported] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
     const checkAttachmentRoot = async () => {
-      if (typeof window.showDirectoryPicker !== "function") {
-        setStatus("unsupported");
-        return;
-      }
+      const externalStorageAvailable = typeof window.showDirectoryPicker === "function";
+      setIsExternalStorageUnsupported(!externalStorageAvailable);
 
       try {
+        const mode = await getAttachmentStorageMode();
         const handle = await getAttachmentRootHandle();
         if (!isMounted) return;
 
+        if (mode === "internal") {
+          setStatus("ready");
+          return;
+        }
+
         if (!handle) {
-          setStatus("needs-permission");
+          setStatus("needs-choice");
+          return;
+        }
+
+        if (!externalStorageAvailable) {
+          setStatus("needs-choice");
           return;
         }
 
         const hasPermission = await verifyReadWritePermission(handle);
         if (!isMounted) return;
 
-        setStatus(hasPermission ? "ready" : "needs-permission");
+        setStatus(hasPermission ? "ready" : "needs-choice");
       } catch {
         if (!isMounted) return;
         setError(translate("attachmentStoragePermissionRequired"));
-        setStatus("needs-permission");
+        setStatus("needs-choice");
       }
     };
 
@@ -54,18 +67,33 @@ const AttachmentStorageGate = ({ children, translate = (key) => key }: Attachmen
     };
   }, []);
 
+  const chooseInternalStorage = useCallback(async () => {
+    setError(null);
+    setIsChoosingInternal(true);
+
+    try {
+      await useInternalAttachmentStorage();
+      setStatus("ready");
+    } catch {
+      setError(translate("attachmentStoragePermissionRequired"));
+      setStatus("needs-choice");
+    } finally {
+      setIsChoosingInternal(false);
+    }
+  }, [translate]);
+
   const chooseAttachmentDirectory = useCallback(async () => {
     setError(null);
-    setIsChoosing(true);
+    setIsChoosingExternal(true);
 
     try {
       await pickAndStoreAttachmentRoot();
       setStatus("ready");
     } catch {
       setError(translate("attachmentStoragePermissionRequired"));
-      setStatus("needs-permission");
+      setStatus("needs-choice");
     } finally {
-      setIsChoosing(false);
+      setIsChoosingExternal(false);
     }
   }, [translate]);
 
@@ -73,12 +101,12 @@ const AttachmentStorageGate = ({ children, translate = (key) => key }: Attachmen
     return <>{children}</>;
   }
 
-  const isUnsupported = status === "unsupported";
   const isChecking = status === "checking";
+  const isChoosing = isChoosingInternal || isChoosingExternal;
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4 transition-colors duration-200">
-      <div className="w-full max-w-md rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
+      <div className="w-full max-w-lg rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
         <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
           {translate("attachmentStorageTitle")}
         </h1>
@@ -86,20 +114,48 @@ const AttachmentStorageGate = ({ children, translate = (key) => key }: Attachmen
           {translate("attachmentStorageDescription")}
         </p>
 
-        {(error || isUnsupported) && (
+        {error && (
           <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
-            {isUnsupported ? translate("attachmentStorageUnsupported") : error}
+            {error}
           </p>
         )}
 
-        <button
-          type="button"
-          onClick={chooseAttachmentDirectory}
-          disabled={isChecking || isUnsupported || isChoosing}
-          className="mt-6 inline-flex w-full items-center justify-center rounded-md bg-blue-600 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:cursor-not-allowed disabled:bg-gray-300 disabled:text-gray-500 dark:disabled:bg-gray-700 dark:disabled:text-gray-400"
-        >
-          {translate("chooseAttachmentDirectory")}
-        </button>
+        {isExternalStorageUnsupported && (
+          <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+            {translate("attachmentStorageUnsupported")}
+          </p>
+        )}
+
+        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={chooseInternalStorage}
+            disabled={isChecking || isChoosing}
+            className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-4 text-left transition-colors hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:border-blue-800 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 dark:disabled:border-gray-700 dark:disabled:bg-gray-800"
+          >
+            <span className="block text-sm font-semibold text-blue-800 dark:text-blue-200">
+              {translate("useBuiltInAttachmentStorage")}
+            </span>
+            <span className="mt-1 block text-xs leading-5 text-blue-700 dark:text-blue-300">
+              {translate("useBuiltInAttachmentStorageDescription")}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            onClick={chooseAttachmentDirectory}
+            disabled={isChecking || isExternalStorageUnsupported || isChoosing}
+            className="rounded-lg border border-gray-200 bg-white px-4 py-4 text-left transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:disabled:bg-gray-800"
+          >
+            <span className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
+              {translate("useExternalAttachmentStorage")}
+            </span>
+            <span className="mt-1 block text-xs leading-5 text-gray-600 dark:text-gray-300">
+              {translate("useExternalAttachmentStorageDescription")}
+            </span>
+          </button>
+        </div>
+
       </div>
     </div>
   );

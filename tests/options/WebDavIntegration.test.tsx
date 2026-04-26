@@ -24,6 +24,14 @@ vi.mock("#imports", () => ({
 
 vi.mock("@/utils/i18n", () => ({ t: (key: string) => key }));
 
+vi.mock("@/utils/sync/webdavSync", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/utils/sync/webdavSync")>();
+  return {
+    ...actual,
+    testWebDavConnection: vi.fn(),
+  };
+});
+
 vi.mock("@/utils/attachments/fileSystem", () => ({
   getAttachmentRootHandle: vi.fn(),
   pickAndStoreAttachmentRoot: vi.fn(),
@@ -36,6 +44,7 @@ vi.mock("@/utils/sync/webdavBackup", () => ({
 }));
 
 const fs = await import("@/utils/attachments/fileSystem");
+const webdavSync = await import("@/utils/sync/webdavSync");
 const webdavBackup = await import("@/utils/sync/webdavBackup");
 const { default: WebDavIntegration } = await import("@/entrypoints/options/components/WebDavIntegration");
 
@@ -116,6 +125,7 @@ describe("WebDavIntegration", () => {
     vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue(rootHandle);
     vi.mocked(fs.pickAndStoreAttachmentRoot).mockResolvedValue(restoredRootHandle);
     vi.mocked(fs.verifyReadWritePermission).mockResolvedValue(true);
+    vi.mocked(webdavSync.testWebDavConnection).mockResolvedValue(undefined);
     vi.mocked(webdavBackup.uploadWebDavBackup).mockResolvedValue({
       success: true,
       uploadedFiles: ["quick-prompt-backup.json"],
@@ -128,6 +138,37 @@ describe("WebDavIntegration", () => {
       categories: [category, remoteCategory],
       downloadedFiles: [],
       errors: [],
+    });
+  });
+
+  it("tests the WebDAV connection with the current settings", async () => {
+    render(<WebDavIntegration />);
+
+    await screen.findByLabelText("webdavServerUrl");
+    fireEvent.change(screen.getByLabelText("webdavServerUrl"), {
+      target: { value: "https://dav.example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavUsername"), {
+      target: { value: "alice" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavPassword"), {
+      target: { value: "secret" },
+    });
+    fireEvent.change(screen.getByLabelText("webdavRemoteDirectory"), {
+      target: { value: "backups" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "testWebdavConnection" }));
+
+    await waitFor(() => {
+      expect(webdavSync.testWebDavConnection).toHaveBeenCalledWith({
+        serverUrl: "https://dav.example.com",
+        username: "alice",
+        password: "secret",
+        remoteDir: "backups",
+        autoSync: false,
+      });
+      expect(screen.getByText("webdavConnectionSuccess")).toBeInTheDocument();
     });
   });
 

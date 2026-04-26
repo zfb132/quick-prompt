@@ -10,6 +10,7 @@ import {
   type WebDavConfig,
 } from "@/utils/sync/webdavSync";
 import {
+  type AttachmentStorageRootHandle,
   copyFileToAttachmentRoot,
   getFileFromAttachmentRoot,
 } from "@/utils/attachments/fileSystem";
@@ -72,7 +73,7 @@ const createFileFromBlob = (blob: Blob, attachment: PromptAttachment): File => (
 
 const uploadAttachment = async (
   config: WebDavConfig,
-  rootHandle: FileSystemDirectoryHandle,
+  rootHandle: AttachmentStorageRootHandle,
   attachment: PromptAttachment
 ): Promise<void> => {
   const file = await getFileFromAttachmentRoot(rootHandle, attachment.relativePath);
@@ -86,7 +87,7 @@ const uploadAttachment = async (
 
 const downloadAttachment = async (
   config: WebDavConfig,
-  rootHandle: FileSystemDirectoryHandle,
+  rootHandle: AttachmentStorageRootHandle,
   attachment: PromptAttachment
 ): Promise<void> => {
   const blob = await getWebDavBlobFile(config, attachment.relativePath);
@@ -95,7 +96,7 @@ const downloadAttachment = async (
 
 export const uploadWebDavBackup = async (
   config: WebDavConfig,
-  rootHandle: FileSystemDirectoryHandle,
+  rootHandle: AttachmentStorageRootHandle,
   prompts: PromptItem[],
   categories: Category[]
 ): Promise<WebDavBackupUploadResult> => {
@@ -185,7 +186,7 @@ export const uploadWebDavBackup = async (
 
 export const downloadWebDavBackup = async (
   config: WebDavConfig,
-  rootHandle: FileSystemDirectoryHandle,
+  rootHandle: AttachmentStorageRootHandle,
   localPrompts: PromptItem[],
   localCategories: Category[],
   mode: WebDavBackupDownloadMode

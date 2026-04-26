@@ -11,6 +11,7 @@ import { DEFAULT_CATEGORY_ID } from "@/utils/constants";
 import { getCategories, migratePromptsWithCategory } from "@/utils/categoryUtils";
 import { getAllPrompts, setAllPrompts } from "@/utils/promptStore";
 import {
+  type AttachmentStorageRootHandle,
   getAttachmentRootHandle,
   verifyReadWritePermission,
 } from "@/utils/attachments/fileSystem";
@@ -29,7 +30,7 @@ import {
 } from "@/utils/promptUtils";
 import { t } from "../../../utils/i18n";
 
-const getAuthorizedAttachmentRoot = async (): Promise<FileSystemDirectoryHandle> => {
+const getAuthorizedAttachmentRoot = async (): Promise<AttachmentStorageRootHandle> => {
   const root = await getAttachmentRootHandle();
 
   if (!root || !(await verifyReadWritePermission(root))) {
@@ -40,7 +41,7 @@ const getAuthorizedAttachmentRoot = async (): Promise<FileSystemDirectoryHandle>
 };
 
 export const deletePromptWithAttachments = async (
-  root: FileSystemDirectoryHandle,
+  root: AttachmentStorageRootHandle,
   prompts: PromptItem[],
   id: string
 ): Promise<PromptItem[]> => {
@@ -55,7 +56,7 @@ export const deletePromptWithAttachments = async (
 };
 
 export const buildPromptDuplicate = async (
-  root: FileSystemDirectoryHandle,
+  root: AttachmentStorageRootHandle,
   prompt: PromptItem,
   copyLabel: string
 ): Promise<PromptItem> => {

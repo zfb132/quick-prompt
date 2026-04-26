@@ -1,6 +1,7 @@
 import type { PromptAttachment, PromptItem } from '@/utils/types'
 import { buildAttachmentRelativePath } from '@/utils/attachments/metadata'
 import {
+  type AttachmentStorageRootHandle,
   copyFileToAttachmentRoot,
   getFileFromAttachmentRoot,
   removeAttachmentFileFromRoot,
@@ -24,7 +25,7 @@ export const isMissingAttachmentFileError = (err: unknown): boolean => {
 }
 
 export const createAttachmentFromFile = async (
-  rootHandle: FileSystemDirectoryHandle,
+  rootHandle: AttachmentStorageRootHandle,
   promptId: string,
   file: File
 ): Promise<PromptAttachment> => {
@@ -44,7 +45,7 @@ export const createAttachmentFromFile = async (
 }
 
 export const deletePromptAttachmentFiles = async (
-  rootHandle: FileSystemDirectoryHandle,
+  rootHandle: AttachmentStorageRootHandle,
   prompt: PromptItem
 ): Promise<void> => {
   const errors: unknown[] = []
@@ -71,7 +72,7 @@ export const deletePromptAttachmentFiles = async (
 }
 
 export const duplicatePromptAttachmentFiles = async (
-  rootHandle: FileSystemDirectoryHandle,
+  rootHandle: AttachmentStorageRootHandle,
   sourcePrompt: PromptItem,
   targetPromptId: string
 ): Promise<PromptAttachment[]> => {

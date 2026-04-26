@@ -140,7 +140,7 @@ export const parseWebDavMultiStatus = (xml: string): string[] => {
   return elements.map((element) => element.textContent?.trim() || "").filter(Boolean);
 };
 
-const buildConfiguredWebDavUrl = (config: WebDavConfig, relativePath: string): string => (
+export const buildConfiguredWebDavUrl = (config: WebDavConfig, relativePath: string): string => (
   buildWebDavUrl(config.serverUrl, buildConfiguredWebDavPath(config, relativePath))
 );
 
@@ -176,15 +176,14 @@ export const ensureWebDavDirectory = async (
     throw new Error("WebDAV remote directory is required");
   }
 
-  if (pathSegments.length === 0) {
-    return;
-  }
+  const directoryPaths = [
+    joinWebDavPath(...remoteDirSegments),
+    ...pathSegments.map((_, index) => (
+      joinWebDavPath(...remoteDirSegments, ...pathSegments.slice(0, index + 1))
+    )),
+  ];
 
-  for (let index = 0; index < pathSegments.length; index += 1) {
-    const directoryPath = joinWebDavPath(
-      ...remoteDirSegments,
-      ...pathSegments.slice(0, index + 1)
-    );
+  for (const directoryPath of directoryPaths) {
     const response = await fetch(buildWebDavUrl(config.serverUrl, directoryPath), {
       method: "MKCOL",
       headers: getWebDavHeaders(config.username, config.password),
@@ -196,6 +195,24 @@ export const ensureWebDavDirectory = async (
 
     await assertWebDavResponse(response, "MKCOL");
   }
+};
+
+export const testWebDavConnection = async (config: WebDavConfig): Promise<void> => {
+  await ensureWebDavDirectory(config, "");
+
+  const response = await fetch(buildConfiguredWebDavUrl(config, ""), {
+    method: "PROPFIND",
+    headers: {
+      ...getWebDavHeaders(config.username, config.password),
+      Depth: "0",
+    },
+  });
+
+  if (response.status === 207 || response.ok) {
+    return;
+  }
+
+  await assertWebDavResponse(response, "PROPFIND");
 };
 
 export const putWebDavFile = async (

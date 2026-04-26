@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react'
 import type { PromptAttachment } from '@/utils/types'
 import {
+  type AttachmentStorageRootHandle,
   getAttachmentRootHandle,
   removeAttachmentFileFromRoot,
   verifyReadWritePermission,
@@ -21,7 +22,7 @@ interface PromptAttachmentEditorProps {
 
 const defaultTranslate: typeof repoTranslate = (key) => key
 
-const getAuthorizedRoot = async (translate: typeof repoTranslate): Promise<FileSystemDirectoryHandle> => {
+const getAuthorizedRoot = async (translate: typeof repoTranslate): Promise<AttachmentStorageRootHandle> => {
   const root = await getAttachmentRootHandle()
 
   if (!root || !(await verifyReadWritePermission(root))) {

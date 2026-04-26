@@ -16,6 +16,7 @@ import {
   parseWebDavMultiStatus,
   putWebDavFile,
   serializeToWebDavContent,
+  testWebDavConnection,
 } from "@/utils/sync/webdavSync";
 
 const createPrompt = (overrides: Partial<PromptItem> = {}): PromptItem => ({
@@ -164,34 +165,61 @@ describe("webdav sync helpers", () => {
     await expect(deleteWebDavFile(config, "attachments/missing.txt")).resolves.toBeUndefined();
   });
 
-  it("creates only nested directories inside the configured remote directory", async () => {
+  it("creates the configured remote directory and nested directories inside it", async () => {
     const fetchMock = vi.fn(async () => new Response(null, { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
 
     await ensureWebDavDirectory(config, "attachments/prompt-id");
 
-    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://dav.example.com/root/quick-prompt/attachments", {
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://dav.example.com/root/quick-prompt", {
       method: "MKCOL",
       headers: {
         Authorization: "Basic YWxpY2U6c2VjcmV0",
       },
     });
-    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://dav.example.com/root/quick-prompt/attachments/prompt-id", {
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://dav.example.com/root/quick-prompt/attachments", {
       method: "MKCOL",
       headers: {
         Authorization: "Basic YWxpY2U6c2VjcmV0",
       },
     });
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenNthCalledWith(3, "https://dav.example.com/root/quick-prompt/attachments/prompt-id", {
+      method: "MKCOL",
+      headers: {
+        Authorization: "Basic YWxpY2U6c2VjcmV0",
+      },
+    });
+    expect(fetchMock).toHaveBeenCalledTimes(3);
   });
 
-  it("does not create the configured remote directory itself", async () => {
+  it("creates the configured remote directory itself", async () => {
     const fetchMock = vi.fn(async () => new Response(null, { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
 
     await ensureWebDavDirectory(config, "");
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(fetchMock).toHaveBeenCalledWith("https://dav.example.com/root/quick-prompt", {
+      method: "MKCOL",
+      headers: {
+        Authorization: "Basic YWxpY2U6c2VjcmV0",
+      },
+    });
+  });
+
+  it("does not create parent directories outside a nested configured remote directory", async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 201 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await ensureWebDavDirectory({ ...config, remoteDir: "backups/quick-prompt" }, "");
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledWith("https://dav.example.com/root/backups/quick-prompt", {
+      method: "MKCOL",
+      headers: {
+        Authorization: "Basic YWxpY2U6c2VjcmV0",
+      },
+    });
+    expect(fetchMock).not.toHaveBeenCalledWith("https://dav.example.com/root/backups", expect.any(Object));
   });
 
   it("treats MKCOL 405 as an existing WebDAV directory", async () => {
@@ -199,7 +227,30 @@ describe("webdav sync helpers", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(ensureWebDavDirectory(config, "nested")).resolves.toBeUndefined();
-    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("tests WebDAV connection by ensuring the directory and probing it with PROPFIND", async () => {
+    const fetchMock = vi.fn(async (_url: string, init?: RequestInit) => (
+      new Response(null, { status: init?.method === "PROPFIND" ? 207 : 405 })
+    ));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(testWebDavConnection(config)).resolves.toBeUndefined();
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://dav.example.com/root/quick-prompt", {
+      method: "MKCOL",
+      headers: {
+        Authorization: "Basic YWxpY2U6c2VjcmV0",
+      },
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://dav.example.com/root/quick-prompt", {
+      method: "PROPFIND",
+      headers: {
+        Authorization: "Basic YWxpY2U6c2VjcmV0",
+        Depth: "0",
+      },
+    });
   });
 
   it("rejects paths that would leave the configured remote directory before sending WebDAV requests", async () => {

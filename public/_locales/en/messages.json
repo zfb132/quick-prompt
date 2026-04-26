@@ -1568,16 +1568,28 @@
     "message": "Attachment Storage"
   },
   "attachmentStorageDescription": {
-    "message": "Choose a local folder for Quick Prompt attachments before opening the management page."
+    "message": "Choose how to store attachments before opening the management page: built-in extension storage or an external folder."
   },
   "chooseAttachmentDirectory": {
     "message": "Choose Attachment Folder"
+  },
+  "useBuiltInAttachmentStorage": {
+    "message": "Use Built-in Storage"
+  },
+  "useBuiltInAttachmentStorageDescription": {
+    "message": "Store attachments inside the extension without choosing a local folder."
+  },
+  "useExternalAttachmentStorage": {
+    "message": "Use External Folder"
+  },
+  "useExternalAttachmentStorageDescription": {
+    "message": "Authorize a folder with the File System Access API for attachment files."
   },
   "attachmentStoragePermissionRequired": {
     "message": "Read and write permission is required to use attachments."
   },
   "attachmentStorageUnsupported": {
-    "message": "This browser does not support File System Access API."
+    "message": "This browser does not support File System Access API. Built-in storage is still available."
   },
   "attachmentsLabel": {
     "message": "Attachments"
@@ -1643,7 +1655,7 @@
     "message": "Remote Directory"
   },
   "webdavRemoteDirectoryHelp": {
-    "message": "Create this directory on your WebDAV server first. Quick Prompt only writes inside it."
+    "message": "Quick Prompt only writes inside this directory. If it does not exist, it will be created with WebDAV."
   },
   "webdavAutoUpload": {
     "message": "Automatic upload"
@@ -1653,6 +1665,15 @@
   },
   "saveWebdavSettings": {
     "message": "Save Settings"
+  },
+  "testWebdavConnection": {
+    "message": "Test Connection"
+  },
+  "webdavConnectionSuccess": {
+    "message": "WebDAV connection succeeded."
+  },
+  "webdavConnectionFailed": {
+    "message": "WebDAV connection failed"
   },
   "webdavSettingsSaved": {
     "message": "WebDAV settings saved."

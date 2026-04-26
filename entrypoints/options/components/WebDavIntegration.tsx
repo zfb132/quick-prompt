@@ -5,6 +5,7 @@ import { CATEGORIES_STORAGE_KEY } from "@/utils/constants";
 import type { Category, PromptItem } from "@/utils/types";
 import { getAllPrompts, setAllPrompts } from "@/utils/promptStore";
 import {
+  type AttachmentStorageRootHandle,
   getAttachmentRootHandle,
   pickAndStoreAttachmentRoot,
   verifyReadWritePermission,
@@ -14,7 +15,7 @@ import {
   uploadWebDavBackup,
   type WebDavBackupDownloadMode,
 } from "@/utils/sync/webdavBackup";
-import { WEBDAV_STORAGE_KEYS, type WebDavConfig } from "@/utils/sync/webdavSync";
+import { WEBDAV_STORAGE_KEYS, testWebDavConnection, type WebDavConfig } from "@/utils/sync/webdavSync";
 import { t } from "../../../utils/i18n";
 
 type MessageType = "success" | "error" | "info";
@@ -33,6 +34,7 @@ const WebDavIntegration: React.FC = () => {
   const [autoSync, setAutoSync] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
   const [isAutoSyncSaving, setIsAutoSyncSaving] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [needsAttachmentReauthorization, setNeedsAttachmentReauthorization] = useState(false);
@@ -166,6 +168,30 @@ const WebDavIntegration: React.FC = () => {
     }
   };
 
+  const handleTestConnection = async () => {
+    if (isTesting) {
+      return;
+    }
+
+    const config = buildConfig();
+    if (!config) {
+      return;
+    }
+
+    setIsTesting(true);
+    showMessage("info", t("testingConnection"));
+
+    try {
+      await testWebDavConnection(config);
+      showMessage("success", t("webdavConnectionSuccess"));
+    } catch (error) {
+      console.error("Error testing WebDAV connection:", error);
+      showMessage("error", `${t("webdavConnectionFailed")}: ${getErrorMessage(error)}`);
+    } finally {
+      setIsTesting(false);
+    }
+  };
+
   const handleAutoSyncToggle = async (enabled: boolean) => {
     if (isAutoSyncSaving) {
       return;
@@ -196,7 +222,7 @@ const WebDavIntegration: React.FC = () => {
     }
   };
 
-  const getAuthorizedRootHandle = async (): Promise<FileSystemDirectoryHandle | null> => {
+  const getAuthorizedRootHandle = async (): Promise<AttachmentStorageRootHandle | null> => {
     const rootHandle = await getAttachmentRootHandle();
 
     if (!rootHandle || !(await verifyReadWritePermission(rootHandle))) {
@@ -402,18 +428,33 @@ const WebDavIntegration: React.FC = () => {
             </p>
           </div>
 
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
-          >
-            {isSaving ? <Spinner /> : (
-              <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-            )}
-            {t("saveWebdavSettings")}
-          </button>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSaving ? <Spinner /> : (
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                </svg>
+              )}
+              {t("saveWebdavSettings")}
+            </button>
+            <button
+              type="button"
+              onClick={handleTestConnection}
+              disabled={isTesting}
+              className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-200 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600 rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isTesting ? <Spinner /> : (
+                <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h8m-4-4v8m8-4a8 8 0 11-16 0 8 8 0 0116 0z" />
+                </svg>
+              )}
+              {t("testWebdavConnection")}
+            </button>
+          </div>
         </form>
       </div>
 

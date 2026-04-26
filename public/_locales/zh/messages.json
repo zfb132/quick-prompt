@@ -1568,16 +1568,28 @@
     "message": "附件存储"
   },
   "attachmentStorageDescription": {
-    "message": "进入管理页前，请为 Quick Prompt 附件选择一个本地文件夹。"
+    "message": "首次进入管理页前，请选择附件存储方式：使用插件内置存储，或授权一个外部文件夹。"
   },
   "chooseAttachmentDirectory": {
     "message": "选择附件文件夹"
+  },
+  "useBuiltInAttachmentStorage": {
+    "message": "使用插件内置存储"
+  },
+  "useBuiltInAttachmentStorageDescription": {
+    "message": "附件保存在扩展内部，无需选择本地文件夹。"
+  },
+  "useExternalAttachmentStorage": {
+    "message": "使用外部自定义文件夹"
+  },
+  "useExternalAttachmentStorageDescription": {
+    "message": "通过 File System Access API 授权一个文件夹保存附件。"
   },
   "attachmentStoragePermissionRequired": {
     "message": "需要读写权限才能使用附件功能。"
   },
   "attachmentStorageUnsupported": {
-    "message": "当前浏览器不支持 File System Access API。"
+    "message": "当前浏览器不支持 File System Access API，仍可使用插件内置存储。"
   },
   "attachmentsLabel": {
     "message": "附件"
@@ -1643,7 +1655,7 @@
     "message": "远程目录"
   },
   "webdavRemoteDirectoryHelp": {
-    "message": "请先在 WebDAV 服务器上创建此目录。Quick Prompt 只会在该目录内写入。"
+    "message": "Quick Prompt 只会在该目录内写入；如果目录不存在，会通过 WebDAV 自动创建。"
   },
   "webdavAutoUpload": {
     "message": "自动上传"
@@ -1653,6 +1665,15 @@
   },
   "saveWebdavSettings": {
     "message": "保存设置"
+  },
+  "testWebdavConnection": {
+    "message": "测试连接"
+  },
+  "webdavConnectionSuccess": {
+    "message": "WebDAV 连接成功。"
+  },
+  "webdavConnectionFailed": {
+    "message": "WebDAV 连接失败"
   },
   "webdavSettingsSaved": {
     "message": "WebDAV 设置已保存。"
