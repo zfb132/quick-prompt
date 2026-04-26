@@ -1,6 +1,6 @@
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { PromptAttachment } from '@/utils/types'
 
 vi.mock('@/utils/i18n', () => ({ t: (key: string) => key }))
@@ -47,9 +47,44 @@ describe('PromptAttachmentPreview', () => {
 
     const image = await screen.findByRole('img', { name: 'image.png' })
     expect(image).toHaveAttribute('src', 'blob:preview-url')
+    expect(image).toHaveClass('w-20', 'h-20')
     expect(screen.getByText('image.png')).toBeInTheDocument()
     expect(screen.getByText('1.5 KB')).toBeInTheDocument()
     expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(File))
+  })
+
+  it('opens a large image viewer and switches between image attachments', async () => {
+    vi.mocked(URL.createObjectURL)
+      .mockReturnValueOnce('blob:first-preview')
+      .mockReturnValueOnce('blob:second-preview')
+    vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue({ name: 'root' } as any)
+    vi.mocked(fs.verifyReadWritePermission).mockResolvedValue(true)
+    vi.mocked(fs.getFileFromAttachmentRoot).mockResolvedValue(new File(['image-bytes'], 'image.png', { type: 'image/png' }))
+
+    render(
+      <PromptAttachmentPreview
+        attachments={[
+          createAttachment({ id: 'attachment-1', name: 'first.png' }),
+          createAttachment({ id: 'attachment-2', name: 'second.png', relativePath: 'attachments/prompt-1/attachment-2-second.png' }),
+          createAttachment({ id: 'attachment-3', name: 'notes.pdf', type: 'application/pdf' }),
+        ]}
+      />
+    )
+
+    fireEvent.click(await screen.findByRole('button', { name: 'first.png' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'imagePreviewDialog' })
+    expect(dialog).toBeInTheDocument()
+    expect(within(dialog).getByRole('img', { name: 'first.png' })).toHaveAttribute('src', 'blob:first-preview')
+
+    fireEvent.click(screen.getByRole('button', { name: 'nextImage' }))
+    expect(within(dialog).getByRole('img', { name: 'second.png' })).toHaveAttribute('src', 'blob:second-preview')
+
+    fireEvent.click(screen.getByRole('button', { name: 'previousImage' }))
+    expect(within(dialog).getByRole('img', { name: 'first.png' })).toHaveAttribute('src', 'blob:first-preview')
+
+    fireEvent.click(screen.getByRole('button', { name: 'closeImagePreview' }))
+    expect(screen.queryByRole('dialog', { name: 'imagePreviewDialog' })).not.toBeInTheDocument()
   })
 
   it('renders nothing and does not read the attachment root when attachments are undefined', async () => {

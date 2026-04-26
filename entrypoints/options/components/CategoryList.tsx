@@ -10,6 +10,7 @@ interface CategoryListProps {
   searchTerm: string;
   allCategoriesCount: number;
   onToggleEnabled?: (id: string, enabled: boolean) => void;
+  onSelect?: (id: string) => void;
   promptCounts: Record<string, number>;
 }
 
@@ -20,6 +21,7 @@ const CategoryList = ({
   searchTerm,
   allCategoriesCount,
   onToggleEnabled,
+  onSelect,
   promptCounts,
 }: CategoryListProps) => {
   if (allCategoriesCount === 0) {
@@ -32,11 +34,29 @@ const CategoryList = ({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-      {categories.map((category) => (
-        <div
-          key={category.id}
-          className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 group"
-        >
+      {categories.map((category) => {
+        const isSelectable = Boolean(onSelect);
+        const selectCategory = () => onSelect?.(category.id);
+        const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+          if (!isSelectable) return;
+
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            selectCategory();
+          }
+        };
+
+        return (
+          <div
+            key={category.id}
+            role={isSelectable ? "button" : undefined}
+            tabIndex={isSelectable ? 0 : undefined}
+            onClick={selectCategory}
+            onKeyDown={handleKeyDown}
+            className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden shadow-sm hover:shadow-md transition-all duration-200 group ${
+              isSelectable ? "cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-900" : ""
+            }`}
+          >
           {/* 紧凑卡片内容 */}
           <div className="p-3">
             {/* 标题行 */}
@@ -75,13 +95,17 @@ const CategoryList = ({
 
               {/* 启用开关 */}
               {onToggleEnabled && (
-                <label className="relative inline-flex items-center cursor-pointer">
+                <label
+                  className="relative inline-flex items-center cursor-pointer"
+                  onClick={(event) => event.stopPropagation()}
+                >
                   <input
                     type="checkbox"
                     checked={category.enabled}
                     onChange={(e) =>
                       onToggleEnabled(category.id, e.target.checked)
                     }
+                    onClick={(event) => event.stopPropagation()}
                     className="sr-only peer"
                   />
                   <div className='w-7 h-4 bg-gray-200 dark:bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[""] after:absolute after:top-1/2 after:right-1/2 after:-translate-y-1/2 after:bg-white after:border-gray-300 dark:after:border-gray-600 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-blue-600'></div>
@@ -91,9 +115,15 @@ const CategoryList = ({
           </div>
 
           {/* 操作按钮 - 悬停显示 */}
-          <div className="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-1">
+          <div
+            className="px-3 py-2 bg-gray-50 dark:bg-gray-700/50 border-t border-gray-100 dark:border-gray-700 flex justify-end gap-1"
+            onClick={(event) => event.stopPropagation()}
+          >
             <button
-              onClick={() => onEdit(category.id)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onEdit(category.id);
+              }}
               className="p-1.5 text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition-colors cursor-pointer"
               title={t("edit")}
             >
@@ -114,7 +144,10 @@ const CategoryList = ({
 
             {category.id !== DEFAULT_CATEGORY_ID && (
               <button
-                onClick={() => onDelete(category.id)}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onDelete(category.id);
+                }}
                 className="p-1.5 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/30 rounded transition-colors cursor-pointer"
                 title={t("delete")}
               >
@@ -134,8 +167,9 @@ const CategoryList = ({
               </button>
             )}
           </div>
-        </div>
-      ))}
+          </div>
+        );
+      })}
     </div>
   );
 };

@@ -264,9 +264,9 @@ export function getPromptSelectorStyles(): string {
 
     .qp-attachment {
       display: inline-flex !important;
-      align-items: center !important;
+      align-items: flex-start !important;
       gap: 6px !important;
-      max-width: 180px !important;
+      max-width: 260px !important;
       min-width: 0 !important;
       padding: 3px 6px !important;
       border: 1px solid var(--qp-border-color) !important;
@@ -275,13 +275,117 @@ export function getPromptSelectorStyles(): string {
       color: var(--qp-text-secondary) !important;
     }
 
+    .qp-attachment-image-button {
+      appearance: none !important;
+      border: 0 !important;
+      background: transparent !important;
+      color: inherit !important;
+      flex-shrink: 0 !important;
+      cursor: zoom-in !important;
+      line-height: 0 !important;
+      padding: 0 !important;
+      border-radius: 4px !important;
+    }
+
+    .qp-attachment-image-button:focus-visible {
+      outline: 2px solid var(--qp-focus-ring) !important;
+      outline-offset: 2px !important;
+    }
+
     .qp-attachment-image {
-      width: 28px !important;
-      height: 28px !important;
+      width: 72px !important;
+      height: 72px !important;
       object-fit: cover !important;
-      border-radius: 3px !important;
+      border-radius: 4px !important;
       border: 1px solid var(--qp-border-color) !important;
       flex-shrink: 0 !important;
+    }
+
+    .qp-image-viewer {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 2147483647 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      padding: 16px !important;
+      background: rgba(0, 0, 0, 0.82) !important;
+      cursor: zoom-out !important;
+    }
+
+    .qp-image-viewer-inner {
+      position: relative !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+      cursor: default !important;
+    }
+
+    .qp-image-viewer-image {
+      max-width: 90vw !important;
+      max-height: 85vh !important;
+      object-fit: contain !important;
+      border-radius: 8px !important;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35) !important;
+      background: #111827 !important;
+    }
+
+    .qp-image-viewer-close,
+    .qp-image-viewer-nav {
+      position: absolute !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      width: 40px !important;
+      height: 40px !important;
+      border: 0 !important;
+      border-radius: 999px !important;
+      background: rgba(0, 0, 0, 0.64) !important;
+      color: #ffffff !important;
+      cursor: pointer !important;
+      padding: 8px !important;
+    }
+
+    .qp-image-viewer-close:hover,
+    .qp-image-viewer-nav:hover {
+      background: rgba(0, 0, 0, 0.82) !important;
+    }
+
+    .qp-image-viewer-close:focus-visible,
+    .qp-image-viewer-nav:focus-visible {
+      outline: 2px solid #ffffff !important;
+      outline-offset: 2px !important;
+    }
+
+    .qp-image-viewer-close {
+      top: 8px !important;
+      right: 8px !important;
+    }
+
+    .qp-image-viewer-nav {
+      top: 50% !important;
+      transform: translateY(-50%) !important;
+    }
+
+    .qp-image-viewer-prev {
+      left: 8px !important;
+    }
+
+    .qp-image-viewer-next {
+      right: 8px !important;
+    }
+
+    .qp-image-viewer-close svg,
+    .qp-image-viewer-nav svg {
+      width: 24px !important;
+      height: 24px !important;
+      fill: none !important;
+      stroke: currentColor !important;
+      stroke-width: 2 !important;
+      stroke-linecap: round !important;
+      stroke-linejoin: round !important;
     }
 
     .qp-attachment-meta {

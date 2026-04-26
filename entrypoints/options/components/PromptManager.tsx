@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { useSearchParams } from "react-router-dom";
 import { storage } from "#imports";
 import PromptForm from "./PromptForm";
 import PromptList from "./PromptList";
@@ -72,6 +73,8 @@ export const buildPromptDuplicate = async (
 };
 
 const PromptManager = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const categoryFromUrl = searchParams.get("category");
   const [prompts, setPrompts] = useState<PromptItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [editingPrompt, setEditingPrompt] = useState<PromptItem | null>(null);
@@ -99,7 +102,24 @@ const PromptManager = () => {
 
   // 添加分类相关状态
   const [categories, setCategories] = useState<Category[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(() => categoryFromUrl || null);
+
+  const availableTags = useMemo(() => {
+    const tagsByKey = new Map<string, string>();
+
+    prompts.forEach((prompt) => {
+      (prompt.tags || []).forEach((rawTag) => {
+        const tag = rawTag.trim();
+        const key = tag.toLocaleLowerCase();
+
+        if (tag && !tagsByKey.has(key)) {
+          tagsByKey.set(key, tag);
+        }
+      });
+    });
+
+    return Array.from(tagsByKey.values()).sort((left, right) => left.localeCompare(right));
+  }, [prompts]);
 
   // 排序方式
   const [sortType, setSortType] = useState<SortType>(() => {
@@ -125,6 +145,23 @@ const PromptManager = () => {
       }, 100);
     }
   }, []);
+
+  useEffect(() => {
+    setSelectedCategoryId(categoryFromUrl || null);
+  }, [categoryFromUrl]);
+
+  const updateSelectedCategory = (categoryId: string | null) => {
+    setSelectedCategoryId(categoryId);
+
+    const nextSearchParams = new URLSearchParams(searchParams);
+    if (categoryId) {
+      nextSearchParams.set("category", categoryId);
+    } else {
+      nextSearchParams.delete("category");
+    }
+
+    setSearchParams(nextSearchParams, { replace: true });
+  };
 
   // Load prompts and categories from storage
   useEffect(() => {
@@ -609,7 +646,7 @@ const PromptManager = () => {
               <div className="relative">
                 <select
                   value={selectedCategoryId || ""}
-                  onChange={(e) => setSelectedCategoryId(e.target.value || null)}
+                  onChange={(e) => updateSelectedCategory(e.target.value || null)}
                   className="block w-full pl-3 pr-7 py-1.5 text-sm bg-white/50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-600 rounded-lg text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all appearance-none cursor-pointer"
                 >
                   <option value="">{t('allCategories')}</option>
@@ -791,7 +828,7 @@ const PromptManager = () => {
                     )}
                     {selectedCategoryId && (
                       <button
-                        onClick={() => setSelectedCategoryId(null)}
+                        onClick={() => updateSelectedCategory(null)}
                         className="cursor-pointer inline-flex items-center px-3 py-1.5 text-xs bg-purple-50 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 rounded-lg hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors font-medium"
                       >
                         {t('viewAllCategories')}
@@ -853,6 +890,7 @@ const PromptManager = () => {
             }
             onCancel={cancelEdit}
             isEditing={!!editingPrompt}
+            availableTags={availableTags}
           />
         </Modal>
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { browser } from '#imports'
 import type { PromptAttachment } from '@/utils/types'
 import { formatFileSize, isImageAttachment } from '@/utils/attachments/metadata'
@@ -29,6 +29,34 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
   const containerRef = useRef<HTMLDivElement>(null)
   const [imagePreviews, setImagePreviews] = useState<Record<string, ImagePreviewState>>({})
   const [isPreviewVisible, setIsPreviewVisible] = useState(false)
+  const [activeImageId, setActiveImageId] = useState<string | null>(null)
+
+  const viewableImages = useMemo(() => (
+    safeAttachments
+      .filter(isImageAttachment)
+      .map((attachment) => ({
+        attachment,
+        url: imagePreviews[attachment.id]?.url,
+      }))
+      .filter((item): item is { attachment: PromptAttachment; url: string } => Boolean(item.url))
+  ), [safeAttachments, imagePreviews])
+
+  const activeImageIndex = activeImageId
+    ? viewableImages.findIndex((item) => item.attachment.id === activeImageId)
+    : -1
+  const activeImage = activeImageIndex >= 0 ? viewableImages[activeImageIndex] : null
+
+  const showPreviousImage = () => {
+    if (viewableImages.length === 0 || activeImageIndex < 0) return
+    const previousIndex = (activeImageIndex - 1 + viewableImages.length) % viewableImages.length
+    setActiveImageId(viewableImages[previousIndex].attachment.id)
+  }
+
+  const showNextImage = () => {
+    if (viewableImages.length === 0 || activeImageIndex < 0) return
+    const nextIndex = (activeImageIndex + 1) % viewableImages.length
+    setActiveImageId(viewableImages[nextIndex].attachment.id)
+  }
 
   useEffect(() => {
     const imageAttachments = safeAttachments.filter(isImageAttachment)
@@ -123,7 +151,14 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
         return (
           <div key={attachment.id} className="qp-attachment">
             {isImageAttachment(attachment) && preview?.url && (
-              <img src={preview.url} alt={attachment.name} className="qp-attachment-image" />
+              <button
+                type="button"
+                className="qp-attachment-image-button"
+                aria-label={attachment.name}
+                onClick={() => setActiveImageId(attachment.id)}
+              >
+                <img src={preview.url} alt={attachment.name} className="qp-attachment-image" />
+              </button>
             )}
             <div className="qp-attachment-meta">
               <span className="qp-attachment-name">{attachment.name}</span>
@@ -132,6 +167,57 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
           </div>
         )
       })}
+      {activeImage && (
+        <div
+          className="qp-image-viewer"
+          role="dialog"
+          aria-modal="true"
+          aria-label="imagePreviewDialog"
+          onClick={() => setActiveImageId(null)}
+        >
+          <div className="qp-image-viewer-inner" onClick={(event) => event.stopPropagation()}>
+            <img
+              src={activeImage.url}
+              alt={activeImage.attachment.name}
+              className="qp-image-viewer-image"
+            />
+            <button
+              type="button"
+              className="qp-image-viewer-close"
+              aria-label="closeImagePreview"
+              onClick={() => setActiveImageId(null)}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            {viewableImages.length > 1 && (
+              <>
+                <button
+                  type="button"
+                  className="qp-image-viewer-nav qp-image-viewer-prev"
+                  aria-label="previousImage"
+                  onClick={showPreviousImage}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M15 19l-7-7 7-7" />
+                  </svg>
+                </button>
+                <button
+                  type="button"
+                  className="qp-image-viewer-nav qp-image-viewer-next"
+                  aria-label="nextImage"
+                  onClick={showNextImage}
+                >
+                  <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M9 5l7 7-7 7" />
+                  </svg>
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1075,10 +1075,22 @@
     "message": "Tags"
   },
   "tagsOptional": {
-    "message": "optional, separate with commas"
+    "message": "optional, multi-select and custom"
   },
   "tagsPlaceholder": {
-    "message": "e.g., programming, work, email"
+    "message": "Enter a custom tag"
+  },
+  "selectedTags": {
+    "message": "Selected tags"
+  },
+  "availableTags": {
+    "message": "Available tags"
+  },
+  "addTag": {
+    "message": "Add tag"
+  },
+  "removeTag": {
+    "message": "Remove tag $1"
   },
   "enabledStatus": {
     "message": "Enabled"
@@ -1575,6 +1587,18 @@
   },
   "attachmentRemoveFailed": {
     "message": "Failed to remove attachment."
+  },
+  "imagePreviewDialog": {
+    "message": "Image preview"
+  },
+  "closeImagePreview": {
+    "message": "Close image preview"
+  },
+  "previousImage": {
+    "message": "Previous image"
+  },
+  "nextImage": {
+    "message": "Next image"
   },
   "webdavSync": {
     "message": "WebDAV Sync"

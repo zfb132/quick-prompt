@@ -1,6 +1,6 @@
 import React from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import type { PromptAttachment } from '@/utils/types'
 
 const sendMessage = vi.fn()
@@ -84,11 +84,45 @@ describe('content PromptAttachmentPreview', () => {
 
     const image = await screen.findByRole('img', { name: 'image.png' })
     expect(image).toHaveAttribute('src', 'blob:content-preview-url')
+    expect(image).toHaveClass('qp-attachment-image')
     expect(sendMessage).toHaveBeenCalledWith({
       action: 'getAttachmentPreview',
       attachment: createAttachment(),
     })
     expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
+  })
+
+  it('opens a large image viewer and switches content preview images', async () => {
+    vi.mocked(URL.createObjectURL)
+      .mockReturnValueOnce('blob:first-content-preview')
+      .mockReturnValueOnce('blob:second-content-preview')
+    sendMessage.mockResolvedValue({
+      success: true,
+      base64: btoa('image-bytes'),
+      contentType: 'image/png',
+    })
+
+    render(
+      <PromptAttachmentPreview
+        attachments={[
+          createAttachment({ id: 'attachment-1', name: 'first.png' }),
+          createAttachment({ id: 'attachment-2', name: 'second.png', relativePath: 'attachments/prompt-1/attachment-2-second.png' }),
+        ]}
+      />
+    )
+
+    act(() => {
+      MockIntersectionObserver.instances[0].trigger()
+    })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'first.png' }))
+
+    const dialog = screen.getByRole('dialog', { name: 'imagePreviewDialog' })
+    expect(dialog).toBeInTheDocument()
+    expect(within(dialog).getByRole('img', { name: 'first.png' })).toHaveAttribute('src', 'blob:first-content-preview')
+
+    fireEvent.click(screen.getByRole('button', { name: 'nextImage' }))
+    expect(within(dialog).getByRole('img', { name: 'second.png' })).toHaveAttribute('src', 'blob:second-content-preview')
   })
 
   it('loads immediately when IntersectionObserver is unavailable and revokes object URLs on unmount', async () => {

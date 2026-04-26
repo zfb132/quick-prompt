@@ -5,6 +5,7 @@ import { getCategories } from '@/utils/categoryUtils'
 import { DEFAULT_CATEGORY_ID } from '@/utils/constants'
 import { getValidCategoryId } from '@/utils/promptUtils'
 import PromptAttachmentEditor from './PromptAttachmentEditor'
+import PromptTagSelector from './PromptTagSelector'
 import { t } from '../../../utils/i18n'
 
 interface PromptFormProps {
@@ -12,12 +13,13 @@ interface PromptFormProps {
   initialData: PromptItem | null
   onCancel: () => void
   isEditing: boolean
+  availableTags?: string[]
 }
 
-const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormProps) => {
+const PromptForm = ({ onSubmit, initialData, onCancel, isEditing, availableTags = [] }: PromptFormProps) => {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [tags, setTags] = useState('')
+  const [tags, setTags] = useState<string[]>([])
   const [notes, setNotes] = useState('')
   const [attachments, setAttachments] = useState<PromptAttachment[]>([])
   const [thumbnailUrl, setThumbnailUrl] = useState('')
@@ -40,7 +42,7 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
         if (initialData) {
           setTitle(initialData.title)
           setContent(initialData.content)
-          setTags(initialData.tags.join(', '))
+          setTags(initialData.tags || [])
           setNotes(initialData.notes || '')
           setAttachments(initialData.attachments || [])
           setThumbnailUrl(initialData.thumbnailUrl || '')
@@ -49,7 +51,7 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
         } else {
           setTitle('')
           setContent('')
-          setTags('')
+          setTags([])
           setNotes('')
           setAttachments([])
           setThumbnailUrl('')
@@ -90,18 +92,12 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
     setError(null)
 
     try {
-      // Process tags: split by commas, trim whitespace, filter empty strings
-      const tagList = tags
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter((tag) => tag !== '')
-
       // Create prompt object
       const promptData = {
         ...(initialData ? { id: initialData.id } : {}),
         title: title.trim(),
         content: content.trim(),
-        tags: tagList,
+        tags,
         notes: notes.trim(),
         attachments,
         thumbnailUrl: thumbnailUrl.trim() || undefined,
@@ -116,7 +112,7 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
       if (!isEditing) {
         setTitle('')
         setContent('')
-        setTags('')
+        setTags([])
         setNotes('')
         setAttachments([])
         setThumbnailUrl('')
@@ -223,13 +219,11 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
           <label htmlFor='tags' className='block text-sm font-medium text-gray-700 mb-1'>
             {t('tagsLabel')} <span className='text-gray-400 font-normal'>({t('tagsOptional')})</span>
           </label>
-          <input
-            type='text'
-            id='tags'
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            className='w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200'
-            placeholder={t('tagsPlaceholder')}
+          <PromptTagSelector
+            selectedTags={tags}
+            availableTags={availableTags}
+            onChange={setTags}
+            translate={t}
           />
         </div>
 

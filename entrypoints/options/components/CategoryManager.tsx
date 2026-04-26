@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import CategoryForm from "./CategoryForm";
 import CategoryList from "./CategoryList";
 import Modal from "./Modal";
@@ -18,6 +19,7 @@ import { DEFAULT_CATEGORY_ID } from "@/utils/constants";
 import { t } from '../../../utils/i18n';
 
 const CategoryManager = () => {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -201,6 +203,13 @@ const CategoryManager = () => {
       console.error(t('categoryPageToggleError'), err);
       setError(t('toggleCategoryStatusFailed'));
     }
+  };
+
+  const selectCategoryPrompts = (id: string) => {
+    navigate({
+      pathname: "/",
+      search: `?category=${encodeURIComponent(id)}`,
+    });
   };
 
   // 导出分类
@@ -697,6 +706,7 @@ const CategoryManager = () => {
           searchTerm={searchTerm}
           allCategoriesCount={categories.length}
           onToggleEnabled={toggleCategoryEnabled}
+          onSelect={selectCategoryPrompts}
           promptCounts={promptCounts}
         />
 
