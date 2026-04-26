@@ -1613,7 +1613,7 @@
     "message": "自动上传"
   },
   "webdavAutoUploadDescription": {
-    "message": "此处仅保存偏好设置，后台自动同步将在后续任务启用。"
+    "message": "本地提示词或分类变化后自动上传到 WebDAV。"
   },
   "saveWebdavSettings": {
     "message": "保存设置"
@@ -1685,6 +1685,6 @@
     "message": "运行 WebDAV 同步前需要附件文件夹的读写权限。"
   },
   "webdavAutoUploadTaskNote": {
-    "message": "此处仅保存自动上传设置，后台自动同步会在单独任务中处理。"
+    "message": "开启自动上传后，本地提示词或分类变化会在后台上传到 WebDAV。"
   }
 }

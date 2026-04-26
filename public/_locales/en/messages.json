@@ -1613,7 +1613,7 @@
     "message": "Automatic upload"
   },
   "webdavAutoUploadDescription": {
-    "message": "Save this preference now. Background auto-sync will be enabled in a later task."
+    "message": "Automatically upload to WebDAV after local prompts or categories change."
   },
   "saveWebdavSettings": {
     "message": "Save Settings"
@@ -1685,6 +1685,6 @@
     "message": "Attachment folder read/write permission is required before WebDAV sync can run."
   },
   "webdavAutoUploadTaskNote": {
-    "message": "Automatic upload is only saved here; background auto-sync is handled separately."
+    "message": "When automatic upload is enabled, local prompt or category changes are uploaded to WebDAV in the background."
   }
 }
