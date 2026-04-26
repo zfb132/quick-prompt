@@ -1572,5 +1572,95 @@
   },
   "attachmentRemoveFailed": {
     "message": "Failed to remove attachment."
+  },
+  "webdavSync": {
+    "message": "WebDAV Sync"
+  },
+  "webdavSyncDescription": {
+    "message": "Back up prompts, categories, and attachment files to a WebDAV server."
+  },
+  "webdavConnectionSettings": {
+    "message": "WebDAV Connection"
+  },
+  "webdavServerUrl": {
+    "message": "Server URL"
+  },
+  "webdavServerUrlPlaceholder": {
+    "message": "https://example.com/dav"
+  },
+  "webdavUsername": {
+    "message": "Username"
+  },
+  "webdavUsernamePlaceholder": {
+    "message": "Enter your WebDAV username"
+  },
+  "webdavPassword": {
+    "message": "Password"
+  },
+  "webdavPasswordPlaceholder": {
+    "message": "Enter your WebDAV password"
+  },
+  "webdavRemoteDirectory": {
+    "message": "Remote Directory"
+  },
+  "webdavRemoteDirectoryHelp": {
+    "message": "Backups are stored in this directory on your WebDAV server."
+  },
+  "webdavAutoUpload": {
+    "message": "Automatic upload"
+  },
+  "webdavAutoUploadDescription": {
+    "message": "Save this preference now. Background auto-sync will be enabled in a later task."
+  },
+  "saveWebdavSettings": {
+    "message": "Save Settings"
+  },
+  "webdavSettingsSaved": {
+    "message": "WebDAV settings saved."
+  },
+  "webdavLoadSettingsFailed": {
+    "message": "Failed to load WebDAV settings."
+  },
+  "webdavSaveSettingsFailed": {
+    "message": "Failed to save WebDAV settings"
+  },
+  "webdavRequiredFields": {
+    "message": "Server URL, username, and password are required."
+  },
+  "webdavUploadTitle": {
+    "message": "Upload Local Backup"
+  },
+  "uploadWebdavBackup": {
+    "message": "Upload to WebDAV"
+  },
+  "webdavUploadDescription": {
+    "message": "Upload local prompts, categories, and attachments to the configured WebDAV directory."
+  },
+  "webdavUploadSuccess": {
+    "message": "WebDAV upload completed. $1 files uploaded."
+  },
+  "webdavUploadFailed": {
+    "message": "WebDAV upload failed"
+  },
+  "webdavDownloadTitle": {
+    "message": "Download Remote Backup"
+  },
+  "appendWebdavBackup": {
+    "message": "Append to Local"
+  },
+  "replaceWebdavBackup": {
+    "message": "Replace Local Data"
+  },
+  "webdavDownloadSuccess": {
+    "message": "WebDAV download completed. $1 attachments downloaded."
+  },
+  "webdavDownloadFailed": {
+    "message": "WebDAV download failed"
+  },
+  "webdavAttachmentPermissionNote": {
+    "message": "Attachment folder read/write permission is required before WebDAV sync can run."
+  },
+  "webdavAutoUploadTaskNote": {
+    "message": "Automatic upload is only saved here; background auto-sync is handled separately."
   }
 }

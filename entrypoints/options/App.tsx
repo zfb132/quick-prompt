@@ -5,6 +5,7 @@ import PromptManager from "./components/PromptManager";
 import CategoryManager from "./components/CategoryManager";
 import NotionIntegrationPage from "./components/NotionIntegrationPage";
 import GistIntegrationPage from "./components/GistIntegrationPage";
+import WebDavIntegrationPage from "./components/WebDavIntegrationPage";
 import GlobalSettings from "./components/GlobalSettings";
 import ToastContainer from "./components/ToastContainer";
 import AttachmentStorageGate from "./components/AttachmentStorageGate";
@@ -110,6 +111,7 @@ const App = () => {
                   <Route path="/integrations/notion" element={<NotionIntegrationPage />} />
 
                   <Route path="/integrations/gist" element={<GistIntegrationPage />} />
+                  <Route path="/integrations/webdav" element={<WebDavIntegrationPage />} />
                 </Routes>
 
                 {/* 回到顶部按钮 */}

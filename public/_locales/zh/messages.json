@@ -1572,5 +1572,95 @@
   },
   "attachmentRemoveFailed": {
     "message": "移除附件失败。"
+  },
+  "webdavSync": {
+    "message": "WebDAV 同步"
+  },
+  "webdavSyncDescription": {
+    "message": "将提示词、分类和附件文件备份到 WebDAV 服务器。"
+  },
+  "webdavConnectionSettings": {
+    "message": "WebDAV 连接"
+  },
+  "webdavServerUrl": {
+    "message": "服务器 URL"
+  },
+  "webdavServerUrlPlaceholder": {
+    "message": "https://example.com/dav"
+  },
+  "webdavUsername": {
+    "message": "用户名"
+  },
+  "webdavUsernamePlaceholder": {
+    "message": "输入 WebDAV 用户名"
+  },
+  "webdavPassword": {
+    "message": "密码"
+  },
+  "webdavPasswordPlaceholder": {
+    "message": "输入 WebDAV 密码"
+  },
+  "webdavRemoteDirectory": {
+    "message": "远程目录"
+  },
+  "webdavRemoteDirectoryHelp": {
+    "message": "备份会存储在 WebDAV 服务器的此目录中。"
+  },
+  "webdavAutoUpload": {
+    "message": "自动上传"
+  },
+  "webdavAutoUploadDescription": {
+    "message": "此处仅保存偏好设置，后台自动同步将在后续任务启用。"
+  },
+  "saveWebdavSettings": {
+    "message": "保存设置"
+  },
+  "webdavSettingsSaved": {
+    "message": "WebDAV 设置已保存。"
+  },
+  "webdavLoadSettingsFailed": {
+    "message": "加载 WebDAV 设置失败。"
+  },
+  "webdavSaveSettingsFailed": {
+    "message": "保存 WebDAV 设置失败"
+  },
+  "webdavRequiredFields": {
+    "message": "服务器 URL、用户名和密码为必填项。"
+  },
+  "webdavUploadTitle": {
+    "message": "上传本地备份"
+  },
+  "uploadWebdavBackup": {
+    "message": "上传到 WebDAV"
+  },
+  "webdavUploadDescription": {
+    "message": "将本地提示词、分类和附件上传到配置的 WebDAV 目录。"
+  },
+  "webdavUploadSuccess": {
+    "message": "WebDAV 上传完成，已上传 $1 个文件。"
+  },
+  "webdavUploadFailed": {
+    "message": "WebDAV 上传失败"
+  },
+  "webdavDownloadTitle": {
+    "message": "下载远程备份"
+  },
+  "appendWebdavBackup": {
+    "message": "追加到本地"
+  },
+  "replaceWebdavBackup": {
+    "message": "替换本地数据"
+  },
+  "webdavDownloadSuccess": {
+    "message": "WebDAV 下载完成，已下载 $1 个附件。"
+  },
+  "webdavDownloadFailed": {
+    "message": "WebDAV 下载失败"
+  },
+  "webdavAttachmentPermissionNote": {
+    "message": "运行 WebDAV 同步前需要附件文件夹的读写权限。"
+  },
+  "webdavAutoUploadTaskNote": {
+    "message": "此处仅保存自动上传设置，后台自动同步会在单独任务中处理。"
   }
 }
