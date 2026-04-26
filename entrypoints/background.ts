@@ -38,7 +38,7 @@ export default defineBackground(async () => {
   initializeDefaultData();
 
   // Setup all the modular components
-  createContextMenus();
+  await createContextMenus();
   setupNotificationHandlers();
   setupStorageChangeListeners();
 
