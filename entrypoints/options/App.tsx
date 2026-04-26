@@ -7,6 +7,7 @@ import NotionIntegrationPage from "./components/NotionIntegrationPage";
 import GistIntegrationPage from "./components/GistIntegrationPage";
 import GlobalSettings from "./components/GlobalSettings";
 import ToastContainer from "./components/ToastContainer";
+import AttachmentStorageGate from "./components/AttachmentStorageGate";
 import "./App.css";
 import "~/assets/tailwind.css";
 import { t, initLocale } from "~/utils/i18n";
@@ -85,64 +86,66 @@ const App = () => {
   if (!localeReady) return null;
 
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-        <div className="flex h-screen">
-          {/* 侧边栏 */}
-          <Sidebar />
-          
-          {/* 主内容区域 */}
-          <main className="flex-1 flex flex-col min-w-0 md:relative">
-            {/* 移动端顶部空间（为汉堡菜单留出空间） */}
-            <div className="md:hidden h-16 flex-shrink-0 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700"></div>
+    <AttachmentStorageGate>
+      <Router>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+          <div className="flex h-screen">
+            {/* 侧边栏 */}
+            <Sidebar />
             
-            {/* 主要内容区域 */}
-            <div 
-              ref={scrollContainerRef}
-              className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 relative"
-            >
-              <Routes>
-                <Route path="/" element={<PromptManager />} />
-                <Route path="/categories" element={<CategoryManager />} />
-                <Route path="/settings" element={<GlobalSettings />} />
-                <Route path="/integrations/notion" element={<NotionIntegrationPage />} />
-
-                <Route path="/integrations/gist" element={<GistIntegrationPage />} />
-              </Routes>
-
-              {/* 回到顶部按钮 */}
-              {showBackToTop && (
-                <div className="fixed bottom-6 right-6 z-[9999]">
-                  <button
-                    onClick={scrollToTop}
-                    className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                    title={t('backToTop')}
-                    aria-label={t('backToTop')}
-                  >
-                    <svg
-                      className="w-6 h-6"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth="2"
-                        d="M5 10l7-7m0 0l7 7m-7-7v18"
-                      />
-                    </svg>
-                  </button>
-                </div>
-              )}
+            {/* 主内容区域 */}
+            <main className="flex-1 flex flex-col min-w-0 md:relative">
+              {/* 移动端顶部空间（为汉堡菜单留出空间） */}
+              <div className="md:hidden h-16 flex-shrink-0 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700"></div>
               
-              {/* 添加Toast通知容器 */}
-              <ToastContainer />
-            </div>
-          </main>
+              {/* 主要内容区域 */}
+              <div 
+                ref={scrollContainerRef}
+                className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 relative"
+              >
+                <Routes>
+                  <Route path="/" element={<PromptManager />} />
+                  <Route path="/categories" element={<CategoryManager />} />
+                  <Route path="/settings" element={<GlobalSettings />} />
+                  <Route path="/integrations/notion" element={<NotionIntegrationPage />} />
+
+                  <Route path="/integrations/gist" element={<GistIntegrationPage />} />
+                </Routes>
+
+                {/* 回到顶部按钮 */}
+                {showBackToTop && (
+                  <div className="fixed bottom-6 right-6 z-[9999]">
+                    <button
+                      onClick={scrollToTop}
+                      className="bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-full shadow-lg transition-all duration-300 transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+                      title={t('backToTop')}
+                      aria-label={t('backToTop')}
+                    >
+                      <svg
+                        className="w-6 h-6"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M5 10l7-7m0 0l7 7m-7-7v18"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                
+                {/* 添加Toast通知容器 */}
+                <ToastContainer />
+              </div>
+            </main>
+          </div>
         </div>
-      </div>
-    </Router>
+      </Router>
+    </AttachmentStorageGate>
   );
 };
 

@@ -1536,5 +1536,20 @@
   },
   "saveAndTest": {
     "message": "保存并测试连接"
+  },
+  "attachmentStorageTitle": {
+    "message": "附件存储"
+  },
+  "attachmentStorageDescription": {
+    "message": "进入管理页前，请为 Quick Prompt 附件选择一个本地文件夹。"
+  },
+  "chooseAttachmentDirectory": {
+    "message": "选择附件文件夹"
+  },
+  "attachmentStoragePermissionRequired": {
+    "message": "需要读写权限才能使用附件功能。"
+  },
+  "attachmentStorageUnsupported": {
+    "message": "当前浏览器不支持 File System Access API。"
   }
 }

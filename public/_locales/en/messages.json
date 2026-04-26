@@ -1536,5 +1536,20 @@
   },
   "saveAndTest": {
     "message": "Save & Test Connection"
+  },
+  "attachmentStorageTitle": {
+    "message": "Attachment Storage"
+  },
+  "attachmentStorageDescription": {
+    "message": "Choose a local folder for Quick Prompt attachments before opening the management page."
+  },
+  "chooseAttachmentDirectory": {
+    "message": "Choose Attachment Folder"
+  },
+  "attachmentStoragePermissionRequired": {
+    "message": "Read and write permission is required to use attachments."
+  },
+  "attachmentStorageUnsupported": {
+    "message": "This browser does not support File System Access API."
   }
 }
