@@ -81,12 +81,31 @@ describe("webdav backup orchestration", () => {
     vi.unstubAllGlobals();
   });
 
-  it("uploads the manifest and attachment files with their WebDAV paths and content types", async () => {
-    const prompt = createPrompt();
+  it("uploads attachment files before publishing the manifest with their WebDAV paths and content types", async () => {
+    const prompt = createPrompt({
+      attachments: [
+        {
+          id: "attachment-1",
+          name: "guide.pdf",
+          type: "application/pdf",
+          size: 11,
+          relativePath: "attachments/prompt-1/attachment-1-guide.pdf",
+          createdAt: "2024-01-01T00:00:00.000Z",
+        },
+        {
+          id: "attachment-2",
+          name: "notes.txt",
+          type: "text/plain",
+          size: 12,
+          relativePath: "attachments/prompt-1/attachment-2-notes.txt",
+          createdAt: "2024-01-01T00:00:00.000Z",
+        },
+      ],
+    });
     const categories = [createCategory()];
-    vi.mocked(fileSystem.getFileFromAttachmentRoot).mockResolvedValue(
-      new File(["pdf content"], "guide.pdf", { type: "application/pdf" })
-    );
+    vi.mocked(fileSystem.getFileFromAttachmentRoot)
+      .mockResolvedValueOnce(new File(["pdf content"], "guide.pdf", { type: "application/pdf" }))
+      .mockResolvedValueOnce(new File(["note content"], "notes.txt", { type: "text/plain" }));
     const fetchMock = vi.fn(async (_url: string, _init?: RequestInit) => new Response(null, { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
 
@@ -95,33 +114,17 @@ describe("webdav backup orchestration", () => {
     expect(result).toEqual({
       success: true,
       uploadedFiles: [
-        WEBDAV_FILENAME,
         "attachments/prompt-1/attachment-1-guide.pdf",
+        "attachments/prompt-1/attachment-2-notes.txt",
+        WEBDAV_FILENAME,
       ],
       errors: [],
     });
-    expect(fileSystem.getFileFromAttachmentRoot).toHaveBeenCalledWith(
-      rootHandle,
-      "attachments/prompt-1/attachment-1-guide.pdf"
-    );
+    expect(fileSystem.getFileFromAttachmentRoot).toHaveBeenCalledTimes(2);
 
     const putCalls = fetchMock.mock.calls.filter(([, init]) => init?.method === "PUT");
-    expect(putCalls).toHaveLength(2);
+    expect(putCalls).toHaveLength(3);
     expect(putCalls[0]).toMatchObject([
-      "https://dav.example.com/root/quick-prompt/quick-prompt-backup.json",
-      {
-        method: "PUT",
-        headers: {
-          Authorization: "Basic YWxpY2U6c2VjcmV0",
-          "Content-Type": "application/json",
-        },
-      },
-    ]);
-    expect(JSON.parse(await readBodyAsText(putCalls[0][1]?.body))).toMatchObject({
-      prompts: [prompt],
-      categories,
-    });
-    expect(putCalls[1]).toMatchObject([
       "https://dav.example.com/root/quick-prompt/attachments/prompt-1/attachment-1-guide.pdf",
       {
         method: "PUT",
@@ -131,12 +134,37 @@ describe("webdav backup orchestration", () => {
         },
       },
     ]);
-    expect(await readBodyAsText(putCalls[1][1]?.body)).toBe("pdf content");
+    expect(await readBodyAsText(putCalls[0][1]?.body)).toBe("pdf content");
+    expect(putCalls[1]).toMatchObject([
+      "https://dav.example.com/root/quick-prompt/attachments/prompt-1/attachment-2-notes.txt",
+      {
+        method: "PUT",
+        headers: {
+          Authorization: "Basic YWxpY2U6c2VjcmV0",
+          "Content-Type": "text/plain",
+        },
+      },
+    ]);
+    expect(await readBodyAsText(putCalls[1][1]?.body)).toBe("note content");
+    expect(putCalls[2]).toMatchObject([
+      "https://dav.example.com/root/quick-prompt/quick-prompt-backup.json",
+      {
+        method: "PUT",
+        headers: {
+          Authorization: "Basic YWxpY2U6c2VjcmV0",
+          "Content-Type": "application/json",
+        },
+      },
+    ]);
+    expect(JSON.parse(await readBodyAsText(putCalls[2][1]?.body))).toMatchObject({
+      prompts: [prompt],
+      categories,
+    });
 
     const mkcolUrls = fetchMock.mock.calls
       .filter(([, init]) => init?.method === "MKCOL")
       .map(([url]) => url);
-    expect(mkcolUrls).toContain("https://dav.example.com/root/quick-prompt/attachments/prompt-1");
+    expect(mkcolUrls.filter((url) => url === "https://dav.example.com/root/quick-prompt/attachments/prompt-1")).toHaveLength(1);
   });
 
   it("copies all remote attachments and returns remote data in replace mode", async () => {
@@ -240,7 +268,7 @@ describe("webdav backup orchestration", () => {
     );
   });
 
-  it("reports attachment upload failures without dropping the manifest upload", async () => {
+  it("reports attachment upload failures without publishing the manifest", async () => {
     const prompt = createPrompt();
     vi.mocked(fileSystem.getFileFromAttachmentRoot).mockResolvedValue(
       new File(["pdf content"], "guide.pdf", { type: "application/pdf" })
@@ -260,10 +288,36 @@ describe("webdav backup orchestration", () => {
     const result = await uploadWebDavBackup(config, rootHandle, [prompt], []);
 
     expect(result.success).toBe(false);
-    expect(result.uploadedFiles).toEqual([WEBDAV_FILENAME]);
+    expect(result.uploadedFiles).toEqual([]);
     expect(result.errors).toHaveLength(1);
     expect(result.errors[0]).toContain("attachments/prompt-1/attachment-1-guide.pdf");
     expect(result.errors[0]).toContain("WebDAV PUT failed: HTTP 507 Insufficient Storage - quota exceeded");
+    const putUrls = fetchMock.mock.calls
+      .filter(([, init]) => init?.method === "PUT")
+      .map(([url]) => url);
+    expect(putUrls).not.toContain("https://dav.example.com/root/quick-prompt/quick-prompt-backup.json");
+  });
+
+  it("reports manifest upload failures after attachment uploads and stops", async () => {
+    const prompt = createPrompt();
+    vi.mocked(fileSystem.getFileFromAttachmentRoot).mockResolvedValue(
+      new File(["pdf content"], "guide.pdf", { type: "application/pdf" })
+    );
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "PUT" && url.endsWith(WEBDAV_FILENAME)) {
+        return new Response("locked", { status: 423, statusText: "Locked" });
+      }
+
+      return new Response(null, { status: 201 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await uploadWebDavBackup(config, rootHandle, [prompt], []);
+
+    expect(result.success).toBe(false);
+    expect(result.uploadedFiles).toEqual(["attachments/prompt-1/attachment-1-guide.pdf"]);
+    expect(result.errors).toEqual(["quick-prompt-backup.json: WebDAV PUT failed: HTTP 423 Locked - locked"]);
+    expect(fileSystem.getFileFromAttachmentRoot).toHaveBeenCalledTimes(1);
   });
 
   it("reports manifest download failures and preserves local data", async () => {
@@ -287,5 +341,73 @@ describe("webdav backup orchestration", () => {
       errors: ["WebDAV GET failed: HTTP 404 - missing"],
     });
     expect(fileSystem.copyFileToAttachmentRoot).not.toHaveBeenCalled();
+  });
+
+  it("preserves local data when a replace-mode attachment download fails", async () => {
+    const localPrompts = [createPrompt({ id: "local-prompt" })];
+    const localCategories = [createCategory({ id: "local-category" })];
+    const remotePrompt = createPrompt();
+    const remoteCategories = [createCategory()];
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "GET" && url.endsWith(WEBDAV_FILENAME)) {
+        return new Response(serializeToWebDavContent([remotePrompt], remoteCategories), { status: 200 });
+      }
+
+      return new Response("missing attachment", { status: 404 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await downloadWebDavBackup(
+      config,
+      rootHandle,
+      localPrompts,
+      localCategories,
+      "replace"
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.prompts).toBe(localPrompts);
+    expect(result.categories).toBe(localCategories);
+    expect(result.downloadedFiles).toEqual([]);
+    expect(result.errors).toEqual([
+      "attachments/prompt-1/attachment-1-guide.pdf: WebDAV GET failed: HTTP 404 - missing attachment",
+    ]);
+  });
+
+  it("preserves local data when an append-mode attachment copy fails", async () => {
+    const existingPrompt = createPrompt({ id: "prompt-existing", title: "Local existing" });
+    const existingCategory = createCategory({ id: "cat-existing", name: "Local existing" });
+    const newPrompt = createPrompt({ id: "prompt-new" });
+    vi.mocked(fileSystem.copyFileToAttachmentRoot).mockRejectedValue(new Error("disk full"));
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "GET" && url.endsWith(WEBDAV_FILENAME)) {
+        return new Response(
+          serializeToWebDavContent([newPrompt], [createCategory({ id: "cat-new" })]),
+          { status: 200 }
+        );
+      }
+
+      return new Response("pdf content", {
+        status: 200,
+        headers: { "Content-Type": "application/pdf" },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await downloadWebDavBackup(
+      config,
+      rootHandle,
+      [existingPrompt],
+      [existingCategory],
+      "append"
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.prompts).toEqual([existingPrompt]);
+    expect(result.categories).toEqual([existingCategory]);
+    expect(result.downloadedFiles).toEqual([]);
+    expect(result.errors).toEqual([
+      "attachments/prompt-1/attachment-1-guide.pdf: disk full",
+    ]);
   });
 });

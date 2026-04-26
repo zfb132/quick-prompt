@@ -59,14 +59,6 @@ const uploadAttachment = async (
   rootHandle: FileSystemDirectoryHandle,
   attachment: PromptAttachment
 ): Promise<void> => {
-  const remoteParentPath = getRemoteParentPath(attachment.relativePath);
-
-  if (remoteParentPath) {
-    await ensureWebDavDirectory(config, remoteParentPath);
-  } else {
-    await ensureWebDavDirectory(config, "");
-  }
-
   const file = await getFileFromAttachmentRoot(rootHandle, attachment.relativePath);
   await putWebDavFile(
     config,
@@ -93,16 +85,13 @@ export const uploadWebDavBackup = async (
 ): Promise<WebDavBackupUploadResult> => {
   const uploadedFiles: string[] = [];
   const errors: string[] = [];
+  const attachments = prompts.flatMap(getPromptAttachments);
+  const attachmentParentPaths = Array.from(
+    new Set(attachments.map((attachment) => getRemoteParentPath(attachment.relativePath)))
+  );
 
   try {
     await ensureWebDavDirectory(config, "");
-    await putWebDavFile(
-      config,
-      WEBDAV_FILENAME,
-      serializeToWebDavContent(prompts, categories),
-      "application/json"
-    );
-    uploadedFiles.push(WEBDAV_FILENAME);
   } catch (error) {
     return {
       success: false,
@@ -111,8 +100,16 @@ export const uploadWebDavBackup = async (
     };
   }
 
-  for (const prompt of prompts) {
-    for (const attachment of getPromptAttachments(prompt)) {
+  for (const parentPath of attachmentParentPaths) {
+    try {
+      await ensureWebDavDirectory(config, parentPath);
+    } catch (error) {
+      errors.push(`${parentPath || "remote root"}: ${getErrorMessage(error)}`);
+    }
+  }
+
+  if (errors.length === 0) {
+    for (const attachment of attachments) {
       try {
         await uploadAttachment(config, rootHandle, attachment);
         uploadedFiles.push(attachment.relativePath);
@@ -122,11 +119,35 @@ export const uploadWebDavBackup = async (
     }
   }
 
-  return {
-    success: errors.length === 0,
-    uploadedFiles,
-    errors,
-  };
+  if (errors.length > 0) {
+    return {
+      success: false,
+      uploadedFiles,
+      errors,
+    };
+  }
+
+  try {
+    await putWebDavFile(
+      config,
+      WEBDAV_FILENAME,
+      serializeToWebDavContent(prompts, categories),
+      "application/json"
+    );
+    uploadedFiles.push(WEBDAV_FILENAME);
+
+    return {
+      success: true,
+      uploadedFiles,
+      errors,
+    };
+  } catch (error) {
+    return {
+      success: false,
+      uploadedFiles,
+      errors: [`${WEBDAV_FILENAME}: ${getErrorMessage(error)}`],
+    };
+  }
 };
 
 export const downloadWebDavBackup = async (
@@ -172,9 +193,19 @@ export const downloadWebDavBackup = async (
     }
   }
 
+  if (errors.length > 0) {
+    return {
+      success: false,
+      prompts: localPrompts,
+      categories: localCategories,
+      downloadedFiles,
+      errors,
+    };
+  }
+
   if (mode === "replace") {
     return {
-      success: errors.length === 0,
+      success: true,
       prompts: remotePrompts,
       categories: remoteCategories,
       downloadedFiles,
@@ -186,7 +217,7 @@ export const downloadWebDavBackup = async (
   const localCategoryIds = new Set(localCategories.map((category) => category.id));
 
   return {
-    success: errors.length === 0,
+    success: true,
     prompts: [
       ...localPrompts,
       ...remotePrompts.filter((prompt) => !localPromptIds.has(prompt.id)),
