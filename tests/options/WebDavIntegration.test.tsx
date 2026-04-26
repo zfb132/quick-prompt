@@ -100,6 +100,7 @@ describe("WebDavIntegration", () => {
     vi.mocked(webdavBackup.uploadWebDavBackup).mockResolvedValue({
       success: true,
       uploadedFiles: ["quick-prompt-backup.json"],
+      deletedFiles: [],
       errors: [],
     });
     vi.mocked(webdavBackup.downloadWebDavBackup).mockResolvedValue({

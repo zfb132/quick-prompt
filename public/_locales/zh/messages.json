@@ -1655,7 +1655,7 @@
     "message": "将本地提示词、分类和附件上传到配置的 WebDAV 目录。"
   },
   "webdavUploadSuccess": {
-    "message": "WebDAV 上传完成，已上传 $1 个文件。"
+    "message": "WebDAV 上传完成，已上传 $1 个文件，已删除 $2 个旧文件。"
   },
   "webdavUploadFailed": {
     "message": "WebDAV 上传失败"

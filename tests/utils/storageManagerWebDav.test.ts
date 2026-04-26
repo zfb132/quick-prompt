@@ -107,6 +107,7 @@ describe("storageManager WebDAV auto upload", () => {
     vi.mocked(webdavBackup.uploadWebDavBackup).mockResolvedValue({
       success: true,
       uploadedFiles: ["quick-prompt-backup.json"],
+      deletedFiles: [],
       errors: [],
     });
   });
@@ -256,6 +257,7 @@ describe("storageManager WebDAV auto upload", () => {
     vi.mocked(webdavBackup.uploadWebDavBackup).mockResolvedValueOnce({
       success: false,
       uploadedFiles: [],
+      deletedFiles: [],
       errors: ["HTTP 401"],
     });
     const { handleWebDavAutoSyncForTest } = await import("@/utils/browser/storageManager");
@@ -278,6 +280,7 @@ describe("storageManager WebDAV auto upload", () => {
     vi.mocked(webdavBackup.uploadWebDavBackup).mockResolvedValueOnce({
       success: false,
       uploadedFiles: [],
+      deletedFiles: [],
       errors: [],
     });
     const { handleWebDavAutoSyncForTest } = await import("@/utils/browser/storageManager");
@@ -309,7 +312,7 @@ describe("storageManager WebDAV auto upload", () => {
       return {};
     });
 
-    let resolveFirstUpload!: (result: { success: boolean; uploadedFiles: string[]; errors: string[] }) => void;
+    let resolveFirstUpload!: (result: { success: boolean; uploadedFiles: string[]; deletedFiles: string[]; errors: string[] }) => void;
     vi.mocked(webdavBackup.uploadWebDavBackup)
       .mockImplementationOnce(() => new Promise((resolve) => {
         resolveFirstUpload = resolve;
@@ -317,6 +320,7 @@ describe("storageManager WebDAV auto upload", () => {
       .mockResolvedValueOnce({
         success: true,
         uploadedFiles: ["quick-prompt-backup.json"],
+        deletedFiles: [],
         errors: [],
       });
 
@@ -338,6 +342,7 @@ describe("storageManager WebDAV auto upload", () => {
     resolveFirstUpload({
       success: true,
       uploadedFiles: ["quick-prompt-backup.json"],
+      deletedFiles: [],
       errors: [],
     });
     await flushPromises();

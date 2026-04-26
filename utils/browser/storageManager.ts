@@ -248,6 +248,7 @@ const runWebDavAutoSync = async (): Promise<void> => {
           status: "success",
           success: true,
           uploadedFiles: result.uploadedFiles,
+          deletedFiles: result.deletedFiles,
           completedTime: Date.now(),
         })
       } else {
@@ -258,6 +259,7 @@ const runWebDavAutoSync = async (): Promise<void> => {
           success: false,
           ...(error ? { error } : {}),
           uploadedFiles: result.uploadedFiles,
+          deletedFiles: result.deletedFiles,
           completedTime: Date.now(),
         })
       }

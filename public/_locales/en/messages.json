@@ -1655,7 +1655,7 @@
     "message": "Upload local prompts, categories, and attachments to the configured WebDAV directory."
   },
   "webdavUploadSuccess": {
-    "message": "WebDAV upload completed. $1 files uploaded."
+    "message": "WebDAV upload completed. $1 files uploaded, $2 stale files deleted."
   },
   "webdavUploadFailed": {
     "message": "WebDAV upload failed"

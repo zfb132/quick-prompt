@@ -118,6 +118,7 @@ describe("webdav backup orchestration", () => {
         "attachments/prompt-1/attachment-2-notes.txt",
         WEBDAV_FILENAME,
       ],
+      deletedFiles: [],
       errors: [],
     });
     expect(fileSystem.getFileFromAttachmentRoot).toHaveBeenCalledTimes(2);
@@ -296,6 +297,124 @@ describe("webdav backup orchestration", () => {
       .filter(([, init]) => init?.method === "PUT")
       .map(([url]) => url);
     expect(putUrls).not.toContain("https://dav.example.com/root/quick-prompt/quick-prompt-backup.json");
+  });
+
+  it("deletes remote attachment files that were removed locally after publishing the new manifest", async () => {
+    const retainedAttachment = {
+      id: "attachment-1",
+      name: "guide.pdf",
+      type: "application/pdf",
+      size: 11,
+      relativePath: "attachments/prompt-1/attachment-1-guide.pdf",
+      createdAt: "2024-01-01T00:00:00.000Z",
+    };
+    const deletedAttachment = {
+      id: "attachment-old",
+      name: "old.pdf",
+      type: "application/pdf",
+      size: 12,
+      relativePath: "attachments/prompt-1/attachment-old-old.pdf",
+      createdAt: "2024-01-01T00:00:00.000Z",
+    };
+    const remotePrompt = createPrompt({
+      attachments: [retainedAttachment, deletedAttachment],
+    });
+    const localPrompt = createPrompt({
+      attachments: [retainedAttachment],
+    });
+    vi.mocked(fileSystem.getFileFromAttachmentRoot).mockResolvedValue(
+      new File(["pdf content"], "guide.pdf", { type: "application/pdf" })
+    );
+
+    const events: string[] = [];
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "GET" && url.endsWith(WEBDAV_FILENAME)) {
+        events.push("read-manifest");
+        return new Response(serializeToWebDavContent([remotePrompt], []), { status: 200 });
+      }
+
+      if (init?.method === "PUT" && url.endsWith(WEBDAV_FILENAME)) {
+        events.push("write-manifest");
+        return new Response(null, { status: 201 });
+      }
+
+      if (init?.method === "DELETE") {
+        events.push("delete-old-attachment");
+        return new Response(null, { status: 204 });
+      }
+
+      return new Response(null, { status: 201 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await uploadWebDavBackup(config, rootHandle, [localPrompt], []);
+
+    expect(result.success).toBe(true);
+    expect(result.deletedFiles).toEqual(["attachments/prompt-1/attachment-old-old.pdf"]);
+    expect(events).toEqual(["read-manifest", "write-manifest", "delete-old-attachment"]);
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://dav.example.com/root/quick-prompt/attachments/prompt-1/attachment-old-old.pdf",
+      {
+        method: "DELETE",
+        headers: {
+          Authorization: "Basic YWxpY2U6c2VjcmV0",
+        },
+      }
+    );
+  });
+
+  it("does not delete remote files that are not listed in the previous WebDAV manifest", async () => {
+    const localPrompt = createPrompt({ attachments: [] });
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "GET" && url.endsWith(WEBDAV_FILENAME)) {
+        return new Response(serializeToWebDavContent([], []), { status: 200 });
+      }
+
+      return new Response(null, { status: 201 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await uploadWebDavBackup(config, rootHandle, [localPrompt], []);
+
+    expect(result.success).toBe(true);
+    expect(result.deletedFiles).toEqual([]);
+    expect(fetchMock.mock.calls.some(([, init]) => init?.method === "DELETE")).toBe(false);
+  });
+
+  it("reports stale remote attachment delete failures after publishing the new manifest", async () => {
+    const deletedAttachment = {
+      id: "attachment-old",
+      name: "old.pdf",
+      type: "application/pdf",
+      size: 12,
+      relativePath: "attachments/prompt-1/attachment-old-old.pdf",
+      createdAt: "2024-01-01T00:00:00.000Z",
+    };
+    const remotePrompt = createPrompt({
+      attachments: [deletedAttachment],
+    });
+    const localPrompt = createPrompt({ attachments: [] });
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "GET" && url.endsWith(WEBDAV_FILENAME)) {
+        return new Response(serializeToWebDavContent([remotePrompt], []), { status: 200 });
+      }
+
+      if (init?.method === "DELETE") {
+        return new Response("locked", { status: 423, statusText: "Locked" });
+      }
+
+      return new Response(null, { status: 201 });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await uploadWebDavBackup(config, rootHandle, [localPrompt], []);
+
+    expect(result.success).toBe(false);
+    expect(result.uploadedFiles).toEqual([WEBDAV_FILENAME]);
+    expect(result.deletedFiles).toEqual([]);
+    expect(result.errors).toEqual([
+      "attachments/prompt-1/attachment-old-old.pdf: WebDAV DELETE failed: HTTP 423 Locked - locked",
+    ]);
   });
 
   it("reports manifest upload failures after attachment uploads and stops", async () => {

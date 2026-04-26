@@ -1,5 +1,6 @@
 import {
   WEBDAV_FILENAME,
+  deleteWebDavFile,
   deserializeFromWebDavContent,
   ensureWebDavDirectory,
   getWebDavBlobFile,
@@ -19,6 +20,7 @@ export type WebDavBackupDownloadMode = "append" | "replace";
 export interface WebDavBackupUploadResult {
   success: boolean;
   uploadedFiles: string[];
+  deletedFiles: string[];
   errors: string[];
 }
 
@@ -37,6 +39,20 @@ const getErrorMessage = (error: unknown): string => (
 const getPromptAttachments = (prompt: PromptItem): PromptAttachment[] => (
   Array.isArray(prompt.attachments) ? prompt.attachments : []
 );
+
+const getAttachmentPaths = (prompts: PromptItem[]): Set<string> => (
+  new Set(prompts.flatMap(getPromptAttachments).map((attachment) => attachment.relativePath))
+);
+
+const getRemoteAttachmentPaths = async (config: WebDavConfig): Promise<Set<string>> => {
+  try {
+    const content = await getWebDavTextFile(config, WEBDAV_FILENAME);
+    const data = deserializeFromWebDavContent(content);
+    return getAttachmentPaths(data.prompts);
+  } catch {
+    return new Set();
+  }
+};
 
 const getRemoteParentPath = (relativePath: string): string => {
   const segments = relativePath.split("/").filter(Boolean);
@@ -84,8 +100,12 @@ export const uploadWebDavBackup = async (
   categories: Category[]
 ): Promise<WebDavBackupUploadResult> => {
   const uploadedFiles: string[] = [];
+  const deletedFiles: string[] = [];
   const errors: string[] = [];
   const attachments = prompts.flatMap(getPromptAttachments);
+  const currentAttachmentPaths = getAttachmentPaths(prompts);
+  const staleRemoteAttachmentPaths = Array.from(await getRemoteAttachmentPaths(config))
+    .filter((relativePath) => !currentAttachmentPaths.has(relativePath));
   const attachmentParentPaths = Array.from(
     new Set(attachments.map((attachment) => getRemoteParentPath(attachment.relativePath)))
   );
@@ -96,6 +116,7 @@ export const uploadWebDavBackup = async (
     return {
       success: false,
       uploadedFiles,
+      deletedFiles,
       errors: [getErrorMessage(error)],
     };
   }
@@ -123,6 +144,7 @@ export const uploadWebDavBackup = async (
     return {
       success: false,
       uploadedFiles,
+      deletedFiles,
       errors,
     };
   }
@@ -135,19 +157,30 @@ export const uploadWebDavBackup = async (
       "application/json"
     );
     uploadedFiles.push(WEBDAV_FILENAME);
-
-    return {
-      success: true,
-      uploadedFiles,
-      errors,
-    };
   } catch (error) {
     return {
       success: false,
       uploadedFiles,
+      deletedFiles,
       errors: [`${WEBDAV_FILENAME}: ${getErrorMessage(error)}`],
     };
   }
+
+  for (const relativePath of staleRemoteAttachmentPaths) {
+    try {
+      await deleteWebDavFile(config, relativePath);
+      deletedFiles.push(relativePath);
+    } catch (error) {
+      errors.push(`${relativePath}: ${getErrorMessage(error)}`);
+    }
+  }
+
+  return {
+    success: errors.length === 0,
+    uploadedFiles,
+    deletedFiles,
+    errors,
+  };
 };
 
 export const downloadWebDavBackup = async (

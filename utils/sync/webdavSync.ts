@@ -213,6 +213,22 @@ export const putWebDavFile = async (
   await assertWebDavResponse(response, "PUT");
 };
 
+export const deleteWebDavFile = async (
+  config: WebDavConfig,
+  relativePath: string
+): Promise<void> => {
+  const response = await fetch(buildConfiguredWebDavUrl(config, relativePath), {
+    method: "DELETE",
+    headers: getWebDavHeaders(config.username, config.password),
+  });
+
+  if (response.status === 404) {
+    return;
+  }
+
+  await assertWebDavResponse(response, "DELETE");
+};
+
 export const getWebDavTextFile = async (
   config: WebDavConfig,
   relativePath: string

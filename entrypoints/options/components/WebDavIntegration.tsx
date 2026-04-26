@@ -256,7 +256,10 @@ const WebDavIntegration: React.FC = () => {
       const result = await uploadWebDavBackup(config, rootHandle, prompts, categories);
 
       if (result.success) {
-        showMessage("success", t("webdavUploadSuccess", [String(result.uploadedFiles.length)]));
+        showMessage("success", t("webdavUploadSuccess", [
+          String(result.uploadedFiles.length),
+          String(result.deletedFiles.length),
+        ]));
       } else {
         showMessage("error", `${t("webdavUploadFailed")}: ${result.errors.join("; ")}`);
       }

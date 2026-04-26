@@ -6,6 +6,7 @@ import {
   WEBDAV_STORAGE_KEYS,
   buildWebDavUrl,
   deserializeFromWebDavContent,
+  deleteWebDavFile,
   ensureWebDavDirectory,
   getWebDavBlobFile,
   getWebDavHeaders,
@@ -142,6 +143,27 @@ describe("webdav sync helpers", () => {
     });
   });
 
+  it("deletes files inside the configured remote directory with WebDAV headers", async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 204 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await deleteWebDavFile(config, "attachments/prompt-1/old.txt");
+
+    expect(fetchMock).toHaveBeenCalledWith("https://dav.example.com/root/quick-prompt/attachments/prompt-1/old.txt", {
+      method: "DELETE",
+      headers: {
+        Authorization: "Basic YWxpY2U6c2VjcmV0",
+      },
+    });
+  });
+
+  it("treats DELETE 404 as an already removed WebDAV file", async () => {
+    const fetchMock = vi.fn(async () => new Response("missing", { status: 404 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(deleteWebDavFile(config, "attachments/missing.txt")).resolves.toBeUndefined();
+  });
+
   it("creates only nested directories inside the configured remote directory", async () => {
     const fetchMock = vi.fn(async () => new Response(null, { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
@@ -188,6 +210,9 @@ describe("webdav sync helpers", () => {
       "outside the configured WebDAV remote directory"
     );
     await expect(getWebDavTextFile(config, "attachments/%2e%2e/outside.txt")).rejects.toThrow(
+      "outside the configured WebDAV remote directory"
+    );
+    await expect(deleteWebDavFile(config, "attachments/../outside.txt")).rejects.toThrow(
       "outside the configured WebDAV remote directory"
     );
     await expect(ensureWebDavDirectory(config, "attachments/../outside")).rejects.toThrow(
