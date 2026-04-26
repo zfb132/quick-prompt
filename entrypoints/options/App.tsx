@@ -86,20 +86,20 @@ const App = () => {
   if (!localeReady) return null;
 
   return (
-    <AttachmentStorageGate>
+    <AttachmentStorageGate translate={t}>
       <Router>
         <div className="min-h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
           <div className="flex h-screen">
             {/* 侧边栏 */}
             <Sidebar />
-            
+
             {/* 主内容区域 */}
             <main className="flex-1 flex flex-col min-w-0 md:relative">
               {/* 移动端顶部空间（为汉堡菜单留出空间） */}
               <div className="md:hidden h-16 flex-shrink-0 bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700"></div>
-              
+
               {/* 主要内容区域 */}
-              <div 
+              <div
                 ref={scrollContainerRef}
                 className="flex-1 overflow-auto bg-gray-50 dark:bg-gray-900 relative"
               >
@@ -137,7 +137,7 @@ const App = () => {
                     </button>
                   </div>
                 )}
-                
+
                 {/* 添加Toast通知容器 */}
                 <ToastContainer />
               </div>

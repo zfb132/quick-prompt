@@ -2,6 +2,8 @@ import React from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 
+vi.mock('@/utils/i18n', () => ({ t: (key: string) => key }))
+
 vi.mock('@/utils/attachments/fileSystem', () => ({
   getAttachmentRootHandle: vi.fn(),
   pickAndStoreAttachmentRoot: vi.fn(),
@@ -9,7 +11,17 @@ vi.mock('@/utils/attachments/fileSystem', () => ({
 }))
 
 const fs = await import('@/utils/attachments/fileSystem')
+
 const { default: AttachmentStorageGate } = await import('@/entrypoints/options/components/AttachmentStorageGate')
+
+const createDeferred = <T,>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve
+  })
+
+  return { promise, resolve }
+}
 
 describe('AttachmentStorageGate', () => {
   beforeEach(() => {
@@ -39,6 +51,20 @@ describe('AttachmentStorageGate', () => {
     fireEvent.click(screen.getByRole('button', { name: 'chooseAttachmentDirectory' }))
 
     await waitFor(() => expect(screen.getByText('Options Ready')).toBeInTheDocument())
+  })
+
+  it('disables directory selection while checking existing authorization', async () => {
+    const deferredHandle = createDeferred<FileSystemDirectoryHandle | undefined>()
+    vi.mocked(fs.getAttachmentRootHandle).mockReturnValue(deferredHandle.promise)
+
+    render(<AttachmentStorageGate><div>Options Ready</div></AttachmentStorageGate>)
+
+    const button = screen.getByRole('button', { name: 'chooseAttachmentDirectory' })
+    expect(button).toBeDisabled()
+
+    deferredHandle.resolve(undefined)
+    expect(await screen.findByText('attachmentStorageTitle')).toBeInTheDocument()
+    await waitFor(() => expect(button).not.toBeDisabled())
   })
 
   it('disables directory selection when the File System Access API is unavailable', async () => {
