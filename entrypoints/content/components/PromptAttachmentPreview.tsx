@@ -11,6 +11,17 @@ interface ImagePreviewState {
   url?: string
 }
 
+const base64ToBlob = (base64: string, contentType: string): Blob => {
+  const binary = atob(base64)
+  const bytes = new Uint8Array(binary.length)
+
+  for (let index = 0; index < binary.length; index++) {
+    bytes[index] = binary.charCodeAt(index)
+  }
+
+  return new Blob([bytes], { type: contentType })
+}
+
 const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attachments = [] }) => {
   const [imagePreviews, setImagePreviews] = useState<Record<string, ImagePreviewState>>({})
 
@@ -34,9 +45,9 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
             attachment,
           })
 
-          if (!response?.success || !response.buffer) return
+          if (!response?.success || !response.base64) return
 
-          const blob = new Blob([response.buffer], { type: response.contentType || attachment.type })
+          const blob = base64ToBlob(response.base64, response.contentType || attachment.type)
           const url = URL.createObjectURL(blob)
           objectUrls.push(url)
           nextPreviews[attachment.id] = { url }

@@ -11,7 +11,7 @@ import {
 } from "@/utils/attachments/fileSystem"
 
 export type AttachmentPreviewResponse =
-  | { success: true; buffer: ArrayBuffer; contentType: string }
+  | { success: true; base64: string; contentType: string }
   | { success: false; error: string }
 
 const readFileAsArrayBuffer = (file: File): Promise<ArrayBuffer> => {
@@ -25,6 +25,17 @@ const readFileAsArrayBuffer = (file: File): Promise<ArrayBuffer> => {
     reader.onerror = () => reject(reader.error)
     reader.readAsArrayBuffer(file)
   })
+}
+
+const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+  const bytes = new Uint8Array(buffer)
+  let binary = ''
+
+  for (let index = 0; index < bytes.length; index++) {
+    binary += String.fromCharCode(bytes[index])
+  }
+
+  return btoa(binary)
 }
 
 export const buildAttachmentPreviewResponse = async (
@@ -43,7 +54,7 @@ export const buildAttachmentPreviewResponse = async (
     const file = await getFileFromAttachmentRoot(root, attachment.relativePath)
     return {
       success: true,
-      buffer: await readFileAsArrayBuffer(file),
+      base64: arrayBufferToBase64(await readFileAsArrayBuffer(file)),
       contentType: file.type || attachment.type,
     }
   } catch (error: any) {

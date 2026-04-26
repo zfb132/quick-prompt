@@ -27,7 +27,7 @@ describe('buildAttachmentPreviewResponse', () => {
     vi.clearAllMocks()
   })
 
-  it('returns an ArrayBuffer and content type for image attachments', async () => {
+  it('returns JSON-safe base64 and content type for image attachments', async () => {
     vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue({ name: 'root' } as any)
     vi.mocked(fs.verifyReadWritePermission).mockResolvedValue(true)
     vi.mocked(fs.getFileFromAttachmentRoot).mockResolvedValue(new File(['data'], 'image.png', { type: 'image/png' }))
@@ -36,8 +36,13 @@ describe('buildAttachmentPreviewResponse', () => {
 
     expect(response.success).toBe(true)
     if (!response.success) throw new Error('Expected success response')
-    expect(response.buffer).toBeInstanceOf(ArrayBuffer)
-    expect(new TextDecoder().decode(response.buffer)).toBe('data')
+    expect(response).toEqual({
+      success: true,
+      base64: expect.any(String),
+      contentType: 'image/png',
+    })
+    expect(JSON.parse(JSON.stringify(response))).toEqual(response)
+    expect(atob(response.base64)).toBe('data')
     expect(response.contentType).toBe('image/png')
   })
 
