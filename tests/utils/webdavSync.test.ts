@@ -7,7 +7,9 @@ import {
   buildWebDavUrl,
   deserializeFromWebDavContent,
   ensureWebDavDirectory,
+  getWebDavBlobFile,
   getWebDavHeaders,
+  getWebDavTextFile,
   joinWebDavPath,
   normalizeWebDavBaseUrl,
   parseWebDavMultiStatus,
@@ -52,10 +54,18 @@ const config = {
   autoSync: true,
 };
 
+const readBlobAsText = (blob: Blob): Promise<string> => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.addEventListener("load", () => resolve(String(reader.result)));
+  reader.addEventListener("error", () => reject(reader.error));
+  reader.readAsText(blob);
+});
+
 describe("webdav sync helpers", () => {
   afterEach(() => {
     vi.useRealTimers();
     vi.restoreAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it("exports WebDAV constants and storage keys", () => {
@@ -132,16 +142,101 @@ describe("webdav sync helpers", () => {
     });
   });
 
-  it("treats MKCOL 405 as an existing WebDAV directory", async () => {
-    const fetchMock = vi.fn(async () => new Response(null, { status: 405 }));
+  it("creates every nested WebDAV directory level in order", async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 201 }));
     vi.stubGlobal("fetch", fetchMock);
 
-    await expect(ensureWebDavDirectory(config, "nested")).resolves.toBeUndefined();
-    expect(fetchMock).toHaveBeenCalledWith("https://dav.example.com/root/quick-prompt/nested", {
+    await ensureWebDavDirectory(config, "attachments/prompt-id");
+
+    expect(fetchMock).toHaveBeenNthCalledWith(1, "https://dav.example.com/root/quick-prompt", {
       method: "MKCOL",
       headers: {
         Authorization: "Basic YWxpY2U6c2VjcmV0",
       },
     });
+    expect(fetchMock).toHaveBeenNthCalledWith(2, "https://dav.example.com/root/quick-prompt/attachments", {
+      method: "MKCOL",
+      headers: {
+        Authorization: "Basic YWxpY2U6c2VjcmV0",
+      },
+    });
+    expect(fetchMock).toHaveBeenNthCalledWith(3, "https://dav.example.com/root/quick-prompt/attachments/prompt-id", {
+      method: "MKCOL",
+      headers: {
+        Authorization: "Basic YWxpY2U6c2VjcmV0",
+      },
+    });
+  });
+
+  it("treats MKCOL 405 as an existing WebDAV directory", async () => {
+    const fetchMock = vi.fn(async () => new Response(null, { status: 405 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(ensureWebDavDirectory(config, "nested")).resolves.toBeUndefined();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it("downloads text files with WebDAV headers", async () => {
+    const fetchMock = vi.fn(async () => new Response("backup content", { status: 200 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getWebDavTextFile(config, WEBDAV_FILENAME)).resolves.toBe("backup content");
+    expect(fetchMock).toHaveBeenCalledWith("https://dav.example.com/root/quick-prompt/quick-prompt-backup.json", {
+      method: "GET",
+      headers: {
+        Authorization: "Basic YWxpY2U6c2VjcmV0",
+      },
+    });
+  });
+
+  it("downloads blob files with WebDAV headers", async () => {
+    const fetchMock = vi.fn(async () => new Response("file content", {
+      status: 200,
+      headers: {
+        "Content-Type": "text/plain",
+      },
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    const result = await getWebDavBlobFile(config, "attachments/file.txt");
+
+    expect(await readBlobAsText(result)).toBe("file content");
+    expect(result.type).toBe("text/plain");
+    expect(fetchMock).toHaveBeenCalledWith("https://dav.example.com/root/quick-prompt/attachments/file.txt", {
+      method: "GET",
+      headers: {
+        Authorization: "Basic YWxpY2U6c2VjcmV0",
+      },
+    });
+  });
+
+  it("includes status code and body snippet for non-ok PUT responses", async () => {
+    const fetchMock = vi.fn(async () => new Response("quota exceeded while uploading", {
+      status: 507,
+      statusText: "Insufficient Storage",
+    }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(
+      putWebDavFile(config, WEBDAV_FILENAME, "{}", "application/json")
+    ).rejects.toThrow("WebDAV PUT failed: HTTP 507 Insufficient Storage - quota exceeded while uploading");
+  });
+
+  it("includes status code for non-ok GET responses", async () => {
+    const fetchMock = vi.fn(async () => new Response("", { status: 404 }));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(getWebDavTextFile(config, WEBDAV_FILENAME)).rejects.toThrow("WebDAV GET failed: HTTP 404");
+  });
+
+  it("includes status code for non-ok MKCOL responses", async () => {
+    const fetchMock = vi.fn(async () => (
+      new Response("parent does not exist", { status: 409, statusText: "Conflict" })
+    ));
+    vi.stubGlobal("fetch", fetchMock);
+
+    await expect(ensureWebDavDirectory(config, "nested")).rejects.toThrow(
+      "WebDAV MKCOL failed: HTTP 409 Conflict - parent does not exist"
+    );
   });
 });

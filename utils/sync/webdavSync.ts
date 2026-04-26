@@ -109,12 +109,24 @@ const buildConfiguredWebDavUrl = (config: WebDavConfig, relativePath: string): s
   buildWebDavUrl(config.serverUrl, config.remoteDir, relativePath)
 );
 
+const getResponseBodySnippet = async (response: Response): Promise<string> => {
+  try {
+    const body = await response.clone().text();
+    return body.replace(/\s+/g, " ").trim().slice(0, 200);
+  } catch {
+    return "";
+  }
+};
+
 const assertWebDavResponse = async (response: Response, action: string): Promise<void> => {
   if (response.ok) {
     return;
   }
 
-  const message = response.statusText || `HTTP ${response.status}`;
+  const status = [`HTTP ${response.status}`, response.statusText].filter(Boolean).join(" ");
+  const bodySnippet = await getResponseBodySnippet(response);
+  const message = bodySnippet ? `${status} - ${bodySnippet}` : status;
+
   throw new Error(`WebDAV ${action} failed: ${message}`);
 };
 
@@ -122,16 +134,22 @@ export const ensureWebDavDirectory = async (
   config: WebDavConfig,
   path: string
 ): Promise<void> => {
-  const response = await fetch(buildConfiguredWebDavUrl(config, path), {
-    method: "MKCOL",
-    headers: getWebDavHeaders(config.username, config.password),
-  });
+  const fullPath = joinWebDavPath(config.remoteDir, path);
+  const pathSegments = fullPath.split("/").filter(Boolean);
 
-  if (response.status === 405) {
-    return;
+  for (let index = 0; index < pathSegments.length; index += 1) {
+    const directoryPath = pathSegments.slice(0, index + 1).join("/");
+    const response = await fetch(buildWebDavUrl(config.serverUrl, directoryPath), {
+      method: "MKCOL",
+      headers: getWebDavHeaders(config.username, config.password),
+    });
+
+    if (response.status === 405) {
+      continue;
+    }
+
+    await assertWebDavResponse(response, "MKCOL");
   }
-
-  await assertWebDavResponse(response, "MKCOL");
 };
 
 export const putWebDavFile = async (
