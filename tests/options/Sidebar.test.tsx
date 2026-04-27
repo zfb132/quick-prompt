@@ -26,6 +26,7 @@ const { default: Sidebar } = await import("@/entrypoints/options/components/Side
 describe("Sidebar", () => {
   beforeEach(() => {
     localStorage.clear();
+    window.history.pushState({}, "", "/options.html");
     Object.defineProperty(window, "innerWidth", {
       configurable: true,
       value: 1024,
@@ -48,19 +49,55 @@ describe("Sidebar", () => {
     expect(navItems[3]).toContainElement(collapseButton);
   });
 
-  it("clears shortcut-save query parameters when opening prompt management from the sidebar", () => {
+  it.each([
+    {
+      name: "Quick Prompt logo",
+      getLink: (container: HTMLElement) => container.querySelector('a[title="Quick Prompt"]') as HTMLAnchorElement,
+      expectedHash: "",
+    },
+    {
+      name: "Prompt management",
+      getLink: () => screen.getByRole("link", { name: "Prompt management" }),
+      expectedHash: "",
+    },
+    {
+      name: "Category management",
+      getLink: () => screen.getByRole("link", { name: "Category management" }),
+      expectedHash: "#/categories",
+    },
+    {
+      name: "Global settings",
+      getLink: () => screen.getByRole("link", { name: "Global settings" }),
+      expectedHash: "#/settings",
+    },
+    {
+      name: "Gist sync",
+      getLink: () => screen.getByRole("link", { name: "Gist sync" }),
+      expectedHash: "#/integrations/gist",
+    },
+    {
+      name: "Notion sync",
+      getLink: () => screen.getByRole("link", { name: "Notion sync" }),
+      expectedHash: "#/integrations/notion",
+    },
+    {
+      name: "WebDAV sync",
+      getLink: () => screen.getByRole("link", { name: "WebDAV sync" }),
+      expectedHash: "#/integrations/webdav",
+    },
+  ])("clears shortcut-save query parameters when opening $name from the sidebar", ({ getLink, expectedHash }) => {
     window.history.pushState({}, "", "/options.html?action=new&content=saved-text#/categories");
 
-    render(
+    const { container } = render(
       <HashRouter>
         <Sidebar />
       </HashRouter>,
     );
 
-    fireEvent.click(screen.getByRole("link", { name: "Prompt management" }));
+    fireEvent.click(getLink(container));
 
     expect(window.location.pathname).toBe("/options.html");
     expect(window.location.search).toBe("");
-    expect(window.location.hash).toBe("");
+    expect(window.location.hash).toBe(expectedHash);
   });
 });

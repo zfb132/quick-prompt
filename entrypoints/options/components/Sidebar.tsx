@@ -31,6 +31,26 @@ interface SidebarProps {
   className?: string;
 }
 
+const dispatchNavigationEvents = () => {
+  const hashChangeEvent = typeof HashChangeEvent === "function"
+    ? new HashChangeEvent("hashchange")
+    : new Event("hashchange");
+  const popStateEvent = typeof PopStateEvent === "function"
+    ? new PopStateEvent("popstate", { state: window.history.state })
+    : new Event("popstate");
+
+  window.dispatchEvent(hashChangeEvent);
+  window.dispatchEvent(popStateEvent);
+};
+
+const navigateToCleanOptionsRoute = (path: string) => {
+  const nextHash = path === "/" ? "" : `#${path}`;
+  const cleanUrl = `${window.location.pathname}${nextHash}`;
+
+  window.history.replaceState({}, document.title, cleanUrl);
+  dispatchNavigationEvents();
+};
+
 const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
@@ -57,7 +77,6 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
       name: t("promptManagement"),
       icon: FolderKanban,
       description: t("promptManagementDescription"),
-      resetDocumentUrl: true,
     },
     {
       path: "/categories",
@@ -81,6 +100,15 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
 
   const closeSidebar = () => {
     if (isMobile) setIsOpen(false);
+  };
+
+  const navigateFromSidebar = (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    path: string,
+  ) => {
+    closeSidebar();
+    event.preventDefault();
+    navigateToCleanOptionsRoute(path);
   };
 
   const toggleCollapse = () => {
@@ -127,7 +155,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
           <div className="flex items-center gap-2 border-b border-border p-4">
             <NavLink
               to="/"
-              onClick={closeSidebar}
+              onClick={(event) => navigateFromSidebar(event, "/")}
               className={cn(
                 "flex min-w-0 flex-1 items-center gap-3 rounded-2xl outline-none focus-visible:ring-2 focus-visible:ring-ring",
                 collapsed && "justify-center",
@@ -232,7 +260,6 @@ interface SidebarLinkProps {
   icon: React.ComponentType<{ className?: string }>;
   collapsed: boolean;
   subtle?: boolean;
-  resetDocumentUrl?: boolean;
   onClick: () => void;
 }
 
@@ -243,27 +270,12 @@ function SidebarLink({
   icon: Icon,
   collapsed,
   subtle,
-  resetDocumentUrl,
   onClick,
 }: SidebarLinkProps) {
   const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
     onClick();
-
-    if (!resetDocumentUrl) return;
-
     event.preventDefault();
-    const cleanUrl = window.location.pathname;
-    if (window.location.search || window.location.hash) {
-      window.history.replaceState({}, document.title, cleanUrl);
-      const hashChangeEvent = typeof HashChangeEvent === "function"
-        ? new HashChangeEvent("hashchange")
-        : new Event("hashchange");
-      const popStateEvent = typeof PopStateEvent === "function"
-        ? new PopStateEvent("popstate", { state: window.history.state })
-        : new Event("popstate");
-      window.dispatchEvent(hashChangeEvent);
-      window.dispatchEvent(popStateEvent);
-    }
+    navigateToCleanOptionsRoute(path);
   };
 
   const link = (
