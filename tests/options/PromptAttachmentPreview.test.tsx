@@ -56,6 +56,35 @@ describe('PromptAttachmentPreview', () => {
     expect(fs.verifyReadWritePermission).not.toHaveBeenCalled()
   })
 
+  it('uses stored thumbnail data without reading the original file until opening the viewer', async () => {
+    vi.mocked(URL.createObjectURL).mockReturnValue('blob:full-image')
+    vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue({ name: 'root' } as any)
+    vi.mocked(fs.hasReadWritePermission).mockResolvedValue(true)
+    vi.mocked(fs.getFileFromAttachmentRoot).mockResolvedValue(new File(['image-bytes'], 'image.png', { type: 'image/png' }))
+
+    render(
+      <PromptAttachmentPreview
+        attachments={[
+          createAttachment({ thumbnailDataUrl: 'data:image/webp;base64,thumbnail' }),
+        ]}
+      />
+    )
+
+    const image = screen.getByRole('img', { name: 'image.png' })
+    expect(image).toHaveAttribute('src', 'data:image/webp;base64,thumbnail')
+    expect(fs.getAttachmentRootHandle).not.toHaveBeenCalled()
+    expect(fs.getFileFromAttachmentRoot).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole('button', { name: 'image.png' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'imagePreviewDialog' })
+    await waitFor(() => {
+      expect(within(dialog).getByRole('img', { name: 'image.png' })).toHaveAttribute('src', 'blob:full-image')
+    })
+    expect(fs.getAttachmentRootHandle).toHaveBeenCalledTimes(1)
+    expect(fs.getFileFromAttachmentRoot).toHaveBeenCalledTimes(1)
+  })
+
   it('opens a large image viewer and switches between image attachments', async () => {
     vi.mocked(URL.createObjectURL)
       .mockReturnValueOnce('blob:first-preview')

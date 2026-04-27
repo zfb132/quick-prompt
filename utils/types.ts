@@ -21,6 +21,7 @@ export interface PromptAttachment {
   size: number;
   relativePath: string;
   createdAt: string;
+  thumbnailDataUrl?: string;
 }
 
 /**

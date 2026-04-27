@@ -94,6 +94,27 @@ describe('content PromptAttachmentPreview', () => {
     expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(Blob))
   })
 
+  it('uses stored image thumbnails without requesting preview payloads', async () => {
+    render(
+      <PromptAttachmentPreview
+        attachments={[createAttachment({ thumbnailDataUrl: 'data:image/webp;base64,thumbnail' })]}
+      />
+    )
+
+    const image = screen.getByRole('img', { name: 'image.png' })
+    expect(image).toHaveAttribute('src', 'data:image/webp;base64,thumbnail')
+    expect(image).toHaveAttribute('loading', 'lazy')
+    expect(image).toHaveAttribute('decoding', 'async')
+
+    if (MockIntersectionObserver.instances[0]) {
+      act(() => {
+        MockIntersectionObserver.instances[0].trigger()
+      })
+    }
+
+    await waitFor(() => expect(sendMessage).not.toHaveBeenCalled())
+  })
+
   it('opens a large image viewer and switches content preview images', async () => {
     vi.mocked(URL.createObjectURL)
       .mockReturnValueOnce('blob:first-content-preview')

@@ -213,6 +213,12 @@
   "globalSettingsDescription": {
     "message": "管理扩展的全局配置选项"
   },
+  "collapseSidebar": {
+    "message": "收起侧边栏"
+  },
+  "expandSidebar": {
+    "message": "展开侧边栏"
+  },
   "loadingGlobalSettings": {
     "message": "正在加载全局设置..."
   },
@@ -1574,7 +1580,7 @@
     "message": "附件存储"
   },
   "attachmentStorageDescription": {
-    "message": "首次进入管理页前，请选择附件存储方式。推荐授权一个本地文件夹。"
+    "message": "首次进入管理页前，请选择附件存储方式。强烈推荐使用外部自定义文件夹，能更好地管理和备份附件文件。"
   },
   "attachmentStorageRecommended": {
     "message": "推荐"

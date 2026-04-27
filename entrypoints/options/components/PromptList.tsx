@@ -134,7 +134,7 @@ const PromptList = ({
   // 如果不是自定义排序模式，直接渲染列表（不启用拖拽）
   if (!isDragEnabled) {
     return (
-      <div className={compact ? 'flex flex-col gap-1.5' : 'grid grid-cols-1 md:grid-cols-2 gap-4'}>
+      <div className={compact ? 'flex flex-col gap-2' : 'grid grid-cols-1 gap-4 xl:grid-cols-2'}>
         {filteredPrompts.map((prompt) => {
           const category = categoriesMap[prompt.categoryId]
 
@@ -172,7 +172,7 @@ const PromptList = ({
         items={filteredPrompts.map(p => p.id)} 
         strategy={rectSortingStrategy}
       >
-        <div className={compact ? 'flex flex-col gap-1.5' : 'grid grid-cols-1 md:grid-cols-2 gap-4'}>
+        <div className={compact ? 'flex flex-col gap-2' : 'grid grid-cols-1 gap-4 xl:grid-cols-2'}>
           {filteredPrompts.map((prompt) => {
             const category = categoriesMap[prompt.categoryId]
 

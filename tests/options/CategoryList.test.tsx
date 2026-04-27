@@ -62,7 +62,7 @@ describe('CategoryList', () => {
     )
 
     fireEvent.click(screen.getByTitle('edit'))
-    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('switch'))
 
     expect(onEdit).toHaveBeenCalledWith('work')
     expect(onToggleEnabled).toHaveBeenCalledWith('work', false)

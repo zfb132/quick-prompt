@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
+import { Check, Copy, SearchX } from "lucide-react";
 import type { PromptItemWithVariables, EditableElement, Category } from "@/utils/types";
 import { getPromptSelectorStyles } from "../utils/styles";
 import { extractVariables } from "../utils/variableParser";
@@ -529,16 +530,12 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
                         className={`qp-copy-button ${copiedId === prompt.id ? 'qp-copied' : ''}`}
                         onClick={(e) => copyPrompt(e, prompt)}
                         title={t('copyPrompt')}
+                        aria-label={t('copyPrompt')}
                       >
                         {copiedId === prompt.id ? (
-                          <svg className="qp-copy-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M20 6L9 17L4 12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
+                          <Check className="qp-copy-icon" aria-hidden="true" />
                         ) : (
-                          <svg className="qp-copy-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M8 4v12a2 2 0 002 2h8a2 2 0 002-2V7.242a2 2 0 00-.602-1.43L16.083 2.57A2 2 0 0014.685 2H10a2 2 0 00-2 2z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                            <path d="M16 2v3a2 2 0 002 2h3M4 8v12a2 2 0 002 2h8" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
+                          <Copy className="qp-copy-icon" aria-hidden="true" />
                         )}
                       </button>
                     </div>
@@ -584,20 +581,7 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
             </>
           ) : (
             <div className="qp-empty-state">
-              <svg
-                className="qp-empty-icon"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                />
-              </svg>
+              <SearchX className="qp-empty-icon" aria-hidden="true" />
               <div className="qp-empty-text">
                 {searchTerm || selectedCategoryId ? t('noMatchingPrompts') : t('noAvailablePrompts')}
               </div>

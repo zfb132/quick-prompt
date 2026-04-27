@@ -1,12 +1,16 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronLeft, ChevronRight, FileText, ImageIcon, Loader2, X } from 'lucide-react'
+
 import type { PromptAttachment } from '@/utils/types'
 import { formatFileSize, isImageAttachment } from '@/utils/attachments/metadata'
+import { createImageThumbnailDataUrl } from '@/utils/attachments/imageThumbnail'
 import {
   getAttachmentRootHandle,
   getFileFromAttachmentRoot,
   hasReadWritePermission,
 } from '@/utils/attachments/fileSystem'
 import { t } from '@/utils/i18n'
+import { Button } from '@/components/ui/button'
 
 interface PromptAttachmentPreviewProps {
   attachments?: PromptAttachment[]
@@ -14,28 +18,103 @@ interface PromptAttachmentPreviewProps {
 }
 
 interface ImagePreviewState {
-  url?: string
+  thumbnailUrl?: string
+  fullUrl?: string
+  objectUrl?: string
   error?: string
+  isLoadingFull?: boolean
 }
 
 const EMPTY_ATTACHMENTS: PromptAttachment[] = []
+const runtimeThumbnailCache = new Map<string, ImagePreviewState | Promise<ImagePreviewState>>()
+
+const getAttachmentCacheKey = (attachment: PromptAttachment): string => (
+  `${attachment.relativePath}:${attachment.size}:${attachment.createdAt}`
+)
+
+const getAuthorizedRoot = async () => {
+  const root = await getAttachmentRootHandle()
+
+  if (!root || !(await hasReadWritePermission(root))) {
+    throw new Error(t('attachmentPermissionLost'))
+  }
+
+  return root
+}
+
+const loadRuntimeThumbnail = async (attachment: PromptAttachment): Promise<ImagePreviewState> => {
+  const cacheKey = getAttachmentCacheKey(attachment)
+  const cached = runtimeThumbnailCache.get(cacheKey)
+
+  if (cached) {
+    return await cached
+  }
+
+  const promise = (async (): Promise<ImagePreviewState> => {
+    const root = await getAuthorizedRoot()
+    const file = await getFileFromAttachmentRoot(root, attachment.relativePath)
+    const thumbnailDataUrl = await createImageThumbnailDataUrl(file)
+
+    if (thumbnailDataUrl) {
+      return { thumbnailUrl: thumbnailDataUrl }
+    }
+
+    const objectUrl = URL.createObjectURL(file)
+    return { thumbnailUrl: objectUrl, fullUrl: objectUrl, objectUrl }
+  })()
+
+  runtimeThumbnailCache.set(cacheKey, promise)
+
+  try {
+    const result = await promise
+
+    if (result.objectUrl) {
+      runtimeThumbnailCache.delete(cacheKey)
+    } else {
+      runtimeThumbnailCache.set(cacheKey, result)
+    }
+
+    return result
+  } catch (error) {
+    runtimeThumbnailCache.delete(cacheKey)
+    throw error
+  }
+}
 
 const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
   attachments,
   compact = false,
 }) => {
   const safeAttachments = attachments ?? EMPTY_ATTACHMENTS
+  const objectUrlsRef = useRef<Set<string>>(new Set())
   const [imagePreviews, setImagePreviews] = useState<Record<string, ImagePreviewState>>({})
   const [activeImageId, setActiveImageId] = useState<string | null>(null)
+
+  const getPreview = (attachment: PromptAttachment): ImagePreviewState | undefined => {
+    const loadedPreview = imagePreviews[attachment.id]
+
+    if (attachment.thumbnailDataUrl) {
+      return {
+        ...loadedPreview,
+        thumbnailUrl: loadedPreview?.thumbnailUrl || attachment.thumbnailDataUrl,
+      }
+    }
+
+    return loadedPreview
+  }
 
   const viewableImages = useMemo(() => (
     safeAttachments
       .filter(isImageAttachment)
-      .map((attachment) => ({
-        attachment,
-        url: imagePreviews[attachment.id]?.url,
-      }))
-      .filter((item): item is { attachment: PromptAttachment; url: string } => Boolean(item.url))
+      .map((attachment) => {
+        const preview = getPreview(attachment)
+        return {
+          attachment,
+          url: preview?.fullUrl || preview?.thumbnailUrl,
+          isLoadingFull: preview?.isLoadingFull,
+        }
+      })
+      .filter((item): item is { attachment: PromptAttachment; url: string; isLoadingFull: boolean | undefined } => Boolean(item.url))
   ), [safeAttachments, imagePreviews])
 
   const activeImageIndex = activeImageId
@@ -43,55 +122,102 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
     : -1
   const activeImage = activeImageIndex >= 0 ? viewableImages[activeImageIndex] : null
 
+  const loadFullImage = async (attachment: PromptAttachment) => {
+    const currentPreview = getPreview(attachment)
+    if (currentPreview?.fullUrl || currentPreview?.isLoadingFull) return
+
+    setImagePreviews((current) => ({
+      ...current,
+      [attachment.id]: {
+        ...current[attachment.id],
+        thumbnailUrl: current[attachment.id]?.thumbnailUrl || attachment.thumbnailDataUrl,
+        isLoadingFull: true,
+      },
+    }))
+
+    try {
+      const root = await getAuthorizedRoot()
+      const file = await getFileFromAttachmentRoot(root, attachment.relativePath)
+      const fullUrl = URL.createObjectURL(file)
+      objectUrlsRef.current.add(fullUrl)
+
+      setImagePreviews((current) => ({
+        ...current,
+        [attachment.id]: {
+          ...current[attachment.id],
+          thumbnailUrl: current[attachment.id]?.thumbnailUrl || attachment.thumbnailDataUrl,
+          fullUrl,
+          isLoadingFull: false,
+        },
+      }))
+    } catch {
+      setImagePreviews((current) => ({
+        ...current,
+        [attachment.id]: {
+          ...current[attachment.id],
+          thumbnailUrl: current[attachment.id]?.thumbnailUrl || attachment.thumbnailDataUrl,
+          error: t('attachmentPermissionLost'),
+          isLoadingFull: false,
+        },
+      }))
+    }
+  }
+
+  const openImageViewer = (attachment: PromptAttachment) => {
+    setActiveImageId(attachment.id)
+    void loadFullImage(attachment)
+  }
+
   const showPreviousImage = () => {
     if (viewableImages.length === 0 || activeImageIndex < 0) return
     const previousIndex = (activeImageIndex - 1 + viewableImages.length) % viewableImages.length
-    setActiveImageId(viewableImages[previousIndex].attachment.id)
+    const previousAttachment = viewableImages[previousIndex].attachment
+    setActiveImageId(previousAttachment.id)
+    void loadFullImage(previousAttachment)
   }
 
   const showNextImage = () => {
     if (viewableImages.length === 0 || activeImageIndex < 0) return
     const nextIndex = (activeImageIndex + 1) % viewableImages.length
-    setActiveImageId(viewableImages[nextIndex].attachment.id)
+    const nextAttachment = viewableImages[nextIndex].attachment
+    setActiveImageId(nextAttachment.id)
+    void loadFullImage(nextAttachment)
   }
 
   useEffect(() => {
-    const imageAttachments = safeAttachments.filter(isImageAttachment)
+    const imageAttachments = safeAttachments.filter((attachment) => (
+      isImageAttachment(attachment) && !attachment.thumbnailDataUrl
+    ))
     const objectUrls: string[] = []
     let canceled = false
 
     if (imageAttachments.length === 0) {
-      setImagePreviews((current) => Object.keys(current).length > 0 ? {} : current)
+      setImagePreviews((current) => {
+        const nextEntries = Object.entries(current).filter(([id, preview]) => (
+          safeAttachments.some((attachment) => attachment.id === id) && (preview.fullUrl || preview.isLoadingFull)
+        ))
+        return nextEntries.length === Object.keys(current).length ? current : Object.fromEntries(nextEntries)
+      })
       return
     }
 
     const loadPreviews = async () => {
       const nextPreviews: Record<string, ImagePreviewState> = {}
 
-      try {
-        const root = await getAttachmentRootHandle()
-        if (!root || !(await hasReadWritePermission(root))) {
-          throw new Error(t('attachmentPermissionLost'))
-        }
-
-        await Promise.all(imageAttachments.map(async (attachment) => {
-          try {
-            const file = await getFileFromAttachmentRoot(root, attachment.relativePath)
-            const url = URL.createObjectURL(file)
-            objectUrls.push(url)
-            nextPreviews[attachment.id] = { url }
-          } catch {
-            nextPreviews[attachment.id] = { error: t('attachmentPermissionLost') }
+      await Promise.all(imageAttachments.map(async (attachment) => {
+        try {
+          const preview = await loadRuntimeThumbnail(attachment)
+          if (preview.objectUrl) {
+            objectUrls.push(preview.objectUrl)
           }
-        }))
-      } catch {
-        imageAttachments.forEach((attachment) => {
+          nextPreviews[attachment.id] = preview
+        } catch {
           nextPreviews[attachment.id] = { error: t('attachmentPermissionLost') }
-        })
-      }
+        }
+      }))
 
       if (!canceled) {
-        setImagePreviews(nextPreviews)
+        setImagePreviews((current) => ({ ...current, ...nextPreviews }))
       } else {
         objectUrls.forEach((url) => URL.revokeObjectURL(url))
       }
@@ -105,6 +231,13 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
     }
   }, [safeAttachments])
 
+  useEffect(() => {
+    return () => {
+      objectUrlsRef.current.forEach((url) => URL.revokeObjectURL(url))
+      objectUrlsRef.current.clear()
+    }
+  }, [])
+
   if (safeAttachments.length === 0) {
     return null
   }
@@ -112,41 +245,52 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
   return (
     <div className={compact ? 'flex items-center gap-1.5 min-w-0' : 'mt-3 flex flex-wrap gap-2'}>
       {safeAttachments.map((attachment) => {
-        const preview = imagePreviews[attachment.id]
-        const hasImagePreview = isImageAttachment(attachment) && preview?.url
+        const preview = getPreview(attachment)
+        const thumbnailUrl = preview?.thumbnailUrl
+        const hasImagePreview = isImageAttachment(attachment) && thumbnailUrl
 
         return (
           <div
             key={attachment.id}
             className={
               compact
-                ? `${hasImagePreview ? 'flex flex-col items-start gap-1 max-w-[72px]' : 'flex items-center gap-1.5 max-w-[140px]'} min-w-0 rounded border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-1.5 py-1`
-                : `${hasImagePreview ? 'flex flex-col items-start gap-1.5 max-w-[104px]' : 'flex items-center gap-2 max-w-full'} min-w-0 rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2 py-1.5`
+                ? `${hasImagePreview ? 'flex flex-col items-start gap-1 max-w-[76px]' : 'flex items-center gap-1.5 max-w-[148px]'} min-w-0 rounded-xl border border-border bg-muted/40 px-1.5 py-1`
+                : `${hasImagePreview ? 'flex flex-col items-start gap-1.5 max-w-[112px]' : 'flex items-center gap-2 max-w-full'} min-w-0 rounded-2xl border border-border bg-muted/40 px-2 py-1.5`
             }
           >
             {hasImagePreview && (
               <button
                 type="button"
-                onClick={() => setActiveImageId(attachment.id)}
-                className="flex-shrink-0 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-700"
+                onClick={() => openImageViewer(attachment)}
+                className="group relative flex-shrink-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                 aria-label={attachment.name}
               >
                 <img
-                  src={preview.url}
+                  src={thumbnailUrl}
                   alt={attachment.name}
-                  className={compact ? 'w-12 h-12 object-cover rounded border border-gray-200 dark:border-gray-600' : 'w-20 h-20 object-cover rounded border border-gray-200 dark:border-gray-600'}
+                  loading="lazy"
+                  decoding="async"
+                  className={compact ? 'h-12 w-12 rounded-xl border border-border object-cover' : 'h-20 w-20 rounded-xl border border-border object-cover'}
                 />
+                <span className="absolute inset-0 hidden items-center justify-center rounded-xl bg-black/35 text-white opacity-0 transition-opacity group-hover:flex group-hover:opacity-100">
+                  <ImageIcon className="size-4" />
+                </span>
               </button>
             )}
-            <div className='min-w-0 max-w-full'>
-              <div className='text-xs font-medium text-gray-700 dark:text-gray-200 truncate'>
+            {!hasImagePreview && (
+              <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-background text-muted-foreground ring-1 ring-border">
+                <FileText className="size-3.5" />
+              </span>
+            )}
+            <div className="min-w-0 max-w-full">
+              <div className="truncate text-xs font-medium text-foreground">
                 {attachment.name}
               </div>
-              <div className='text-[11px] text-gray-500 dark:text-gray-400 truncate'>
+              <div className="truncate text-[11px] text-muted-foreground">
                 {formatFileSize(attachment.size)}
               </div>
               {isImageAttachment(attachment) && preview?.error && (
-                <div className='text-[11px] text-amber-600 dark:text-amber-400 truncate'>
+                <div className="truncate text-[11px] text-amber-600 dark:text-amber-400">
                   {preview.error}
                 </div>
               )}
@@ -168,38 +312,42 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
               alt={activeImage.attachment.name}
               className="max-h-[85vh] max-w-[90vw] rounded-lg object-contain shadow-2xl"
             />
+            {activeImage.isLoadingFull && (
+              <div className="absolute bottom-3 left-1/2 inline-flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/65 px-3 py-1.5 text-xs text-white">
+                <Loader2 className="size-3.5 animate-spin" />
+                {t('loading')}
+              </div>
+            )}
             <button
               type="button"
               onClick={() => setActiveImageId(null)}
-              className="absolute right-2 top-2 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-white"
+              className="absolute right-2 top-2 inline-flex size-10 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-white"
               aria-label={t('closeImagePreview')}
             >
-              <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-              </svg>
+              <X className="size-5" />
             </button>
             {viewableImages.length > 1 && (
               <>
-                <button
+                <Button
                   type="button"
                   onClick={showPreviousImage}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-white"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white focus:ring-white"
                   aria-label={t('previousImage')}
                 >
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
-                  </svg>
-                </button>
-                <button
+                  <ChevronLeft className="size-6" />
+                </Button>
+                <Button
                   type="button"
                   onClick={showNextImage}
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-white"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white focus:ring-white"
                   aria-label={t('nextImage')}
                 >
-                  <svg className="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </button>
+                  <ChevronRight className="size-6" />
+                </Button>
               </>
             )}
           </div>

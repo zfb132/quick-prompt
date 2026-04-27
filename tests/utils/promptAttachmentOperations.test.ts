@@ -36,6 +36,7 @@ describe('prompt attachment operations', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
+    vi.unstubAllGlobals()
   })
 
   it('copies a selected file and returns metadata', async () => {
@@ -51,6 +52,61 @@ describe('prompt attachment operations', () => {
       relativePath: 'attachments/prompt-1/att-1-hello.txt',
     })
     expect(fileSystem.copyFileToAttachmentRoot).toHaveBeenCalledWith({} as any, 'attachments/prompt-1/att-1-hello.txt', file)
+  })
+
+  it('stores a generated thumbnail for large image attachments without changing the original file', async () => {
+    const imageBitmap = { width: 4000, height: 2000, close: vi.fn() }
+    const drawImage = vi.fn()
+    const originalCreateElement = document.createElement.bind(document)
+    vi.stubGlobal('createImageBitmap', vi.fn().mockResolvedValue(imageBitmap))
+    vi.spyOn(document, 'createElement').mockImplementation((tagName: string) => {
+      if (tagName === 'canvas') {
+        return {
+          width: 0,
+          height: 0,
+          getContext: vi.fn(() => ({ drawImage })),
+          toDataURL: vi.fn(() => 'data:image/webp;base64,thumbnail'),
+        } as unknown as HTMLCanvasElement
+      }
+
+      return originalCreateElement(tagName)
+    })
+
+    const file = new File([new Uint8Array(8 * 1024 * 1024)], 'large.png', { type: 'image/png' })
+
+    const attachment = await createAttachmentFromFile({} as any, 'prompt-1', file)
+
+    expect(attachment.thumbnailDataUrl).toBe('data:image/webp;base64,thumbnail')
+    expect(fileSystem.copyFileToAttachmentRoot).toHaveBeenCalledWith(
+      {} as any,
+      'attachments/prompt-1/att-1-large.png',
+      file
+    )
+    expect(drawImage).toHaveBeenCalledWith(imageBitmap, 0, 0, 192, 96)
+    expect(imageBitmap.close).toHaveBeenCalled()
+  })
+
+  it('still adds an image when browser thumbnail decoding reports the source file as missing', async () => {
+    vi.stubGlobal(
+      'createImageBitmap',
+      vi.fn().mockRejectedValue(new DOMException('A requested file or directory could not be found at the time an operation was processed.', 'NotFoundError'))
+    )
+
+    const file = new File(['image-bytes'], 'missing-source.png', { type: 'image/png' })
+
+    const attachment = await createAttachmentFromFile({} as any, 'prompt-1', file)
+
+    expect(attachment).toMatchObject({
+      id: 'att-1',
+      name: 'missing-source.png',
+      relativePath: 'attachments/prompt-1/att-1-missing-source.png',
+    })
+    expect(attachment.thumbnailDataUrl).toBeUndefined()
+    expect(fileSystem.copyFileToAttachmentRoot).toHaveBeenCalledWith(
+      {} as any,
+      'attachments/prompt-1/att-1-missing-source.png',
+      file
+    )
   })
 
   it('deletes every attachment file on a prompt', async () => {
