@@ -72,6 +72,7 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
     isDragging,
   } = useSortable({
     id: prompt.id,
+    disabled: !isDragEnabled,
     data: {
       type: "prompt",
       prompt,
@@ -144,6 +145,7 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
         type="button"
         variant="ghost"
         size="icon-sm"
+        data-drag-handle="true"
         className="cursor-grab active:cursor-grabbing"
         title={t("dragToReorder")}
         aria-label={t("dragToReorder")}
@@ -227,6 +229,11 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
         )}
       >
         <div className="qp-compact-content-row flex w-full items-center gap-1 px-3 py-2">
+          {isDragEnabled && (
+            <div className="qp-compact-drag flex shrink-0 items-center">
+              <DragHandle />
+            </div>
+          )}
           <div
             className="qp-compact-title min-w-[120px] flex-[1_1_0] cursor-pointer"
             title={`${prompt.content}\n\n${t("clickToCopy")}`}

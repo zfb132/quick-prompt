@@ -1,6 +1,6 @@
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import type { PromptItem } from "@/utils/types";
 
 vi.mock("@/utils/i18n", () => ({
@@ -54,5 +54,27 @@ describe("PromptList", () => {
     expect(list).toHaveClass("gap-4");
     expect(list).not.toHaveClass("grid");
     expect(list).not.toHaveClass("xl:grid-cols-2");
+  });
+
+  it("shows drag handles for compact prompt rows in custom sort mode", () => {
+    render(
+      <PromptList
+        prompts={[
+          createPrompt({ id: "prompt-1", title: "First prompt" }),
+          createPrompt({ id: "prompt-2", title: "Second prompt" }),
+        ]}
+        categories={[]}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onDuplicate={vi.fn()}
+        onReorder={vi.fn()}
+        searchTerm=""
+        allPromptsCount={2}
+        compact
+        sortType="custom"
+      />
+    );
+
+    expect(screen.getAllByRole("button", { name: "dragToReorder" })).toHaveLength(2);
   });
 });

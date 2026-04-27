@@ -53,6 +53,26 @@ export function getPromptSelectorStyles(): string {
       --qp-accent-hover: #93c5fd;
       --qp-shadow: 0 24px 80px rgba(0, 0, 0, 0.45), 0 8px 28px rgba(0, 0, 0, 0.28);
     }
+
+    :where(
+      button:not(:disabled):hover,
+      [role="button"]:not([aria-disabled="true"]):hover,
+      [role="menuitem"]:not([aria-disabled="true"]):hover,
+      [role="option"]:not([aria-disabled="true"]):hover,
+      [role="tab"]:not([aria-disabled="true"]):hover,
+      a[href]:hover,
+      summary:hover,
+      label[for]:hover,
+      input[type="button"]:not(:disabled):hover,
+      input[type="submit"]:not(:disabled):hover,
+      input[type="reset"]:not(:disabled):hover,
+      input[type="checkbox"]:not(:disabled):hover,
+      input[type="radio"]:not(:disabled):hover,
+      input[type="file"]:not(:disabled):hover,
+      select:not(:disabled):hover
+    ) {
+      cursor: pointer !important;
+    }
     
     /* 移植原来的样式 */
     .qp-fixed {

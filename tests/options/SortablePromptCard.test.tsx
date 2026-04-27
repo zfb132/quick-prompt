@@ -46,6 +46,7 @@ const renderCard = (
   promptOverrides: Partial<PromptItem> = {},
   category?: Category,
   onCopy = vi.fn(),
+  isDragEnabled = true,
 ) => {
   const testPrompt = { ...prompt, ...promptOverrides };
 
@@ -63,6 +64,7 @@ const renderCard = (
           onTagSelect={onTagSelect}
           category={category}
           compact={compact}
+          isDragEnabled={isDragEnabled}
         />
       </SortableContext>
     </DndContext>
@@ -192,8 +194,8 @@ describe("SortablePromptCard", () => {
       tags: ["one", "two", "three", "four"],
     });
 
-    expect(screen.getByText(/Two row title/)).toHaveStyle("-webkit-line-clamp: 2");
-    expect(screen.getByText(/Two row content/)).toHaveStyle("-webkit-line-clamp: 2");
+    expect(screen.getByText(/Two row title/)).toHaveStyle("-webkit-line-clamp: 4");
+    expect(screen.getByText(/Two row content/)).toHaveStyle("-webkit-line-clamp: 4");
 
     twoRows.unmount();
 
@@ -203,8 +205,8 @@ describe("SortablePromptCard", () => {
       tags: ["one", "two", "three", "four", "five", "six", "seven", "eight", "nine", "ten"],
     });
 
-    expect(screen.getByText(/Four row title/)).toHaveStyle("-webkit-line-clamp: 4");
-    expect(screen.getByText(/Four row content/)).toHaveStyle("-webkit-line-clamp: 4");
+    expect(screen.getByText(/Four row title/)).toHaveStyle("-webkit-line-clamp: 6");
+    expect(screen.getByText(/Four row content/)).toHaveStyle("-webkit-line-clamp: 6");
 
     fourRows.unmount();
 
@@ -277,6 +279,7 @@ describe("SortablePromptCard", () => {
         Array.from(child.classList).find((className) => className.startsWith("qp-compact-"))
       ))
     ).toEqual([
+      "qp-compact-drag",
       "qp-compact-title",
       "qp-compact-body",
       "qp-compact-attachments",
@@ -286,6 +289,9 @@ describe("SortablePromptCard", () => {
       "qp-compact-actions",
     ]);
 
+    expect(row?.querySelector(".qp-compact-drag")).toContainElement(
+      screen.getByRole("button", { name: "dragToReorder" })
+    );
     expect(row?.querySelector(".qp-compact-title")).toHaveClass("flex-[1_1_0]");
     expect(row?.querySelector(".qp-compact-body")).toHaveClass("flex-[3_1_0]");
     expect(row?.querySelector(".qp-compact-tags")).toHaveClass("inline-grid");
@@ -351,5 +357,14 @@ describe("SortablePromptCard", () => {
     fireEvent.click(body!);
 
     expect(onCopy).toHaveBeenCalledWith(originalContent, "prompt-1");
+  });
+
+  it("omits the compact drag handle when custom sorting is disabled", () => {
+    renderCard(vi.fn(), true, {}, undefined, vi.fn(), false);
+
+    const row = screen.getByText("Prompt").closest(".qp-compact-content-row");
+
+    expect(row?.querySelector(".qp-compact-drag")).toBeNull();
+    expect(screen.queryByRole("button", { name: "dragToReorder" })).not.toBeInTheDocument();
   });
 });
