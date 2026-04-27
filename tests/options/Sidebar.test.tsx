@@ -1,7 +1,7 @@
 import React from "react";
-import { MemoryRouter } from "react-router-dom";
+import { HashRouter, MemoryRouter } from "react-router-dom";
 import { describe, expect, it, beforeEach, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 
 vi.mock("@/utils/i18n", () => ({
   t: (key: string) => ({
@@ -46,5 +46,21 @@ describe("Sidebar", () => {
     expect(navItems).toHaveLength(4);
     expect(navItems[2]).toHaveTextContent("Global settings");
     expect(navItems[3]).toContainElement(collapseButton);
+  });
+
+  it("clears shortcut-save query parameters when opening prompt management from the sidebar", () => {
+    window.history.pushState({}, "", "/options.html?action=new&content=saved-text#/categories");
+
+    render(
+      <HashRouter>
+        <Sidebar />
+      </HashRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("link", { name: "Prompt management" }));
+
+    expect(window.location.pathname).toBe("/options.html");
+    expect(window.location.search).toBe("");
+    expect(window.location.hash).toBe("");
   });
 });

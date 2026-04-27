@@ -57,6 +57,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
       name: t("promptManagement"),
       icon: FolderKanban,
       description: t("promptManagementDescription"),
+      resetDocumentUrl: true,
     },
     {
       path: "/categories",
@@ -231,6 +232,7 @@ interface SidebarLinkProps {
   icon: React.ComponentType<{ className?: string }>;
   collapsed: boolean;
   subtle?: boolean;
+  resetDocumentUrl?: boolean;
   onClick: () => void;
 }
 
@@ -241,12 +243,33 @@ function SidebarLink({
   icon: Icon,
   collapsed,
   subtle,
+  resetDocumentUrl,
   onClick,
 }: SidebarLinkProps) {
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    onClick();
+
+    if (!resetDocumentUrl) return;
+
+    event.preventDefault();
+    const cleanUrl = window.location.pathname;
+    if (window.location.search || window.location.hash) {
+      window.history.replaceState({}, document.title, cleanUrl);
+      const hashChangeEvent = typeof HashChangeEvent === "function"
+        ? new HashChangeEvent("hashchange")
+        : new Event("hashchange");
+      const popStateEvent = typeof PopStateEvent === "function"
+        ? new PopStateEvent("popstate", { state: window.history.state })
+        : new Event("popstate");
+      window.dispatchEvent(hashChangeEvent);
+      window.dispatchEvent(popStateEvent);
+    }
+  };
+
   const link = (
     <NavLink
       to={path}
-      onClick={onClick}
+      onClick={handleClick}
       className={({ isActive }) =>
         cn(
           "group flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors",
