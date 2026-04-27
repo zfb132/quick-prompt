@@ -4,7 +4,13 @@ import type { Category, EditableElement, PromptItemWithVariables } from '@/utils
 
 const getCategories = vi.fn()
 const getGlobalSetting = vi.fn()
-const t = vi.fn((key: string) => `translated:${key}`)
+const t = vi.fn((key: string, substitutions?: string[]) => {
+  if (key === 'promptCharacterCountValue') {
+    return `translated:${key}:${substitutions?.[0]}`
+  }
+
+  return `translated:${key}`
+})
 
 vi.mock('@/utils/categoryUtils', () => ({ getCategories }))
 vi.mock('@/utils/globalSettings', () => ({ getGlobalSetting }))
@@ -144,4 +150,24 @@ describe('content PromptSelector', () => {
     })
   })
 
+  it('shows a localized character count for every prompt item', async () => {
+    await act(async () => {
+      showPromptSelector([
+        createPrompt({ id: 'prompt-1', content: 'hello 世界' }),
+        createPrompt({ id: 'prompt-2', content: 'a b\nc', categoryId: 'code' }),
+      ], createTarget())
+    })
+
+    const host = document.getElementById('quick-prompt-selector')!
+    const shadowRoot = host.shadowRoot!
+
+    await waitFor(() => {
+      const counts = Array.from(shadowRoot.querySelectorAll('.qp-character-count'))
+        .map((element) => element.textContent)
+      expect(counts).toEqual([
+        'translated:promptCharacterCountValue:7',
+        'translated:promptCharacterCountValue:3',
+      ])
+    })
+  })
 })
