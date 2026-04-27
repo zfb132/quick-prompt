@@ -130,11 +130,12 @@ const PromptList = ({
 
   // 获取当前被拖拽的提示词
   const activePrompt = activeId ? filteredPrompts.find(prompt => prompt.id === activeId) : null
+  const listClassName = compact ? 'flex flex-col gap-2' : 'columns-1 gap-4 xl:columns-2'
 
   // 如果不是自定义排序模式，直接渲染列表（不启用拖拽）
   if (!isDragEnabled) {
     return (
-      <div className={compact ? 'flex flex-col gap-2' : 'grid grid-cols-1 gap-4 xl:grid-cols-2'}>
+      <div className={listClassName}>
         {filteredPrompts.map((prompt) => {
           const category = categoriesMap[prompt.categoryId]
 
@@ -172,7 +173,7 @@ const PromptList = ({
         items={filteredPrompts.map(p => p.id)} 
         strategy={rectSortingStrategy}
       >
-        <div className={compact ? 'flex flex-col gap-2' : 'grid grid-cols-1 gap-4 xl:grid-cols-2'}>
+        <div className={listClassName}>
           {filteredPrompts.map((prompt) => {
             const category = categoriesMap[prompt.categoryId]
 
