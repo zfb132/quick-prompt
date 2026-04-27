@@ -428,12 +428,29 @@ export function getPromptSelectorStyles(): string {
       border-color: var(--qp-border-color) !important;
     }
 
+    .qp-character-count {
+      display: inline-flex !important;
+      align-items: center !important;
+      flex-shrink: 0 !important;
+      min-height: 19px !important;
+      background-color: var(--qp-bg-tag) !important;
+      color: var(--qp-text-tag) !important;
+      font-size: 11px !important;
+      font-weight: 500 !important;
+      line-height: 1 !important;
+      padding: 2px 7px !important;
+      border-radius: 3px !important;
+      border: 1px solid transparent !important;
+      order: 2 !important;
+      white-space: nowrap !important;
+    }
+
     /* 标签样式 */
     .qp-tags-container {
       display: flex !important;
       flex-wrap: wrap !important;
       gap: 6px !important;
-      order: 2 !important;
+      order: 3 !important;
     }
 
     .qp-tag {

@@ -25,6 +25,10 @@ const isEventInsideElement = (event: Event, element: Element): boolean => {
   return path.includes(element) || element.contains(event.target as Node);
 };
 
+const countPromptCharacters = (content: string): number => (
+  Array.from(content.replace(/\s/g, "")).length
+);
+
 const PromptSelector: React.FC<PromptSelectorProps> = ({
   prompts,
   targetElement,
@@ -518,6 +522,7 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
             <>
               {filteredPrompts.map((prompt, index) => {
                 const category = categoriesMap[prompt.categoryId];
+                const characterCount = countPromptCharacters(prompt.content || "");
                 return (
                   <div
                     id={`prompt-item-${index}`}
@@ -557,6 +562,12 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
                               <span className="qp-category-name">{category.name}</span>
                             </div>
                           )}
+                          <span
+                            className="qp-character-count"
+                            title={`${t('promptCharacterCount')}: ${t('promptCharacterCountValue', [characterCount.toString()])}`}
+                          >
+                            {t('promptCharacterCountValue', [characterCount.toString()])}
+                          </span>
                           {prompt.tags.length > 0 && (
                             <div className="qp-tags-container">
                               {prompt.tags.map((tag) => (
