@@ -53,6 +53,7 @@ export interface PromptItemWithVariables extends PromptItem {
 
 // 自定义接口，用于统一处理不同类型的文本输入元素
 export interface EditableElement {
+  _element?: HTMLElement;
   value: string;
   selectionStart?: number | null;
   selectionEnd?: number | null;
