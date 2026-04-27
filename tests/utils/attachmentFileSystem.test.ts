@@ -78,6 +78,76 @@ describe("attachment file system helpers", () => {
     expect(copied.type).toBe("text/plain");
   });
 
+  it("stores built-in attachment files as byte snapshots instead of raw file handles", async () => {
+    const root = {
+      kind: "directory",
+      name: "Quick Prompt Built-in Storage",
+      __quickPromptInternalAttachmentRoot: true,
+    };
+    const file = new File(["image-bytes"], "large.png", { type: "image/png" });
+    const putRequest = {} as IDBRequest<void>;
+    let storedValue: unknown;
+    const store = {
+      put: vi.fn((value: unknown) => {
+        if (value instanceof File) {
+          throw new DOMException(
+            "A requested file or directory could not be found at the time an operation was processed.",
+            "NotFoundError"
+          );
+        }
+
+        storedValue = value;
+        return putRequest;
+      }),
+    };
+    const transaction = {
+      error: null,
+      objectStore: vi.fn(() => store),
+      onabort: null as (() => void) | null,
+      oncomplete: null as (() => void) | null,
+      onerror: null as (() => void) | null,
+    };
+    const db = {
+      close: vi.fn(),
+      objectStoreNames: {
+        contains: vi.fn(() => true),
+      },
+      transaction: vi.fn(() => transaction),
+    };
+    const openRequest = {
+      error: null,
+      result: db,
+      onerror: null as (() => void) | null,
+      onsuccess: null as (() => void) | null,
+      onupgradeneeded: null as (() => void) | null,
+    };
+
+    vi.stubGlobal("indexedDB", {
+      open: vi.fn(() => openRequest),
+    });
+
+    const promise = copyFileToAttachmentRoot(
+      root as any,
+      "attachments/prompt-1/att-1-large.png",
+      file
+    );
+
+    await vi.waitFor(() => {
+      expect(indexedDB.open).toHaveBeenCalled();
+    });
+    openRequest.onsuccess?.();
+    await Promise.resolve();
+    Object.assign(putRequest, { result: undefined });
+    putRequest.onsuccess?.(new Event("success"));
+    transaction.oncomplete?.();
+    await promise;
+
+    expect(storedValue).toBeInstanceOf(Blob);
+    expect(storedValue).not.toBeInstanceOf(File);
+    expect((storedValue as Blob).size).toBe(file.size);
+    expect((storedValue as Blob).type).toBe("image/png");
+  });
+
   it("removes a file by relative path", async () => {
     const root = createFakeDirectory();
     const file = new File(["hello"], "hello.txt");
