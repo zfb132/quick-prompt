@@ -4,6 +4,7 @@ import {
   AlertCircle,
   Download,
   FileInput,
+  FilePenLine,
   FolderKanban,
   Link2,
   Plus,
@@ -685,7 +686,8 @@ const CategoryManager = () => {
         <Modal
           isOpen={isModalOpen}
           onClose={closeModal}
-          title={editingCategory ? t('editCategory') : t('addCategory')} // Title as string
+          title={editingCategory ? t('editCategory') : t('addCategory')}
+          icon={editingCategory ? FilePenLine : Plus}
         >
           <CategoryForm
             onSubmit={handleCategorySubmit}
@@ -700,6 +702,7 @@ const CategoryManager = () => {
           isOpen={isRemoteImportModalOpen}
           onClose={closeRemoteImportModal}
           title={t('importCategoriesFromUrl')}
+          icon={Link2}
         >
           <div className="space-y-6 pt-2">
             <Alert variant="info">

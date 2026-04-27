@@ -12,7 +12,12 @@ vi.mock('@/utils/attachments/fileSystem', () => ({
   verifyReadWritePermission: vi.fn(),
 }))
 
+vi.mock('@/utils/attachments/imageThumbnail', () => ({
+  createImageThumbnailDataUrl: vi.fn(),
+}))
+
 const fs = await import('@/utils/attachments/fileSystem')
+const imageThumbnail = await import('@/utils/attachments/imageThumbnail')
 
 const { default: PromptAttachmentPreview } = await import('@/entrypoints/options/components/PromptAttachmentPreview')
 
@@ -33,6 +38,7 @@ describe('PromptAttachmentPreview', () => {
       createObjectURL: vi.fn(() => 'blob:preview-url'),
       revokeObjectURL: vi.fn(),
     })
+    vi.mocked(imageThumbnail.createImageThumbnailDataUrl).mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -83,6 +89,59 @@ describe('PromptAttachmentPreview', () => {
     })
     expect(fs.getAttachmentRootHandle).toHaveBeenCalledTimes(1)
     expect(fs.getFileFromAttachmentRoot).toHaveBeenCalledTimes(1)
+  })
+
+  it('prefers a newly stored thumbnail over a previously loaded runtime preview', async () => {
+    vi.mocked(URL.createObjectURL).mockReturnValue('blob:stale-preview')
+    vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue({ name: 'root' } as any)
+    vi.mocked(fs.hasReadWritePermission).mockResolvedValue(true)
+    vi.mocked(fs.getFileFromAttachmentRoot).mockResolvedValue(new File(['image-bytes'], 'image.png', { type: 'image/png' }))
+
+    const { rerender } = render(<PromptAttachmentPreview attachments={[createAttachment()]} />)
+
+    expect(await screen.findByRole('img', { name: 'image.png' })).toHaveAttribute('src', 'blob:stale-preview')
+
+    rerender(
+      <PromptAttachmentPreview
+        attachments={[
+          createAttachment({ thumbnailDataUrl: 'data:image/webp;base64,fresh-thumbnail' }),
+        ]}
+      />
+    )
+
+    expect(screen.getByRole('img', { name: 'image.png' })).toHaveAttribute('src', 'data:image/webp;base64,fresh-thumbnail')
+  })
+
+  it('evicts old runtime thumbnails instead of growing cache without bound', async () => {
+    vi.mocked(imageThumbnail.createImageThumbnailDataUrl).mockImplementation(async (file) => (
+      `data:image/webp;base64,${file.name}`
+    ))
+    vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue({ name: 'root' } as any)
+    vi.mocked(fs.hasReadWritePermission).mockResolvedValue(true)
+    vi.mocked(fs.getFileFromAttachmentRoot).mockImplementation(async (_root, relativePath) => (
+      new File(['image-bytes'], relativePath.split('/').at(-1) || 'image.png', { type: 'image/png' })
+    ))
+
+    const cacheLimit = 80
+    const attachments = Array.from({ length: cacheLimit + 1 }, (_, index) => (
+      createAttachment({
+        id: `cache-${index}`,
+        name: `cache-${index}.png`,
+        relativePath: `attachments/prompt-1/cache-${index}.png`,
+        createdAt: `2026-04-26T00:00:${String(index).padStart(2, '0')}.000Z`,
+      })
+    ))
+
+    const { unmount } = render(<PromptAttachmentPreview attachments={attachments} />)
+
+    await waitFor(() => expect(fs.getFileFromAttachmentRoot).toHaveBeenCalledTimes(cacheLimit + 1))
+    unmount()
+    vi.mocked(fs.getFileFromAttachmentRoot).mockClear()
+
+    render(<PromptAttachmentPreview attachments={[attachments[0]]} />)
+
+    await screen.findByRole('img', { name: 'cache-0.png' })
+    expect(fs.getFileFromAttachmentRoot).toHaveBeenCalledWith(expect.anything(), attachments[0].relativePath)
   })
 
   it('opens a large image viewer and switches between image attachments', async () => {

@@ -115,6 +115,31 @@ describe('content PromptAttachmentPreview', () => {
     await waitFor(() => expect(sendMessage).not.toHaveBeenCalled())
   })
 
+  it('prefers a newly stored thumbnail over a previously loaded content preview', async () => {
+    vi.mocked(URL.createObjectURL).mockReturnValue('blob:stale-content-preview')
+    sendMessage.mockResolvedValue({
+      success: true,
+      base64: btoa('image-bytes'),
+      contentType: 'image/png',
+    })
+
+    const { rerender } = render(<PromptAttachmentPreview attachments={[createAttachment()]} />)
+
+    act(() => {
+      MockIntersectionObserver.instances[0].trigger()
+    })
+
+    expect(await screen.findByRole('img', { name: 'image.png' })).toHaveAttribute('src', 'blob:stale-content-preview')
+
+    rerender(
+      <PromptAttachmentPreview
+        attachments={[createAttachment({ thumbnailDataUrl: 'data:image/webp;base64,fresh-content-thumbnail' })]}
+      />
+    )
+
+    expect(screen.getByRole('img', { name: 'image.png' })).toHaveAttribute('src', 'data:image/webp;base64,fresh-content-thumbnail')
+  })
+
   it('opens a large image viewer and switches content preview images', async () => {
     vi.mocked(URL.createObjectURL)
       .mockReturnValueOnce('blob:first-content-preview')

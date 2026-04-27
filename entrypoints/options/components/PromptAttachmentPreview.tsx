@@ -26,11 +26,42 @@ interface ImagePreviewState {
 }
 
 const EMPTY_ATTACHMENTS: PromptAttachment[] = []
+const MAX_RUNTIME_THUMBNAIL_CACHE_ENTRIES = 80
 const runtimeThumbnailCache = new Map<string, ImagePreviewState | Promise<ImagePreviewState>>()
 
 const getAttachmentCacheKey = (attachment: PromptAttachment): string => (
   `${attachment.relativePath}:${attachment.size}:${attachment.createdAt}`
 )
+
+const getCachedRuntimeThumbnail = (
+  cacheKey: string
+): ImagePreviewState | Promise<ImagePreviewState> | undefined => {
+  const cached = runtimeThumbnailCache.get(cacheKey)
+
+  if (cached) {
+    runtimeThumbnailCache.delete(cacheKey)
+    runtimeThumbnailCache.set(cacheKey, cached)
+  }
+
+  return cached
+}
+
+const setRuntimeThumbnailCache = (
+  cacheKey: string,
+  value: ImagePreviewState | Promise<ImagePreviewState>
+) => {
+  if (runtimeThumbnailCache.has(cacheKey)) {
+    runtimeThumbnailCache.delete(cacheKey)
+  }
+
+  runtimeThumbnailCache.set(cacheKey, value)
+
+  while (runtimeThumbnailCache.size > MAX_RUNTIME_THUMBNAIL_CACHE_ENTRIES) {
+    const oldestKey = runtimeThumbnailCache.keys().next().value
+    if (!oldestKey) break
+    runtimeThumbnailCache.delete(oldestKey)
+  }
+}
 
 const getAuthorizedRoot = async () => {
   const root = await getAttachmentRootHandle()
@@ -44,7 +75,7 @@ const getAuthorizedRoot = async () => {
 
 const loadRuntimeThumbnail = async (attachment: PromptAttachment): Promise<ImagePreviewState> => {
   const cacheKey = getAttachmentCacheKey(attachment)
-  const cached = runtimeThumbnailCache.get(cacheKey)
+  const cached = getCachedRuntimeThumbnail(cacheKey)
 
   if (cached) {
     return await cached
@@ -63,20 +94,24 @@ const loadRuntimeThumbnail = async (attachment: PromptAttachment): Promise<Image
     return { thumbnailUrl: objectUrl, fullUrl: objectUrl, objectUrl }
   })()
 
-  runtimeThumbnailCache.set(cacheKey, promise)
+  setRuntimeThumbnailCache(cacheKey, promise)
 
   try {
     const result = await promise
 
     if (result.objectUrl) {
-      runtimeThumbnailCache.delete(cacheKey)
-    } else {
-      runtimeThumbnailCache.set(cacheKey, result)
+      if (runtimeThumbnailCache.get(cacheKey) === promise) {
+        runtimeThumbnailCache.delete(cacheKey)
+      }
+    } else if (runtimeThumbnailCache.get(cacheKey) === promise) {
+      setRuntimeThumbnailCache(cacheKey, result)
     }
 
     return result
   } catch (error) {
-    runtimeThumbnailCache.delete(cacheKey)
+    if (runtimeThumbnailCache.get(cacheKey) === promise) {
+      runtimeThumbnailCache.delete(cacheKey)
+    }
     throw error
   }
 }
@@ -96,7 +131,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
     if (attachment.thumbnailDataUrl) {
       return {
         ...loadedPreview,
-        thumbnailUrl: loadedPreview?.thumbnailUrl || attachment.thumbnailDataUrl,
+        thumbnailUrl: attachment.thumbnailDataUrl,
       }
     }
 
@@ -130,7 +165,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
       ...current,
       [attachment.id]: {
         ...current[attachment.id],
-        thumbnailUrl: current[attachment.id]?.thumbnailUrl || attachment.thumbnailDataUrl,
+        thumbnailUrl: attachment.thumbnailDataUrl || current[attachment.id]?.thumbnailUrl,
         isLoadingFull: true,
       },
     }))
@@ -145,7 +180,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
         ...current,
         [attachment.id]: {
           ...current[attachment.id],
-          thumbnailUrl: current[attachment.id]?.thumbnailUrl || attachment.thumbnailDataUrl,
+          thumbnailUrl: attachment.thumbnailDataUrl || current[attachment.id]?.thumbnailUrl,
           fullUrl,
           isLoadingFull: false,
         },
@@ -155,7 +190,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
         ...current,
         [attachment.id]: {
           ...current[attachment.id],
-          thumbnailUrl: current[attachment.id]?.thumbnailUrl || attachment.thumbnailDataUrl,
+          thumbnailUrl: attachment.thumbnailDataUrl || current[attachment.id]?.thumbnailUrl,
           error: t('attachmentPermissionLost'),
           isLoadingFull: false,
         },
