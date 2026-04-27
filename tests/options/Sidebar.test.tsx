@@ -1,6 +1,6 @@
 import React from "react";
 import { HashRouter, MemoryRouter } from "react-router-dom";
-import { describe, expect, it, beforeEach, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen } from "@testing-library/react";
 
 vi.mock("@/utils/i18n", () => ({
@@ -31,6 +31,10 @@ describe("Sidebar", () => {
       configurable: true,
       value: 1024,
     });
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it("renders the collapse control as an icon button directly below global settings", () => {
@@ -99,5 +103,51 @@ describe("Sidebar", () => {
     expect(window.location.pathname).toBe("/options.html");
     expect(window.location.search).toBe("");
     expect(window.location.hash).toBe(expectedHash);
+  });
+
+  it("pushes a new history entry when navigating to a different sidebar route", () => {
+    window.history.pushState({ from: "test" }, "", "/options.html?action=new&content=saved-text#/categories");
+    const pushState = vi.spyOn(window.history, "pushState");
+    const replaceState = vi.spyOn(window.history, "replaceState");
+
+    render(
+      <HashRouter>
+        <Sidebar />
+      </HashRouter>,
+    );
+    pushState.mockClear();
+    replaceState.mockClear();
+
+    fireEvent.click(screen.getByRole("link", { name: "Global settings" }));
+
+    expect(pushState).toHaveBeenCalledWith(
+      expect.objectContaining({ from: "test" }),
+      document.title,
+      "/options.html#/settings",
+    );
+    expect(replaceState).not.toHaveBeenCalled();
+  });
+
+  it("replaces the current history entry when cleaning query parameters on the same route", () => {
+    window.history.pushState({ from: "test" }, "", "/options.html?action=new&content=saved-text#/categories");
+    const pushState = vi.spyOn(window.history, "pushState");
+    const replaceState = vi.spyOn(window.history, "replaceState");
+
+    render(
+      <HashRouter>
+        <Sidebar />
+      </HashRouter>,
+    );
+    pushState.mockClear();
+    replaceState.mockClear();
+
+    fireEvent.click(screen.getByRole("link", { name: "Category management" }));
+
+    expect(pushState).not.toHaveBeenCalled();
+    expect(replaceState).toHaveBeenLastCalledWith(
+      expect.objectContaining({ from: "test" }),
+      document.title,
+      "/options.html#/categories",
+    );
   });
 });

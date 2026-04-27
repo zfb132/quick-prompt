@@ -14,21 +14,21 @@ const keydown = (key: string, options: Partial<KeyboardEventInit> = {}) =>
   })
 
 describe('content keyboard shortcuts', () => {
-  it('recognizes Ctrl+Shift+E as prompt selector shortcut', () => {
-    expect(isOpenPromptSelectorShortcut(keydown('K'))).toBe(true)
-    expect(isOpenPromptSelectorShortcut(keydown('k'))).toBe(true)
-    expect(isOpenPromptSelectorShortcut(keydown('E'))).toBe(true)
-    expect(isOpenPromptSelectorShortcut(keydown('e'))).toBe(true)
+  it('recognizes Ctrl+Shift+P as the prompt selector shortcut fallback', () => {
+    expect(isOpenPromptSelectorShortcut(keydown('P'))).toBe(true)
+    expect(isOpenPromptSelectorShortcut(keydown('p'))).toBe(true)
   })
 
-  it('recognizes Ctrl+Shift+F as save selected prompt shortcut', () => {
-    expect(isSaveSelectedPromptShortcut(keydown('F'))).toBe(true)
-    expect(isSaveSelectedPromptShortcut(keydown('f'))).toBe(true)
+  it('recognizes Ctrl+Shift+S as the save selected prompt shortcut fallback', () => {
+    expect(isSaveSelectedPromptShortcut(keydown('S'))).toBe(true)
+    expect(isSaveSelectedPromptShortcut(keydown('s'))).toBe(true)
   })
 
   it('does not treat unrelated modified keys as extension shortcuts', () => {
-    expect(isOpenPromptSelectorShortcut(keydown('E', { altKey: true }))).toBe(false)
-    expect(isOpenPromptSelectorShortcut(keydown('P'))).toBe(false)
-    expect(isSaveSelectedPromptShortcut(keydown('F', { ctrlKey: false, metaKey: false }))).toBe(false)
+    expect(isOpenPromptSelectorShortcut(keydown('P', { altKey: true }))).toBe(false)
+    expect(isOpenPromptSelectorShortcut(keydown('K'))).toBe(false)
+    expect(isOpenPromptSelectorShortcut(keydown('E'))).toBe(false)
+    expect(isSaveSelectedPromptShortcut(keydown('F'))).toBe(false)
+    expect(isSaveSelectedPromptShortcut(keydown('S', { ctrlKey: false, metaKey: false }))).toBe(false)
   })
 })

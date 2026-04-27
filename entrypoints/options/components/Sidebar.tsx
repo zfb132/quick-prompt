@@ -43,11 +43,31 @@ const dispatchNavigationEvents = () => {
   window.dispatchEvent(popStateEvent);
 };
 
+const getCurrentOptionsRoutePath = () => {
+  const hashPath = window.location.hash
+    ? window.location.hash.slice(1).split("?")[0]
+    : "";
+
+  return hashPath || "/";
+};
+
 const navigateToCleanOptionsRoute = (path: string) => {
   const nextHash = path === "/" ? "" : `#${path}`;
   const cleanUrl = `${window.location.pathname}${nextHash}`;
+  const currentCleanUrl = `${window.location.pathname}${window.location.hash}`;
+  const isSameRoute = getCurrentOptionsRoutePath() === path;
+  const hasQueryParams = window.location.search.length > 0;
 
-  window.history.replaceState({}, document.title, cleanUrl);
+  if (!hasQueryParams && currentCleanUrl === cleanUrl) {
+    return;
+  }
+
+  if (isSameRoute) {
+    window.history.replaceState(window.history.state, document.title, cleanUrl);
+  } else {
+    window.history.pushState(window.history.state, document.title, cleanUrl);
+  }
+
   dispatchNavigationEvents();
 };
 

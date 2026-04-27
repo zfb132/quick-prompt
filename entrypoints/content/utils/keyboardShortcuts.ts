@@ -1,5 +1,5 @@
-const OPEN_PROMPT_SELECTOR_KEYS = new Set(['k', 'e'])
-const SAVE_SELECTED_PROMPT_KEY = 'f'
+const OPEN_PROMPT_SELECTOR_KEYS = new Set(['p'])
+const SAVE_SELECTED_PROMPT_KEY = 's'
 
 const isSupportedModifierShortcut = (event: KeyboardEvent): boolean =>
   event.shiftKey &&
