@@ -20,6 +20,11 @@ interface PromptSelectorProps {
   removePromptTrigger?: boolean;
 }
 
+const isEventInsideElement = (event: Event, element: Element): boolean => {
+  const path = typeof event.composedPath === "function" ? event.composedPath() : [];
+  return path.includes(element) || element.contains(event.target as Node);
+};
+
 const PromptSelector: React.FC<PromptSelectorProps> = ({
   prompts,
   targetElement,
@@ -89,7 +94,7 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
       if (
         isCategoryMenuOpen &&
         categoryPickerRef.current &&
-        !categoryPickerRef.current.contains(event.target as Node)
+        !isEventInsideElement(event, categoryPickerRef.current)
       ) {
         setIsCategoryMenuOpen(false);
       }
