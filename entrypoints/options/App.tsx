@@ -13,7 +13,6 @@ import AttachmentStorageGate from "./components/AttachmentStorageGate";
 import "./App.css";
 import "~/assets/tailwind.css";
 import { Button } from "@/components/ui/button";
-import { Toaster } from "@/components/ui/sonner";
 import { AppShell } from "@/components/layout/AppShell";
 import { t, initLocale } from "~/utils/i18n";
 const App = () => {
@@ -115,7 +114,6 @@ const App = () => {
                 )}
 
                 <ToastContainer />
-                <Toaster position="bottom-right" richColors closeButton />
               </div>
             </main>
           </div>

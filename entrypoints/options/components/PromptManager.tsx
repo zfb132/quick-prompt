@@ -4,6 +4,7 @@ import {
   AlertCircle,
   Download,
   FileInput,
+  FilePenLine,
   FileText,
   Grid2X2,
   Library,
@@ -795,6 +796,7 @@ const PromptManager = () => {
           isOpen={isModalOpen}
           onClose={closeModal}
           title={editingPrompt ? t('editPrompt') : t('newPrompt')}
+          icon={editingPrompt ? FilePenLine : Plus}
         >
           <PromptForm
             onSubmit={handlePromptSubmit}
@@ -811,6 +813,7 @@ const PromptManager = () => {
           isOpen={isRemoteImportModalOpen}
           onClose={closeRemoteImportModal}
           title={t('importFromUrl')}
+          icon={Link2}
         >
           <div className="space-y-6 pt-2">
             <Alert variant="info">

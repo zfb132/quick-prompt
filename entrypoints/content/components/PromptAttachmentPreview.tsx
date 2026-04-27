@@ -43,7 +43,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
     if (attachment.thumbnailDataUrl) {
       return {
         ...loadedPreview,
-        thumbnailUrl: loadedPreview?.thumbnailUrl || attachment.thumbnailDataUrl,
+        thumbnailUrl: attachment.thumbnailDataUrl,
       }
     }
 
@@ -76,7 +76,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
       ...current,
       [attachment.id]: {
         ...current[attachment.id],
-        thumbnailUrl: current[attachment.id]?.thumbnailUrl || attachment.thumbnailDataUrl,
+        thumbnailUrl: attachment.thumbnailDataUrl || current[attachment.id]?.thumbnailUrl,
         isLoadingFull: true,
       },
     }))
@@ -92,7 +92,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
           ...current,
           [attachment.id]: {
             ...current[attachment.id],
-            thumbnailUrl: current[attachment.id]?.thumbnailUrl || attachment.thumbnailDataUrl,
+            thumbnailUrl: attachment.thumbnailDataUrl || current[attachment.id]?.thumbnailUrl,
             isLoadingFull: false,
           },
         }))
@@ -107,7 +107,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
         ...current,
         [attachment.id]: {
           ...current[attachment.id],
-          thumbnailUrl: current[attachment.id]?.thumbnailUrl || attachment.thumbnailDataUrl,
+          thumbnailUrl: attachment.thumbnailDataUrl || current[attachment.id]?.thumbnailUrl,
           fullUrl,
           isLoadingFull: false,
         },
@@ -117,7 +117,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
         ...current,
         [attachment.id]: {
           ...current[attachment.id],
-          thumbnailUrl: current[attachment.id]?.thumbnailUrl || attachment.thumbnailDataUrl,
+          thumbnailUrl: attachment.thumbnailDataUrl || current[attachment.id]?.thumbnailUrl,
           isLoadingFull: false,
         },
       }))

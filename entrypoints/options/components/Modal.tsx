@@ -1,5 +1,5 @@
 import React, { ReactNode } from "react";
-import { FilePenLine, Plus } from "lucide-react";
+import { FilePenLine, type LucideIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -13,11 +13,11 @@ interface ModalProps {
   isOpen: boolean
   onClose: () => void
   title: string
+  icon?: LucideIcon
   children: ReactNode
 }
 
-const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
-  const Icon = title === t("newPrompt") || title === t("addCategory") ? Plus : FilePenLine;
+const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, icon: Icon = FilePenLine, children }) => {
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="max-w-2xl">
