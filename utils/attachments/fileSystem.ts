@@ -131,6 +131,24 @@ const withTextReader = (file: File): File => {
   return file;
 };
 
+const readFileAsArrayBuffer = (file: File): Promise<ArrayBuffer> => {
+  if (typeof file.arrayBuffer === "function") {
+    return file.arrayBuffer();
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as ArrayBuffer);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(file);
+  });
+};
+
+const createInternalAttachmentSnapshot = async (file: File): Promise<Blob> => {
+  const buffer = await readFileAsArrayBuffer(file);
+  return new Blob([buffer], { type: file.type || "application/octet-stream" });
+};
+
 const getFileNameFromRelativePath = (relativePath: string): string => (
   getAttachmentFilePathParts(relativePath).fileName
 );
@@ -299,7 +317,8 @@ export const copyFileToAttachmentRoot = async (
 ): Promise<void> => {
   if (isInternalAttachmentRoot(rootHandle)) {
     getAttachmentFilePathParts(relativePath);
-    await runAttachmentFileStoreRequest("readwrite", (store) => store.put(file, relativePath));
+    const snapshot = await createInternalAttachmentSnapshot(file);
+    await runAttachmentFileStoreRequest("readwrite", (store) => store.put(snapshot, relativePath));
     return;
   }
 
