@@ -20,6 +20,7 @@ vi.mock('@/entrypoints/content/components/PromptAttachmentPreview', () => ({
 }))
 
 const { showPromptSelector } = await import('@/entrypoints/content/components/PromptSelector')
+const { getPromptSelectorStyles } = await import('@/entrypoints/content/utils/styles')
 
 const createCategory = (overrides: Partial<Category> = {}): Category => ({
   id: 'default',
@@ -169,5 +170,13 @@ describe('content PromptSelector', () => {
         'translated:promptCharacterCountValue:3',
       ])
     })
+  })
+
+  it('sets pointer cursors for shadow-dom clickable controls on hover', () => {
+    const styles = getPromptSelectorStyles()
+
+    expect(styles).toContain('button:not(:disabled):hover')
+    expect(styles).toContain('[role="button"]:not([aria-disabled="true"]):hover')
+    expect(styles).toContain('a[href]:hover')
   })
 })
