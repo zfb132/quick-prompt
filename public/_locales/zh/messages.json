@@ -538,6 +538,9 @@
   "allCategories": {
     "message": "所有分类"
   },
+  "filterByCategory": {
+    "message": "按分类筛选"
+  },
   "localImport": {
     "message": "本地导入"
   },

@@ -591,89 +591,125 @@ export function getPromptSelectorStyles(): string {
     }
 
     /* 分类选择器样式 */
-    .qp-category-select {
+    .qp-category-picker {
+      position: relative !important;
+      width: 152px !important;
+      flex: 0 0 152px !important;
+    }
+
+    .qp-category-trigger {
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 8px !important;
+      width: 100% !important;
+      min-height: 42px !important;
       border: 1px solid var(--qp-border-color) !important;
-      border-radius: 12px !important;
-      padding: 11px 28px 11px 12px !important;
-      background-color: var(--qp-bg-secondary) !important;
+      border-radius: 8px !important;
+      padding: 0 10px 0 12px !important;
+      background: var(--qp-bg-secondary) !important;
       color: var(--qp-text-primary) !important;
       box-shadow: none !important;
-      transition: all 0.18s ease !important;
+      transition: border-color 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease !important;
       font-weight: 500 !important;
       font-size: 14px !important;
       letter-spacing: 0 !important;
       cursor: pointer !important;
       outline: none !important;
-      width: 132px !important;
-      text-overflow: ellipsis !important;
-      white-space: nowrap !important;
-      overflow: hidden !important;
-      appearance: none !important;
-      -webkit-appearance: none !important;
-      -moz-appearance: none !important;
+      text-align: left !important;
     }
 
-    .qp-category-select:hover {
+    .qp-category-trigger:hover,
+    .qp-category-trigger.qp-open {
       border-color: var(--qp-focus-ring) !important;
+      background: var(--qp-bg-primary) !important;
     }
 
-    .qp-category-select:focus {
+    .qp-category-trigger:focus-visible {
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14) !important;
     }
 
-    .qp-category-select:active {
-      transform: translateY(0px) !important;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+    .qp-category-trigger-label {
+      min-width: 0 !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
     }
 
-    /* 分类选择器亮色模式 */
-    :host([data-theme='light']) .qp-category-select {
-      background-color: rgba(255, 255, 255, 0.95) !important;
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'/%3e%3c/svg%3e"), url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236366f1' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'/%3e%3c/svg%3e") !important;
-      color: #1a1a1a !important;
-      box-shadow: 0 4px 12px rgba(124, 58, 237, 0.1), inset 0 1px 0 rgba(255, 255, 255, 1), 0 1px 3px rgba(0, 0, 0, 0.05) !important;
-      border: 1px solid rgba(124, 58, 237, 0.15) !important;
+    .qp-category-trigger-icon {
+      width: 16px !important;
+      height: 16px !important;
+      flex: 0 0 16px !important;
+      color: var(--qp-text-secondary) !important;
+      transition: transform 0.18s ease !important;
     }
 
-    :host([data-theme='light']) .qp-category-select:hover {
-      background-color: #ffffff !important;
-      border-color: rgba(124, 58, 237, 0.25) !important;
-      box-shadow: 0 6px 16px rgba(124, 58, 237, 0.15), inset 0 1px 0 rgba(255, 255, 255, 1), 0 2px 6px rgba(0, 0, 0, 0.08) !important;
+    .qp-category-trigger.qp-open .qp-category-trigger-icon {
+      transform: rotate(180deg) !important;
     }
 
-    :host([data-theme='light']) .qp-category-select:focus {
-      background-color: #ffffff !important;
-      border-color: rgba(124, 58, 237, 0.4) !important;
-      box-shadow: 0 0 0 3px rgba(124, 58, 237, 0.1), 0 6px 16px rgba(124, 58, 237, 0.15), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+    .qp-category-menu {
+      position: absolute !important;
+      top: calc(100% + 6px) !important;
+      right: 0 !important;
+      z-index: 2147483647 !important;
+      display: flex !important;
+      flex-direction: column !important;
+      width: 220px !important;
+      max-height: 260px !important;
+      overflow-y: auto !important;
+      padding: 6px !important;
+      border: 1px solid var(--qp-border-color) !important;
+      border-radius: 8px !important;
+      background: var(--qp-bg-primary) !important;
+      box-shadow: var(--qp-shadow) !important;
     }
 
-    :host([data-theme='light']) .qp-category-select:active {
-      box-shadow: 0 2px 8px rgba(124, 58, 237, 0.2), inset 0 1px 0 rgba(255, 255, 255, 1) !important;
+    .qp-category-option {
+      display: flex !important;
+      align-items: center !important;
+      gap: 8px !important;
+      width: 100% !important;
+      min-height: 34px !important;
+      border: none !important;
+      border-radius: 6px !important;
+      padding: 0 8px !important;
+      background: transparent !important;
+      color: var(--qp-text-primary) !important;
+      font-size: 14px !important;
+      line-height: 1 !important;
+      text-align: left !important;
+      cursor: pointer !important;
+      outline: none !important;
     }
 
-    /* 分类选择器暗黑模式 */
-    :host([data-theme='dark']) .qp-category-select {
-      background-color: rgba(15, 23, 42, 0.8) !important;
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239d85f2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'/%3e%3c/svg%3e"), url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%239d85f2' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'/%3e%3c/svg%3e") !important;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1), 0 1px 3px rgba(0, 0, 0, 0.2) !important;
-      color: rgba(255, 255, 255, 0.95) !important;
-      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+    .qp-category-option:hover,
+    .qp-category-option:focus-visible,
+    .qp-category-option.qp-selected {
+      background: var(--qp-bg-selected) !important;
     }
 
-    :host([data-theme='dark']) .qp-category-select:hover {
-      background-color: rgba(15, 23, 42, 0.9) !important;
-      border-color: rgba(255, 255, 255, 0.2) !important;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15), 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+    .qp-category-option-dot {
+      width: 9px !important;
+      height: 9px !important;
+      flex: 0 0 9px !important;
+      border-radius: 999px !important;
+      box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08) !important;
     }
 
-    :host([data-theme='dark']) .qp-category-select:focus {
-      background-color: rgba(15, 23, 42, 0.9) !important;
-      border-color: rgba(157, 133, 242, 0.5) !important;
-      box-shadow: 0 0 0 3px rgba(157, 133, 242, 0.2), 0 6px 16px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+    .qp-category-option-label {
+      flex: 1 !important;
+      min-width: 0 !important;
+      overflow: hidden !important;
+      text-overflow: ellipsis !important;
+      white-space: nowrap !important;
     }
 
-    :host([data-theme='dark']) .qp-category-select:active {
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+    .qp-category-option-check {
+      width: 16px !important;
+      height: 16px !important;
+      flex: 0 0 16px !important;
+      color: var(--qp-focus-ring) !important;
     }
 
     /* 布局相关样式 */
@@ -768,8 +804,8 @@ export function getPromptSelectorStyles(): string {
 
     :host([data-theme='light']) .qp-search-input,
     :host([data-theme='dark']) .qp-search-input,
-    :host([data-theme='light']) .qp-category-select,
-    :host([data-theme='dark']) .qp-category-select {
+    :host([data-theme='light']) .qp-category-trigger,
+    :host([data-theme='dark']) .qp-category-trigger {
       background-color: var(--qp-bg-secondary) !important;
       border: 1px solid var(--qp-border-color) !important;
       color: var(--qp-text-primary) !important;
@@ -780,8 +816,8 @@ export function getPromptSelectorStyles(): string {
 
     :host([data-theme='light']) .qp-search-input:hover,
     :host([data-theme='dark']) .qp-search-input:hover,
-    :host([data-theme='light']) .qp-category-select:hover,
-    :host([data-theme='dark']) .qp-category-select:hover {
+    :host([data-theme='light']) .qp-category-trigger:hover,
+    :host([data-theme='dark']) .qp-category-trigger:hover {
       background-color: var(--qp-bg-secondary) !important;
       border-color: var(--qp-focus-ring) !important;
       box-shadow: none !important;
@@ -790,8 +826,8 @@ export function getPromptSelectorStyles(): string {
 
     :host([data-theme='light']) .qp-search-input:focus,
     :host([data-theme='dark']) .qp-search-input:focus,
-    :host([data-theme='light']) .qp-category-select:focus,
-    :host([data-theme='dark']) .qp-category-select:focus {
+    :host([data-theme='light']) .qp-category-trigger:focus-visible,
+    :host([data-theme='dark']) .qp-category-trigger:focus-visible {
       background-color: var(--qp-bg-secondary) !important;
       border-color: var(--qp-focus-ring) !important;
       box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14) !important;
