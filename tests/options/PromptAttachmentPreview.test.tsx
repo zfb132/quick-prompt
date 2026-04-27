@@ -53,13 +53,38 @@ describe('PromptAttachmentPreview', () => {
     render(<PromptAttachmentPreview attachments={[createAttachment()]} />)
 
     const image = await screen.findByRole('img', { name: 'image.png' })
+    const outerTile = image.closest('div')
+
     expect(image).toHaveAttribute('src', 'blob:preview-url')
     expect(image).toHaveClass('w-20', 'h-20')
-    expect(image.closest('div')).toHaveClass('flex-col')
-    expect(screen.getByText('image.png')).toBeInTheDocument()
-    expect(screen.getByText('1.5 KB')).toBeInTheDocument()
+    expect(image).toHaveClass('border', 'border-border', 'rounded-xl')
+    expect(outerTile).not.toHaveClass('border')
+    expect(outerTile).toHaveAttribute('title', 'image.png (1.5 KB)')
+    expect(screen.queryByText('image.png')).not.toBeInTheDocument()
+    expect(screen.queryByText('1.5 KB')).not.toBeInTheDocument()
     expect(URL.createObjectURL).toHaveBeenCalledWith(expect.any(File))
     expect(fs.verifyReadWritePermission).not.toHaveBeenCalled()
+  })
+
+  it('keeps compact image previews to a single inner border without visible metadata', async () => {
+    render(
+      <PromptAttachmentPreview
+        compact
+        attachments={[
+          createAttachment({ thumbnailDataUrl: 'data:image/webp;base64,thumbnail' }),
+        ]}
+      />
+    )
+
+    const image = screen.getByRole('img', { name: 'image.png' })
+    const outerTile = image.closest('div')
+
+    expect(image).toHaveClass('w-12', 'h-12')
+    expect(image).toHaveClass('border', 'border-border', 'rounded-xl')
+    expect(outerTile).not.toHaveClass('border')
+    expect(outerTile).toHaveAttribute('title', 'image.png (1.5 KB)')
+    expect(screen.queryByText('image.png')).not.toBeInTheDocument()
+    expect(screen.queryByText('1.5 KB')).not.toBeInTheDocument()
   })
 
   it('uses stored thumbnail data without reading the original file until opening the viewer', async () => {

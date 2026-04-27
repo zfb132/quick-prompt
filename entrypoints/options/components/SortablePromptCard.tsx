@@ -44,6 +44,10 @@ const countPromptCharacters = (content: string): number => (
   Array.from(content.replace(/\s/g, "")).length
 );
 
+const COMPACT_TAGS_PER_ROW = 3;
+const COMPACT_IMAGE_TEXT_LINE_COUNT = 3;
+const COMPACT_DEFAULT_TEXT_LINE_COUNT = 3;
+
 const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
   prompt,
   category,
@@ -83,6 +87,22 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
 
   const enabled = prompt.enabled !== undefined ? prompt.enabled : true;
   const characterCount = countPromptCharacters(prompt.content || "");
+  const normalizedContentPreview = (prompt.content || "").replace(/\r?\n/g, " ");
+  const compactTagRowCount = Math.ceil(prompt.tags.length / COMPACT_TAGS_PER_ROW);
+  const hasCompactImageAttachment = Boolean(
+    prompt.attachments?.some((attachment) => attachment.type.startsWith("image/")),
+  );
+  const compactTextLineCount = compactTagRowCount > 1
+    ? compactTagRowCount + 2
+    : hasCompactImageAttachment
+      ? COMPACT_IMAGE_TEXT_LINE_COUNT
+      : COMPACT_DEFAULT_TEXT_LINE_COUNT;
+  const compactTextClampStyle = {
+    display: "-webkit-box",
+    overflow: "hidden",
+    WebkitBoxOrient: "vertical",
+    WebkitLineClamp: compactTextLineCount,
+  } as React.CSSProperties;
 
   const formatTime = (timestamp?: string) => {
     if (!timestamp) return t("noModificationTime");
@@ -201,38 +221,74 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
         ref={setNodeRef}
         style={style}
         className={cn(
-          "overflow-hidden transition-all hover:border-primary/30 hover:shadow-md",
+          "w-full self-start overflow-hidden transition-all hover:border-primary/30 hover:shadow-md",
           isDragging && "scale-[1.01] border-primary shadow-lg ring-2 ring-primary/25",
           prompt.pinned && "border-amber-500/30 bg-amber-500/5",
         )}
       >
-        <div className="flex min-h-14 items-center gap-2 px-3 py-2">
-          <DragHandle />
-          {onToggleEnabled && (
-            <Switch
-              checked={enabled}
-              onCheckedChange={(checked) => onToggleEnabled(prompt.id, checked)}
-              aria-label={enabled ? t("enabled") : t("disabled")}
-              className="scale-75"
-            />
-          )}
+        <div className="qp-compact-content-row flex w-full items-center gap-1 px-3 py-2">
           <div
-            className="flex min-w-0 flex-1 cursor-pointer items-center gap-2"
+            className="qp-compact-title min-w-[120px] flex-[1_1_0] cursor-pointer"
             title={`${prompt.content}\n\n${t("clickToCopy")}`}
             onClick={() => onCopy(prompt.content, prompt.id)}
           >
-            {prompt.pinned && <Pin className="size-3.5 shrink-0 text-amber-500" />}
-            <span className="max-w-[36%] truncate text-sm font-medium text-foreground">
-              {prompt.title}
-            </span>
-            <span className="truncate text-xs text-muted-foreground">{prompt.content}</span>
+            <div className="flex items-center gap-1.5">
+              {prompt.pinned && <Pin className="size-3.5 shrink-0 text-amber-500" />}
+              <span
+                className="break-words text-sm font-medium leading-5 text-foreground"
+                style={compactTextClampStyle}
+              >
+                {prompt.title}
+              </span>
+            </div>
           </div>
-          <PromptAttachmentPreview attachments={prompt.attachments} compact />
-          <Badge variant="muted" className="hidden shrink-0 sm:inline-flex">
+          <div
+            className="qp-compact-body min-w-[200px] flex-[3_1_0] cursor-pointer"
+            title={`${prompt.content}\n\n${t("clickToCopy")}`}
+            onClick={() => onCopy(prompt.content, prompt.id)}
+          >
+            <p
+              className="whitespace-normal break-words text-xs leading-5 text-muted-foreground"
+              style={compactTextClampStyle}
+            >
+              {normalizedContentPreview}
+            </p>
+          </div>
+          {prompt.attachments && prompt.attachments.length > 0 && (
+            <div className="qp-compact-attachments min-w-0 flex-[0_1_auto]">
+              <PromptAttachmentPreview attachments={prompt.attachments} compact />
+            </div>
+          )}
+          <Badge variant="muted" className="qp-compact-character-count shrink-0">
             {t("promptCharacterCountValue", [characterCount.toString()])}
           </Badge>
+          {prompt.tags.length > 0 && (
+            <div
+              className="qp-compact-tags inline-grid shrink-0 gap-1"
+              style={{
+                gridTemplateColumns: `repeat(${Math.min(prompt.tags.length, 3)}, max-content)`,
+              }}
+            >
+              {prompt.tags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={(event) => selectTag(event, tag)}
+                  className={cn(
+                    "rounded-full border px-2 py-0.5 text-[11px] font-medium leading-4 transition-colors focus:outline-none focus:ring-2 focus:ring-ring",
+                    selectedTag === tag
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground",
+                  )}
+                  title={t("filterByTag")}
+                >
+                  #{tag}
+                </button>
+              ))}
+            </div>
+          )}
           {category && (
-            <Badge variant="outline" className="hidden shrink-0 gap-1.5 md:inline-flex">
+            <Badge variant="outline" className="qp-compact-category shrink-0 gap-1.5">
               <span
                 className="size-2 rounded-full"
                 style={{ backgroundColor: category.color || "#6366f1" }}
@@ -240,7 +296,9 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
               {category.name}
             </Badge>
           )}
-          <ActionButtons small />
+          <div className="qp-compact-actions flex shrink-0 items-center gap-1">
+            <ActionButtons small />
+          </div>
         </div>
       </Card>
     );
@@ -251,7 +309,7 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "flex flex-col overflow-hidden transition-all hover:border-primary/30 hover:shadow-md",
+        "mb-4 flex break-inside-avoid flex-col self-start overflow-hidden transition-all hover:border-primary/30 hover:shadow-md",
         isDragging && "scale-[1.01] border-primary shadow-lg ring-2 ring-primary/25",
         prompt.pinned && "border-amber-500/30",
       )}
@@ -262,10 +320,10 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
           prompt.pinned && "bg-amber-500/5",
         )}
       >
-        <div className="min-w-0">
-          <div className="flex items-center gap-2">
-            {prompt.pinned && <Pin className="size-4 shrink-0 text-amber-500" />}
-            <h3 className="truncate text-base font-semibold text-foreground">{prompt.title}</h3>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start gap-2">
+            {prompt.pinned && <Pin className="mt-1 size-4 shrink-0 text-amber-500" />}
+            <h3 className="line-clamp-3 break-words text-base font-semibold leading-6 text-foreground">{prompt.title}</h3>
           </div>
           <div className="mt-2 flex flex-wrap items-center gap-2">
             {category && (
@@ -294,7 +352,7 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
         </div>
       </div>
 
-      <div className="flex flex-1 gap-4 p-5">
+      <div className="flex gap-4 p-5">
         <div className="min-w-0 flex-1">
           <div className="mb-3 flex flex-wrap gap-1.5">
             {prompt.tags && prompt.tags.length > 0 ? (
@@ -320,14 +378,18 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
           </div>
 
           <p
-            className="mb-4 line-clamp-2 cursor-pointer text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground"
+            className="mb-4 line-clamp-5 cursor-pointer whitespace-normal break-words text-sm leading-6 text-muted-foreground transition-colors hover:text-foreground"
             title={`${prompt.content}\n\n${t("clickToCopy")}`}
             onClick={() => onCopy(prompt.content, prompt.id)}
           >
-            {prompt.content}
+            {normalizedContentPreview}
           </p>
 
-          <PromptAttachmentPreview attachments={prompt.attachments} />
+          {prompt.attachments && prompt.attachments.length > 0 && (
+            <div className={cn("qp-card-attachments", hasCompactImageAttachment && "mb-4")}>
+              <PromptAttachmentPreview attachments={prompt.attachments} />
+            </div>
+          )}
 
           {prompt.notes && prompt.notes.trim() && (
             <div className="mb-4 rounded-xl border border-amber-500/20 bg-amber-500/10 p-3">

@@ -278,20 +278,26 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
   }
 
   return (
-    <div className={compact ? 'flex items-center gap-1.5 min-w-0' : 'mt-3 flex flex-wrap gap-2'}>
+    <div className={compact ? 'flex w-fit flex-wrap items-center gap-1.5' : 'mt-3 flex flex-wrap gap-2'}>
       {safeAttachments.map((attachment) => {
         const preview = getPreview(attachment)
         const thumbnailUrl = preview?.thumbnailUrl
         const hasImagePreview = isImageAttachment(attachment) && thumbnailUrl
+        const hideImageMetadata = Boolean(hasImagePreview)
 
         return (
           <div
             key={attachment.id}
             className={
               compact
-                ? `${hasImagePreview ? 'flex flex-col items-start gap-1 max-w-[76px]' : 'flex items-center gap-1.5 max-w-[148px]'} min-w-0 rounded-xl border border-border bg-muted/40 px-1.5 py-1`
-                : `${hasImagePreview ? 'flex flex-col items-start gap-1.5 max-w-[112px]' : 'flex items-center gap-2 max-w-full'} min-w-0 rounded-2xl border border-border bg-muted/40 px-2 py-1.5`
+                ? hasImagePreview
+                  ? 'qp-compact-image-attachment flex shrink-0 items-center justify-center rounded-xl'
+                  : 'flex min-w-0 max-w-[148px] items-center gap-1.5 rounded-xl border border-border bg-muted/40 px-1.5 py-1'
+                : hasImagePreview
+                  ? 'qp-card-image-attachment flex shrink-0 items-center justify-center rounded-xl'
+                  : 'flex min-w-0 max-w-full items-center gap-2 rounded-2xl border border-border bg-muted/40 px-2 py-1.5'
             }
+            title={hideImageMetadata ? `${attachment.name} (${formatFileSize(attachment.size)})` : undefined}
           >
             {hasImagePreview && (
               <button
@@ -299,6 +305,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
                 onClick={() => openImageViewer(attachment)}
                 className="group relative flex-shrink-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background"
                 aria-label={attachment.name}
+                title={hideImageMetadata ? `${attachment.name} (${formatFileSize(attachment.size)})` : undefined}
               >
                 <img
                   src={thumbnailUrl}
@@ -317,19 +324,21 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
                 <FileText className="size-3.5" />
               </span>
             )}
-            <div className="min-w-0 max-w-full">
-              <div className="truncate text-xs font-medium text-foreground">
-                {attachment.name}
-              </div>
-              <div className="truncate text-[11px] text-muted-foreground">
-                {formatFileSize(attachment.size)}
-              </div>
-              {isImageAttachment(attachment) && preview?.error && (
-                <div className="truncate text-[11px] text-amber-600 dark:text-amber-400">
-                  {preview.error}
+            {!hideImageMetadata && (
+              <div className="min-w-0 max-w-full">
+                <div className="truncate text-xs font-medium text-foreground">
+                  {attachment.name}
                 </div>
-              )}
-            </div>
+                <div className="truncate text-[11px] text-muted-foreground">
+                  {formatFileSize(attachment.size)}
+                </div>
+                {isImageAttachment(attachment) && preview?.error && (
+                  <div className="truncate text-[11px] text-amber-600 dark:text-amber-400">
+                    {preview.error}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )
       })}
