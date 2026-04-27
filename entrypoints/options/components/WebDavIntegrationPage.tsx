@@ -1,23 +1,18 @@
 import React from "react";
+import { Cloud } from "lucide-react";
 import WebDavIntegration from "./WebDavIntegration";
+import { PageHeader } from "@/components/common/PageHeader";
+import { PageSurface } from "@/components/layout/AppShell";
 import { t } from "../../../utils/i18n";
 
 const WebDavIntegrationPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-            {t("webdavSync")}
-          </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            {t("webdavSyncDescription")}
-          </p>
-        </div>
-
+    <PageSurface>
+      <div className="mx-auto max-w-5xl space-y-5 px-4 py-6 sm:px-6 lg:px-8">
+        <PageHeader icon={Cloud} title={t("webdavSync")} description={t("webdavSyncDescription")} />
         <WebDavIntegration />
       </div>
-    </div>
+    </PageSurface>
   );
 };
 

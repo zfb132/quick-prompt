@@ -10,6 +10,7 @@ import {
   removeAttachmentDirectoryFromRoot,
   removeAttachmentFileFromRoot,
 } from './fileSystem'
+import { createImageThumbnailDataUrl } from './imageThumbnail'
 
 export const isMissingAttachmentFileError = (err: unknown): boolean => {
   if (err instanceof DOMException && err.name === 'NotFoundError') {
@@ -37,6 +38,7 @@ export const createAttachmentFromFile = async (
   const relativePath = buildAttachmentRelativePath(promptId, id, file.name)
 
   await copyFileToAttachmentRoot(rootHandle, relativePath, file)
+  const thumbnailDataUrl = await createImageThumbnailDataUrl(file)
 
   return {
     id,
@@ -45,6 +47,7 @@ export const createAttachmentFromFile = async (
     size: file.size,
     relativePath,
     createdAt: new Date().toISOString(),
+    ...(thumbnailDataUrl ? { thumbnailDataUrl } : {}),
   }
 }
 

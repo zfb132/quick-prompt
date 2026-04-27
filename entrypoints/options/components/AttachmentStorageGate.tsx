@@ -1,4 +1,11 @@
 import { ReactNode, useCallback, useEffect, useState } from "react";
+import { FolderOpen, HardDrive, Loader2, ShieldCheck, TriangleAlert } from "lucide-react";
+
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageSurface } from "@/components/layout/AppShell";
 import {
   getAttachmentStorageMode,
   getAttachmentRootHandle,
@@ -105,62 +112,89 @@ const AttachmentStorageGate = ({ children, translate = (key) => key }: Attachmen
   const isChoosing = isChoosingInternal || isChoosingExternal;
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex items-center justify-center px-4 transition-colors duration-200">
-      <div className="w-full max-w-lg rounded-lg border border-gray-200 bg-white p-6 shadow-sm dark:border-gray-700 dark:bg-gray-800">
-        <h1 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
-          {translate("attachmentStorageTitle")}
-        </h1>
-        <p className="mt-3 text-sm leading-6 text-gray-600 dark:text-gray-300">
-          {translate("attachmentStorageDescription")}
-        </p>
+    <PageSurface className="flex min-h-screen items-center justify-center px-4 py-10">
+      <Card className="w-full max-w-2xl border-border/80 bg-card/95 shadow-2xl shadow-slate-950/5 backdrop-blur">
+        <CardHeader className="space-y-4 text-center">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-2xl border border-primary/15 bg-primary/10 text-primary">
+            {isChecking ? <Loader2 className="size-5 animate-spin" /> : <ShieldCheck className="size-5" />}
+          </div>
+          <div className="space-y-2">
+            <CardTitle className="text-2xl">{translate("attachmentStorageTitle")}</CardTitle>
+            <CardDescription className="mx-auto max-w-xl text-sm leading-6">
+              {translate("attachmentStorageDescription")}
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-5">
+          {error && (
+            <Alert variant="destructive">
+              <TriangleAlert className="size-4" />
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
 
-        {error && (
-          <p className="mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-800 dark:bg-red-950/40 dark:text-red-300">
-            {error}
-          </p>
-        )}
+          {isExternalStorageUnsupported && (
+            <Alert variant="warning">
+              <TriangleAlert className="size-4" />
+              <AlertDescription>{translate("attachmentStorageUnsupported")}</AlertDescription>
+            </Alert>
+          )}
 
-        {isExternalStorageUnsupported && (
-          <p className="mt-4 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
-            {translate("attachmentStorageUnsupported")}
-          </p>
-        )}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={chooseAttachmentDirectory}
+              disabled={isChecking || isExternalStorageUnsupported || isChoosing}
+              className="group flex min-h-44 flex-col items-start rounded-2xl border border-primary/20 bg-primary/5 p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/35 hover:bg-primary/10 hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+            >
+              <span className="mb-4 flex size-10 items-center justify-center rounded-xl bg-background text-primary shadow-sm ring-1 ring-border">
+                {isChoosingExternal ? <Loader2 className="size-4 animate-spin" /> : <FolderOpen className="size-4" />}
+              </span>
+              <Badge variant="secondary" className="mb-3 border-primary/15 bg-primary/10 text-primary">
+                {translate("attachmentStorageRecommended")}
+              </Badge>
+              <span className="text-sm font-semibold text-foreground">
+                {translate("useExternalAttachmentStorage")}
+              </span>
+              <span className="mt-2 text-xs leading-5 text-muted-foreground">
+                {translate("useExternalAttachmentStorageDescription")}
+              </span>
+            </button>
 
-        <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <button
-            type="button"
-            onClick={chooseAttachmentDirectory}
-            disabled={isChecking || isExternalStorageUnsupported || isChoosing}
-            className="rounded-lg border border-blue-200 bg-blue-50 px-4 py-4 text-left transition-colors hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:border-blue-800 dark:bg-blue-950/40 dark:hover:bg-blue-900/40 dark:disabled:border-gray-700 dark:disabled:bg-gray-800"
-          >
-            <span className="mb-2 inline-flex rounded-full bg-blue-100 px-2 py-0.5 text-xs font-semibold text-blue-700 dark:bg-blue-900/60 dark:text-blue-200">
-              {translate("attachmentStorageRecommended")}
-            </span>
-            <span className="block text-sm font-semibold text-blue-800 dark:text-blue-200">
-              {translate("useExternalAttachmentStorage")}
-            </span>
-            <span className="mt-1 block text-xs leading-5 text-blue-700 dark:text-blue-300">
-              {translate("useExternalAttachmentStorageDescription")}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={chooseInternalStorage}
+              disabled={isChecking || isChoosing}
+              className="group flex min-h-44 flex-col items-start rounded-2xl border border-border bg-background/80 p-4 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:bg-accent hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50"
+            >
+              <span className="mb-4 flex size-10 items-center justify-center rounded-xl bg-muted text-muted-foreground shadow-sm ring-1 ring-border">
+                {isChoosingInternal ? <Loader2 className="size-4 animate-spin" /> : <HardDrive className="size-4" />}
+              </span>
+              <span className="text-sm font-semibold text-foreground">
+                {translate("useBuiltInAttachmentStorage")}
+              </span>
+              <span className="mt-2 text-xs leading-5 text-muted-foreground">
+                {translate("useBuiltInAttachmentStorageDescription")}
+              </span>
+            </button>
+          </div>
 
-          <button
-            type="button"
-            onClick={chooseInternalStorage}
-            disabled={isChecking || isChoosing}
-            className="rounded-lg border border-gray-200 bg-white px-4 py-4 text-left transition-colors hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700 dark:disabled:bg-gray-800"
-          >
-            <span className="block text-sm font-semibold text-gray-900 dark:text-gray-100">
-              {translate("useBuiltInAttachmentStorage")}
-            </span>
-            <span className="mt-1 block text-xs leading-5 text-gray-600 dark:text-gray-300">
-              {translate("useBuiltInAttachmentStorageDescription")}
-            </span>
-          </button>
-        </div>
+          {isChecking && (
+            <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+              <Loader2 className="size-3.5 animate-spin" />
+              {translate("loading")}
+            </div>
+          )}
 
-      </div>
-    </div>
+          {isChoosing && (
+            <Button disabled className="w-full">
+              <Loader2 className="size-4 animate-spin" />
+              {translate("saving")}
+            </Button>
+          )}
+        </CardContent>
+      </Card>
+    </PageSurface>
   );
 };
 

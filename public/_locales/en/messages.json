@@ -210,6 +210,12 @@
   "globalSettingsDescription": {
     "message": "Manage global configuration options for the extension."
   },
+  "collapseSidebar": {
+    "message": "Collapse sidebar"
+  },
+  "expandSidebar": {
+    "message": "Expand sidebar"
+  },
   "loadingGlobalSettings": {
     "message": "Loading global settings..."
   },
@@ -1574,7 +1580,7 @@
     "message": "Attachment Storage"
   },
   "attachmentStorageDescription": {
-    "message": "Choose how to store attachments before opening the management page. An external local folder is recommended."
+    "message": "Choose how to store attachments before opening the management page. An external local folder is extremely recommended for better performance and larger storage capacity."
   },
   "attachmentStorageRecommended": {
     "message": "Recommended"

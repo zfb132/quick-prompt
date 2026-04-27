@@ -1,4 +1,7 @@
 import React, { useMemo, useState } from 'react'
+import { Plus, X } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
 
 interface PromptTagSelectorProps {
   selectedTags: string[]
@@ -75,18 +78,16 @@ const PromptTagSelector: React.FC<PromptTagSelectorProps> = ({
           {normalizedSelectedTags.map((tag) => (
             <span
               key={tag}
-              className="inline-flex max-w-full items-center gap-1.5 rounded-md border border-blue-200 bg-blue-50 px-2.5 py-1 text-sm text-blue-700"
+              className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2.5 py-1 text-sm text-primary"
             >
               <span className="truncate">{tag}</span>
               <button
                 type="button"
                 onClick={() => removeTag(tag)}
-                className="inline-flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full text-blue-500 hover:bg-blue-100 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="inline-flex size-4 flex-shrink-0 items-center justify-center rounded-full hover:bg-primary/10 focus:outline-none focus:ring-2 focus:ring-ring"
                 aria-label={translate('removeTag', [tag])}
               >
-                <svg className="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="size-3" aria-hidden="true" />
               </button>
             </span>
           ))}
@@ -103,7 +104,7 @@ const PromptTagSelector: React.FC<PromptTagSelectorProps> = ({
               key={tag}
               type="button"
               onClick={() => addTag(tag)}
-              className="inline-flex max-w-full items-center rounded-md border border-gray-200 bg-gray-50 px-2.5 py-1 text-sm text-gray-700 hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="inline-flex max-w-full items-center rounded-full border border-border bg-muted px-2.5 py-1 text-sm text-muted-foreground hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <span className="truncate">{tag}</span>
             </button>
@@ -112,7 +113,7 @@ const PromptTagSelector: React.FC<PromptTagSelectorProps> = ({
       )}
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        <input
+        <Input
           type="text"
           id="tags"
           value={customTag}
@@ -123,17 +124,18 @@ const PromptTagSelector: React.FC<PromptTagSelectorProps> = ({
               addTag(customTag)
             }
           }}
-          className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 shadow-sm transition-colors duration-200 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="min-w-0 flex-1"
           placeholder={translate('tagsPlaceholder')}
         />
-        <button
+        <Button
           type="button"
           onClick={() => addTag(customTag)}
           disabled={!normalizeTag(customTag)}
-          className="rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+          variant="outline"
         >
+          <Plus className="size-4" />
           {translate('addTag')}
-        </button>
+        </Button>
       </div>
     </div>
   )

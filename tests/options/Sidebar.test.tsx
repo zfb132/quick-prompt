@@ -1,0 +1,50 @@
+import React from "react";
+import { MemoryRouter } from "react-router-dom";
+import { describe, expect, it, beforeEach, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+
+vi.mock("@/utils/i18n", () => ({
+  t: (key: string) => ({
+    promptManagement: "Prompt management",
+    promptManagementDescription: "Manage prompts",
+    categoryManagement: "Category management",
+    promptCategoryManagement: "Manage categories",
+    globalSettings: "Global settings",
+    globalSettingsDescription: "Manage global settings",
+    gistSync: "Gist sync",
+    notionSync: "Notion sync",
+    webdavSync: "WebDAV sync",
+    collapseSidebar: "Collapse sidebar",
+    expandSidebar: "Expand sidebar",
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
+  }[key] ?? key),
+}));
+
+const { default: Sidebar } = await import("@/entrypoints/options/components/Sidebar");
+
+describe("Sidebar", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    Object.defineProperty(window, "innerWidth", {
+      configurable: true,
+      value: 1024,
+    });
+  });
+
+  it("renders the collapse control as an icon button directly below global settings", () => {
+    const { container } = render(
+      <MemoryRouter>
+        <Sidebar />
+      </MemoryRouter>,
+    );
+
+    const collapseButton = screen.getByRole("button", { name: "Collapse sidebar" });
+    const navItems = Array.from(container.querySelector("nav")?.children ?? []);
+
+    expect(collapseButton.textContent).toBe("");
+    expect(navItems).toHaveLength(4);
+    expect(navItems[2]).toHaveTextContent("Global settings");
+    expect(navItems[3]).toContainElement(collapseButton);
+  });
+});

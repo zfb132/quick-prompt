@@ -1,8 +1,25 @@
 import { useState, useEffect } from 'react'
+import { motion } from "framer-motion"
+import {
+  AlertTriangle,
+  ArrowRight,
+  Command,
+  FileText,
+  FolderPlus,
+  Library,
+  MousePointer2,
+  Settings2,
+  Sparkles,
+} from "lucide-react"
 import Logo from '~/assets/icon.png'
 import '~/assets/tailwind.css'
 import { t, initLocale } from '@/utils/i18n'
 import { getAllPrompts } from '@/utils/promptStore'
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
 
 function App() {
   const [promptCount, setPromptCount] = useState<number>(0)
@@ -191,135 +208,124 @@ function App() {
   }
 
   return (
-    <div className='p-4 w-full max-w-[350px] min-w-[300px] box-border bg-white text-gray-900 dark:bg-gray-900 dark:text-white transition-colors duration-200'>
-      {/* 标题区域 */}
-      <div className='flex justify-center items-center mb-3'>
-        <img src={Logo} className='h-8 mr-2' alt='quick prompt logo' />
-        <h1 className='text-lg font-bold whitespace-nowrap m-0 p-0 leading-normal dark:text-white'>
-          Quick Prompt
-        </h1>
+    <motion.main
+      initial={{ opacity: 0, y: 4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.18, ease: "easeOut" }}
+      className="w-[360px] min-w-[320px] max-w-[420px] bg-background p-4 text-foreground"
+    >
+      <div className="mb-4 flex items-center gap-3">
+        <img src={Logo} className="size-10 rounded-2xl shadow-sm" alt="quick prompt logo" />
+        <div className="min-w-0">
+          <h1 className="text-base font-semibold leading-tight">Quick Prompt</h1>
+          <p className="text-xs text-muted-foreground">{t("usage")}</p>
+        </div>
+        <Badge variant="muted" className="ml-auto gap-1">
+          <Sparkles className="size-3" />
+          /p
+        </Badge>
       </div>
 
-      {/* 统计卡片 */}
-      <div className='rounded-lg shadow p-2 mb-3 relative bg-white dark:bg-gray-800 transition-colors duration-200'>
-        <div className='flex justify-between items-center mb-1'>
-          <div className='flex items-center'>
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1 text-blue-500 dark:text-blue-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-            </svg>
-            <h2 className='text-sm font-semibold m-0 text-gray-700 dark:text-gray-200'>{t('promptLibrary')}</h2>
-          </div>
-        </div>
-
-        {/* 设置固定高度容器，防止状态切换时闪烁 */}
-        <div className='h-12 flex items-center justify-center'>
-          {loading ? (
-            // 骨架屏加载状态
-            <div className='text-center w-full'>
-              <div className='h-6 flex justify-center items-center'>
-                <div className='w-8 h-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse'></div>
+      <Card className="mb-3 overflow-hidden">
+        <CardHeader className="p-4 pb-2">
+          <CardTitle className="flex items-center gap-2 text-sm">
+            <Library className="size-4 text-primary" />
+            {t("promptLibrary")}
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-4 pt-0">
+          <div className="flex h-16 items-center justify-center rounded-2xl bg-muted/60">
+            {loading ? (
+              <div className="w-full space-y-2 px-10">
+                <Skeleton className="mx-auto h-6 w-12" />
+                <Skeleton className="mx-auto h-3 w-24" />
               </div>
-              <div className='h-3 mt-1 flex justify-center items-center'>
-                <div className='w-16 h-2 bg-gray-200 dark:bg-gray-700 rounded animate-pulse'></div>
+            ) : error ? (
+              <p className="px-4 text-center text-xs text-destructive">{error}</p>
+            ) : (
+              <div className="flex items-end justify-center gap-2">
+                <span className="text-3xl font-semibold leading-none text-primary">
+                  {promptCount}
+                </span>
+                <span className="pb-0.5 text-xs text-muted-foreground">
+                  {t("availablePrompts")}
+                </span>
               </div>
-            </div>
-          ) : error ? (
-            <div className='text-red-500 text-center text-xs dark:text-red-400'>{error}</div>
-          ) : (
-            <div className='text-center flex items-center justify-center'>
-              <span className='text-xl font-bold text-blue-600 dark:text-blue-400 mr-1.5'>
-                {promptCount}
-              </span>
-              <p className='text-gray-500 text-xs m-0 dark:text-gray-400'>{t('availablePrompts')}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* 操作区域 */}
-      <div className='flex flex-col gap-2'>
-        <button
-          onClick={openOptionsPage}
-          className='bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 transition-colors duration-200'
-        >
-          {t('managePrompts')}
-        </button>
-
-        {/* 快捷方式提示区域 */}
-        <div className='mt-3 rounded-lg bg-gray-50 dark:bg-gray-800 p-3 shadow-sm'>
-          <h3 className='text-xs font-medium text-gray-600 dark:text-gray-300 mb-2'>{t('usage')}</h3>
-
-          <div className='flex items-start mb-2'>
-            <div className='flex-shrink-0 text-blue-500 dark:text-blue-400 mr-2 mt-1'>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5M7.188 2.239l.777 2.897M5.136 7.965l-2.898-.777M13.95 4.05l-2.122 2.122m-5.657 5.656l-2.12 2.122" />
-              </svg>
-            </div>
-            <span className='text-xs text-gray-600 dark:text-gray-300 leading-relaxed'>
-              {t('quickInput')} <kbd className='inline-flex items-center justify-center px-1.5 py-0.5 my-0.5 text-xs font-semibold bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 shadow-sm text-blue-600 dark:text-blue-400 min-h-[20px]'>/p</kbd>
-              {shortcutKey && (
-                <> {t('orPress')} <kbd className='inline-flex items-center justify-center ml-1 px-1.5 py-0.5 my-0.5 text-xs font-semibold bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 shadow-sm text-blue-600 dark:text-blue-400 min-h-[20px]'>{shortcutKey}</kbd></>
-              )}
-            </span>
+            )}
           </div>
+        </CardContent>
+      </Card>
+
+      <Button onClick={openOptionsPage} className="mb-3 w-full justify-between">
+        <span className="inline-flex items-center gap-2">
+          <Settings2 className="size-4" />
+          {t("managePrompts")}
+        </span>
+        <ArrowRight className="size-4" />
+      </Button>
+
+      <Card>
+        <CardContent className="space-y-3 p-4">
+          <UsageRow icon={MousePointer2}>
+            {t("quickInput")} <KeyBadge>/p</KeyBadge>
+            {shortcutKey && (
+              <> {t("orPress")} <KeyBadge>{shortcutKey}</KeyBadge></>
+            )}
+          </UsageRow>
 
           {saveShortcutKey && (
-            <div className='flex items-start mb-2'>
-              <div className='flex-shrink-0 text-blue-500 dark:text-blue-400 mr-2 mt-1'>
-                <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              </div>
-              <span className='text-xs text-gray-600 dark:text-gray-300 leading-relaxed'>
-                {t('quickSave')} <kbd className='inline-flex items-center justify-center px-1.5 py-0.5 my-0.5 text-xs font-semibold bg-white dark:bg-gray-700 rounded border border-gray-300 dark:border-gray-600 shadow-sm text-blue-600 dark:text-blue-400 min-h-[20px]'>{saveShortcutKey}</kbd> {t('savePrompt')}
-              </span>
-            </div>
+            <UsageRow icon={FileText}>
+              {t("quickSave")} <KeyBadge>{saveShortcutKey}</KeyBadge> {t("savePrompt")}
+            </UsageRow>
           )}
 
-          <div className='flex items-start mb-2'>
-            <div className='flex-shrink-0 text-blue-500 dark:text-blue-400 mr-2 mt-1'>
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-              </svg>
-            </div>
-            <span className='text-xs text-gray-600 dark:text-gray-300 leading-relaxed'>
-              {t('rightClickSave')}
-            </span>
-          </div>
+          <UsageRow icon={FolderPlus}>{t("rightClickSave")}</UsageRow>
 
           {showShortcutHelp && (
-            <div className='mt-2 bg-yellow-50 dark:bg-yellow-900/20 p-2 rounded-md border border-yellow-200 dark:border-yellow-800'>
-              <div className='flex items-start'>
-                <div className='flex-shrink-0 text-yellow-500 dark:text-yellow-400 mr-2 mt-1'>
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                  </svg>
-                </div>
-                <div>
-                  <p className='text-xs text-yellow-700 dark:text-yellow-300 leading-relaxed mb-1'>
-                    {t('shortcutNotConfigured')}
-                  </p>
-                  <button 
-                    onClick={openShortcutSettings}
-                    className='text-xs bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-800 dark:hover:bg-yellow-700 text-yellow-800 dark:text-yellow-200 px-2 py-1 rounded-md transition-colors duration-200'
-                  >
-                    {t('configureShortcut')}
-                  </button>
-                  <button
+            <Alert variant="warning" className="rounded-xl">
+              <AlertTriangle className="size-4" />
+              <AlertDescription>
+                <p className="mb-2 text-xs leading-5">{t("shortcutNotConfigured")}</p>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={openShortcutSettings}>
+                    <Command className="size-3.5" />
+                    {t("configureShortcut")}
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
                     onClick={dismissShortcutReminder}
-                    className='text-xs text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 px-1 py-1 transition-colors duration-200 ml-2'
-                    title={t('dismissReminderTitle')}
+                    title={t("dismissReminderTitle")}
                   >
-                    {t('noReminder')}
-                  </button>
+                    {t("noReminder")}
+                  </Button>
                 </div>
-              </div>
-            </div>
+              </AlertDescription>
+            </Alert>
           )}
-        </div>
-      </div>
-    </div>
+        </CardContent>
+      </Card>
+    </motion.main>
   )
 }
+
+const KeyBadge = ({ children }: { children: React.ReactNode }) => (
+  <kbd className="mx-0.5 inline-flex min-h-5 items-center rounded-md border border-border bg-background px-1.5 text-[11px] font-semibold text-primary shadow-sm">
+    {children}
+  </kbd>
+)
+
+const UsageRow = ({
+  icon: Icon,
+  children,
+}: {
+  icon: React.ComponentType<{ className?: string }>
+  children: React.ReactNode
+}) => (
+  <div className="flex items-start gap-2 text-xs leading-5 text-muted-foreground">
+    <Icon className="mt-0.5 size-4 shrink-0 text-primary" />
+    <span>{children}</span>
+  </div>
+)
 
 export default App

@@ -15,47 +15,43 @@ export function getPromptSelectorStyles(): string {
     
     /* 主题相关变量 - 亮色模式默认值 */
     :host {
-      --qp-bg-overlay: rgba(0, 0, 0, 0.5);
+      --qp-bg-overlay: rgba(15, 23, 42, 0.42);
       --qp-bg-primary: #ffffff;
-      --qp-bg-secondary: #f9fafb;
-      --qp-bg-hover: #f8f5ff;
-      --qp-bg-selected: #f3ecff;
-      --qp-bg-tag: #f3f4f6;
-      --qp-text-primary: #111827;
-      --qp-text-secondary: #4b5563;
-      --qp-text-tag: #6b7280;
-      --qp-border-color: #e5e7eb;
-      --qp-focus-ring: #9d85f2;
-      --qp-shadow-color: rgba(124, 58, 237, 0.06);
+      --qp-bg-secondary: #f8fafc;
+      --qp-bg-hover: #f1f5f9;
+      --qp-bg-selected: #eff6ff;
+      --qp-bg-tag: #f1f5f9;
+      --qp-text-primary: #0f172a;
+      --qp-text-secondary: #475569;
+      --qp-text-tag: #64748b;
+      --qp-border-color: #e2e8f0;
+      --qp-focus-ring: #3b82f6;
+      --qp-shadow-color: rgba(15, 23, 42, 0.08);
       --qp-green: #10b981;
-      --qp-accent: #6366f1;
-      --qp-accent-light: #a495eb;
-      --qp-gradient-start: #9f87f0;
-      --qp-gradient-end: #8674e2;
-      --qp-accent-hover: #4f46e5;
-      --qp-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --qp-accent: #2563eb;
+      --qp-accent-light: #60a5fa;
+      --qp-accent-hover: #1d4ed8;
+      --qp-shadow: 0 24px 70px rgba(15, 23, 42, 0.18), 0 8px 24px rgba(15, 23, 42, 0.08);
     }
 
     /* 暗黑模式变量 */
     :host([data-theme="dark"]) {
-      --qp-bg-overlay: rgba(0, 0, 0, 0.7);
-      --qp-bg-primary: #1f2937;
+      --qp-bg-overlay: rgba(2, 6, 23, 0.72);
+      --qp-bg-primary: #0f172a;
       --qp-bg-secondary: #111827;
-      --qp-bg-hover: #2c2967;
-      --qp-bg-selected: #3b348c;
-      --qp-bg-tag: #374151;
-      --qp-text-primary: #f9fafb;
-      --qp-text-secondary: #9ca3af;
-      --qp-text-tag: #d1d5db;
-      --qp-border-color: #374151;
-      --qp-focus-ring: #9d85f2;
-      --qp-shadow-color: rgba(124, 58, 237, 0.12);
+      --qp-bg-hover: #1e293b;
+      --qp-bg-selected: #172554;
+      --qp-bg-tag: #1e293b;
+      --qp-text-primary: #f8fafc;
+      --qp-text-secondary: #cbd5e1;
+      --qp-text-tag: #cbd5e1;
+      --qp-border-color: #334155;
+      --qp-focus-ring: #60a5fa;
+      --qp-shadow-color: rgba(0, 0, 0, 0.28);
       --qp-green: #34d399;
-      --qp-accent: #6366f1;
-      --qp-accent-hover: #818cf8;
-      --qp-gradient-start: #7e63e3;
-      --qp-gradient-end: #6055c5;
-      --qp-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.18);
+      --qp-accent: #60a5fa;
+      --qp-accent-hover: #93c5fd;
+      --qp-shadow: 0 24px 80px rgba(0, 0, 0, 0.45), 0 8px 28px rgba(0, 0, 0, 0.28);
     }
     
     /* 移植原来的样式 */
@@ -96,7 +92,7 @@ export function getPromptSelectorStyles(): string {
     
     /* 主容器样式 */
     .qp-modal-container {
-      backdrop-filter: blur(8px) !important;
+      backdrop-filter: blur(10px) !important;
       background-color: var(--qp-bg-overlay) !important;
       transition: all 0.25s ease-in-out !important;
       width: 100% !important;
@@ -105,14 +101,15 @@ export function getPromptSelectorStyles(): string {
 
     /* 弹窗主体样式 */
     .qp-modal {
-      border-radius: 12px !important;
+      border-radius: 20px !important;
       overflow: hidden !important;
       background-color: var(--qp-bg-primary) !important;
-      box-shadow: 0 8px 16px rgba(124, 58, 237, 0.06), 0 2px 4px rgba(124, 58, 237, 0.03) !important;
+      border: 1px solid var(--qp-border-color) !important;
+      box-shadow: var(--qp-shadow) !important;
       transition: transform 0.25s ease-out, opacity 0.25s ease-out !important;
       transform: translateY(0) scale(1) !important;
       opacity: 1 !important;
-      max-width: 620px !important;
+      max-width: 660px !important;
       width: 90% !important;
       color: var(--qp-text-primary) !important;
       display: flex !important;
@@ -124,26 +121,15 @@ export function getPromptSelectorStyles(): string {
     .qp-modal-header {
       display: flex !important;
       align-items: center !important;
-      background: linear-gradient(
-        to right,
-        var(--qp-gradient-start),
-        var(--qp-gradient-end)
-      ) !important;
-      padding: 19px !important;
-      color: white !important;
-      border-bottom: none !important;
+      background: var(--qp-bg-primary) !important;
+      padding: 16px !important;
+      color: var(--qp-text-primary) !important;
+      border-bottom: 1px solid var(--qp-border-color) !important;
       position: relative !important;
     }
 
     .qp-modal-header::before {
-      content: '' !important;
-      position: absolute !important;
-      top: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      bottom: 0 !important;
-      background-image: linear-gradient(120deg, rgba(255, 255, 255, 0.05), transparent) !important;
-      pointer-events: none !important;
+      display: none !important;
     }
 
     /* 数据统计信息样式 */
@@ -157,7 +143,7 @@ export function getPromptSelectorStyles(): string {
 
     /* 底部状态栏样式 */
     .qp-modal-footer {
-      padding: 10px 19px !important;
+      padding: 11px 16px !important;
       background-color: var(--qp-bg-secondary) !important;
       border-top: 1px solid var(--qp-border-color) !important;
       color: var(--qp-text-secondary) !important;
@@ -194,7 +180,7 @@ export function getPromptSelectorStyles(): string {
 
     /* 提示项样式 */
     .qp-prompt-item {
-      padding: 12px 20px !important;
+      padding: 14px 18px !important;
       border-left: 2px solid transparent !important;
       transition: all 0.25s ease-out !important;
       border-bottom: 1px solid var(--qp-border-color) !important;
@@ -216,7 +202,7 @@ export function getPromptSelectorStyles(): string {
     .qp-prompt-item.qp-selected {
       background-color: var(--qp-bg-selected) !important;
       border-left: 2px solid var(--qp-accent) !important;
-      transform: translateX(1px) !important;
+      transform: none !important;
       position: relative !important;
     }
 
@@ -504,35 +490,30 @@ export function getPromptSelectorStyles(): string {
 
     /* 搜索输入框样式 */
     .qp-search-input {
-      border: none !important;
-      border-radius: 8px !important;
-      padding: 12px 16px !important;
-      background-color: rgba(255, 255, 255, 0.25) !important;
-      color: white !important;
-      backdrop-filter: blur(8px) !important;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      border: 1px solid var(--qp-border-color) !important;
+      border-radius: 12px !important;
+      padding: 11px 14px !important;
+      background-color: var(--qp-bg-secondary) !important;
+      color: var(--qp-text-primary) !important;
+      box-shadow: none !important;
+      transition: all 0.18s ease !important;
       font-weight: 500 !important;
       width: 100% !important;
-      letter-spacing: 0.3px !important;
+      letter-spacing: 0 !important;
     }
 
     .qp-search-input::placeholder {
-      color: rgba(255, 255, 255, 0.8) !important;
+      color: var(--qp-text-secondary) !important;
       font-weight: 400 !important;
     }
 
     .qp-search-input:hover {
-      background-color: rgba(255, 255, 255, 0.35) !important;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
-      transform: translateY(-1px) !important;
+      border-color: var(--qp-focus-ring) !important;
     }
 
     .qp-search-input:focus {
-      background-color: rgba(255, 255, 255, 0.35) !important;
-      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3), 0 6px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14) !important;
       outline: none !important;
-      transform: translateY(-1px) !important;
     }
 
     [data-theme='light'] .qp-search-input {
@@ -611,24 +592,19 @@ export function getPromptSelectorStyles(): string {
 
     /* 分类选择器样式 */
     .qp-category-select {
-      border: none !important;
-      border-radius: 8px !important;
-      padding: 12px 24px 12px 24px !important;
-      background-color: rgba(255, 255, 255, 0.25) !important;
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z'/%3e%3c/svg%3e"), url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'/%3e%3c/svg%3e") !important;
-      background-repeat: no-repeat, no-repeat !important;
-      background-position: 4px center, right 6px center !important;
-      background-size: 12px, 14px !important;
-      color: white !important;
-      backdrop-filter: blur(8px) !important;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15), inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      border: 1px solid var(--qp-border-color) !important;
+      border-radius: 12px !important;
+      padding: 11px 28px 11px 12px !important;
+      background-color: var(--qp-bg-secondary) !important;
+      color: var(--qp-text-primary) !important;
+      box-shadow: none !important;
+      transition: all 0.18s ease !important;
       font-weight: 500 !important;
       font-size: 14px !important;
-      letter-spacing: 0.3px !important;
+      letter-spacing: 0 !important;
       cursor: pointer !important;
       outline: none !important;
-      width: 110px !important;
+      width: 132px !important;
       text-overflow: ellipsis !important;
       white-space: nowrap !important;
       overflow: hidden !important;
@@ -638,15 +614,11 @@ export function getPromptSelectorStyles(): string {
     }
 
     .qp-category-select:hover {
-      background-color: rgba(255, 255, 255, 0.35) !important;
-      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
-      transform: translateY(-1px) !important;
+      border-color: var(--qp-focus-ring) !important;
     }
 
     .qp-category-select:focus {
-      background-color: rgba(255, 255, 255, 0.35) !important;
-      box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.3), 0 6px 16px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
-      transform: translateY(-1px) !important;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14) !important;
     }
 
     .qp-category-select:active {
@@ -792,6 +764,38 @@ export function getPromptSelectorStyles(): string {
       border-radius: 4px !important;
       border: 1px solid var(--qp-border-color) !important;
       flex-shrink: 0 !important;
+    }
+
+    :host([data-theme='light']) .qp-search-input,
+    :host([data-theme='dark']) .qp-search-input,
+    :host([data-theme='light']) .qp-category-select,
+    :host([data-theme='dark']) .qp-category-select {
+      background-color: var(--qp-bg-secondary) !important;
+      border: 1px solid var(--qp-border-color) !important;
+      color: var(--qp-text-primary) !important;
+      box-shadow: none !important;
+      letter-spacing: 0 !important;
+      transform: none !important;
+    }
+
+    :host([data-theme='light']) .qp-search-input:hover,
+    :host([data-theme='dark']) .qp-search-input:hover,
+    :host([data-theme='light']) .qp-category-select:hover,
+    :host([data-theme='dark']) .qp-category-select:hover {
+      background-color: var(--qp-bg-secondary) !important;
+      border-color: var(--qp-focus-ring) !important;
+      box-shadow: none !important;
+      transform: none !important;
+    }
+
+    :host([data-theme='light']) .qp-search-input:focus,
+    :host([data-theme='dark']) .qp-search-input:focus,
+    :host([data-theme='light']) .qp-category-select:focus,
+    :host([data-theme='dark']) .qp-category-select:focus {
+      background-color: var(--qp-bg-secondary) !important;
+      border-color: var(--qp-focus-ring) !important;
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14) !important;
+      transform: none !important;
     }
   `;
 }
