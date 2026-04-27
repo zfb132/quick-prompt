@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createRoot } from "react-dom/client";
-import { Check, Copy, SearchX } from "lucide-react";
+import { Check, ChevronDown, Copy, SearchX } from "lucide-react";
 import type { PromptItemWithVariables, EditableElement, Category } from "@/utils/types";
 import { getPromptSelectorStyles } from "../utils/styles";
 import { extractVariables } from "../utils/variableParser";
@@ -11,17 +11,20 @@ import { getGlobalSetting } from "@/utils/globalSettings";
 import { t } from "@/utils/i18n";
 import { getNewlineStrategy, setElementContentByStrategy } from "@/utils/newlineRules";
 import PromptAttachmentPreview from "./PromptAttachmentPreview";
+import { buildPromptInsertion } from "../utils/editableTarget";
 
 interface PromptSelectorProps {
   prompts: PromptItemWithVariables[];
   targetElement: EditableElement;
   onClose: () => void;
+  removePromptTrigger?: boolean;
 }
 
 const PromptSelector: React.FC<PromptSelectorProps> = ({
   prompts,
   targetElement,
   onClose,
+  removePromptTrigger = false,
 }) => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -32,9 +35,16 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
   const [categoriesMap, setCategoriesMap] = useState<Record<string, Category>>({});
   const [closeOnOutsideClick, setCloseOnOutsideClick] = useState(true);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
+  const [, setLocaleRevision] = useState(0);
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const categoryPickerRef = useRef<HTMLDivElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
   const modalRef = useRef<HTMLDivElement>(null);
+  const selectedCategory = selectedCategoryId
+    ? categories.find(category => category.id === selectedCategoryId)
+    : null;
+  const selectedCategoryLabel = selectedCategory?.name || t('allCategories');
 
   // 加载分类列表和全局设置
   useEffect(() => {
@@ -67,6 +77,27 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
     
     loadData();
   }, []);
+
+  useEffect(() => {
+    const handleLocaleChange = () => setLocaleRevision((revision) => revision + 1);
+    globalThis.addEventListener('quick-prompt-locale-change', handleLocaleChange);
+    return () => globalThis.removeEventListener('quick-prompt-locale-change', handleLocaleChange);
+  }, []);
+
+  useEffect(() => {
+    const handlePointerDown = (event: MouseEvent) => {
+      if (
+        isCategoryMenuOpen &&
+        categoryPickerRef.current &&
+        !categoryPickerRef.current.contains(event.target as Node)
+      ) {
+        setIsCategoryMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown, true);
+    return () => document.removeEventListener('mousedown', handlePointerDown, true);
+  }, [isCategoryMenuOpen]);
 
   // 过滤提示列表 - 同时考虑搜索词和分类筛选
   const filteredPrompts = prompts.filter((prompt) => {
@@ -202,10 +233,15 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
           break;
         case "Escape":
           e.preventDefault();
+          if (isCategoryMenuOpen) {
+            setIsCategoryMenuOpen(false);
+            break;
+          }
           onClose();
           break;
         case "Tab":
           e.preventDefault();
+          setIsCategoryMenuOpen(false);
           // Tab键循环切换分类
           cycleCategorySelection(e.shiftKey ? 'prev' : 'next');
           break;
@@ -226,12 +262,19 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
 
     document.addEventListener("keydown", handleKeyDown, true);
     return () => document.removeEventListener("keydown", handleKeyDown, true);
-  }, [selectedIndex, filteredPrompts, categories, selectedCategoryId]);
+  }, [selectedIndex, filteredPrompts, categories, selectedCategoryId, isCategoryMenuOpen]);
 
   // 当筛选结果变化时重置选中索引
   useEffect(() => {
     setSelectedIndex(0);
+    setIsCategoryMenuOpen(false);
   }, [searchTerm, selectedCategoryId]);
+
+  const selectCategory = (categoryId: string | null) => {
+    setSelectedCategoryId(categoryId);
+    setIsCategoryMenuOpen(false);
+    setIsKeyboardNav(false);
+  };
 
   // 添加鼠标移动事件监听
   useEffect(() => {
@@ -292,127 +335,42 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
   // 应用处理后的内容到目标元素
   const applyProcessedContent = (content: string) => {
     // 检查是否为自定义适配器（contenteditable 元素）
-    const isContentEditableAdapter =
-      !!(targetElement as any)._element &&
-      (targetElement as any)._element.getAttribute("contenteditable") ===
-        "true";
+    const editableElement = targetElement._element;
+    const isContentEditableAdapter = !!editableElement;
 
     if (isContentEditableAdapter) {
       try {
         // contenteditable 元素的特殊处理
-        const editableElement = (targetElement as any)._element as HTMLElement;
         const newlineStrategy = getNewlineStrategy(window.location.href);
 
         // 获取当前内容和光标位置
         const fullText = editableElement.textContent || "";
+        const cursorPosition = targetElement.selectionStart ?? fullText.length;
+        const insertion = buildPromptInsertion(fullText, cursorPosition, content, {
+          removePromptTrigger,
+        });
 
-        // 检查全文是否包含 "/p"，不区分大小写
-        if (fullText.toLowerCase().includes('/p')) {
-          // 找到最后一个 "/p" 或 "/P" 的位置
-          // 先查找小写，再查找大写，取最后出现的位置
-          const lastLowerCasePos = fullText.toLowerCase().lastIndexOf('/p');
-          // 找到实际文本中这个位置的两个字符
-          const actualTrigger = fullText.substring(lastLowerCasePos, lastLowerCasePos + 2);
-          
-          // 构建新的内容（移除触发词并插入提示词）
-          const textBeforeTrigger = fullText.substring(0, lastLowerCasePos);
-          const textAfterTrigger = fullText.substring(lastLowerCasePos + 2);
-          const newContent = textBeforeTrigger + content + textAfterTrigger;
+        // 创建并分发 beforeinput 事件
+        const beforeInputEvent = new InputEvent("beforeinput", {
+          bubbles: true,
+          cancelable: true,
+          inputType: "insertFromPaste",
+          data: content,
+        });
 
-          // 创建并分发 beforeinput 事件
-          const beforeInputEvent = new InputEvent("beforeinput", {
+        // 如果 beforeinput 事件没有被阻止，则继续处理
+        if (editableElement.dispatchEvent(beforeInputEvent)) {
+          setElementContentByStrategy(editableElement, insertion.value, newlineStrategy);
+
+          // 创建并分发 input 事件
+          const inputEvent = new InputEvent("input", {
             bubbles: true,
-            cancelable: true,
             inputType: "insertFromPaste",
-            data: newContent,
+            data: content,
           });
+          editableElement.dispatchEvent(inputEvent);
 
-          // 如果 beforeinput 事件没有被阻止，则继续处理
-          if (editableElement.dispatchEvent(beforeInputEvent)) {
-            setElementContentByStrategy(editableElement, newContent, newlineStrategy);
-
-            // 创建并分发 input 事件
-            const inputEvent = new InputEvent("input", {
-              bubbles: true,
-              inputType: "insertFromPaste",
-              data: newContent,
-            });
-            editableElement.dispatchEvent(inputEvent);
-
-            // 设置光标到末尾
-            const selection = window.getSelection();
-            if (selection) {
-              const range = document.createRange();
-              range.selectNodeContents(editableElement);
-              range.collapse(false);
-              selection.removeAllRanges();
-              selection.addRange(range);
-            }
-          }
-        } else {
-          // 如果找不到 "/p"，在当前光标位置插入内容
-          const selection = window.getSelection();
-          if (selection && selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            const beforeInputEvent = new InputEvent("beforeinput", {
-              bubbles: true,
-              cancelable: true,
-              inputType: "insertFromPaste",
-              data: content,
-            });
-
-            // 如果 beforeinput 事件没有被阻止，则继续处理
-            if (editableElement.dispatchEvent(beforeInputEvent)) {
-              const currentContent = editableElement.textContent || "";
-              const position = range.startOffset;
-
-              // 在光标位置插入新内容
-              const newContent =
-                currentContent.slice(0, position) +
-                content +
-                currentContent.slice(position);
-
-              setElementContentByStrategy(editableElement, newContent, newlineStrategy);
-
-              // 创建并分发 input 事件
-              const inputEvent = new InputEvent("input", {
-                bubbles: true,
-                inputType: "insertFromPaste",
-                data: content,
-              });
-              editableElement.dispatchEvent(inputEvent);
-
-              // 设置光标到末尾
-              const newRange = document.createRange();
-              newRange.selectNodeContents(editableElement);
-              newRange.collapse(false);
-              selection.removeAllRanges();
-              selection.addRange(newRange);
-            }
-          } else {
-            // 如果没有选区，追加到末尾
-            const beforeInputEvent = new InputEvent("beforeinput", {
-              bubbles: true,
-              cancelable: true,
-              inputType: "insertFromPaste",
-              data: content,
-            });
-
-            // 如果 beforeinput 事件没有被阻止，则继续处理
-            if (editableElement.dispatchEvent(beforeInputEvent)) {
-              const currentContent = editableElement.textContent || "";
-              const newContent = currentContent + content;
-              setElementContentByStrategy(editableElement, newContent, newlineStrategy);
-
-              // 创建并分发 input 事件
-              const inputEvent = new InputEvent("input", {
-                bubbles: true,
-                inputType: "insertFromPaste",
-                data: content,
-              });
-              editableElement.dispatchEvent(inputEvent);
-            }
-          }
+          targetElement.setSelectionRange?.(insertion.cursorPosition, insertion.cursorPosition);
         }
 
         // 确保编辑器获得焦点
@@ -422,18 +380,15 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
       }
     } else {
       // 原有的标准输入框处理逻辑
-      const cursorPosition = targetElement.selectionStart || 0;
-      const textBeforeCursor = targetElement.value.substring(
-        0,
-        cursorPosition - 2
-      );
-      const textAfterCursor = targetElement.value.substring(cursorPosition);
-      targetElement.value = textBeforeCursor + content + textAfterCursor;
+      const cursorPosition = targetElement.selectionStart ?? targetElement.value.length;
+      const insertion = buildPromptInsertion(targetElement.value, cursorPosition, content, {
+        removePromptTrigger,
+      });
+      targetElement.value = insertion.value;
 
       // 设置光标位置
-      const newCursorPosition = textBeforeCursor.length + content.length;
       if (targetElement.setSelectionRange) {
-        targetElement.setSelectionRange(newCursorPosition, newCursorPosition);
+        targetElement.setSelectionRange(insertion.cursorPosition, insertion.cursorPosition);
       }
       targetElement.focus();
 
@@ -490,18 +445,62 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
                   e.stopPropagation();
                 }}
               />
-              <select
-                value={selectedCategoryId || ""}
-                onChange={(e) => setSelectedCategoryId(e.target.value || null)}
-                className="qp-category-select"
-              >
-                <option value="">{t('allCategories')}</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+              <div className="qp-category-picker" ref={categoryPickerRef}>
+                <button
+                  type="button"
+                  className={`qp-category-trigger ${isCategoryMenuOpen ? "qp-open" : ""}`}
+                  aria-label={t('filterByCategory')}
+                  aria-haspopup="listbox"
+                  aria-expanded={isCategoryMenuOpen}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsCategoryMenuOpen((open) => !open);
+                  }}
+                >
+                  <span className="qp-category-trigger-label">{selectedCategoryLabel}</span>
+                  <ChevronDown className="qp-category-trigger-icon" aria-hidden="true" />
+                </button>
+
+                {isCategoryMenuOpen && (
+                  <div className="qp-category-menu" role="listbox" aria-label={t('filterByCategory')}>
+                    <button
+                      type="button"
+                      role="option"
+                      aria-selected={!selectedCategoryId}
+                      className={`qp-category-option ${!selectedCategoryId ? "qp-selected" : ""}`}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        selectCategory(null);
+                      }}
+                    >
+                      <span className="qp-category-option-label">{t('allCategories')}</span>
+                      {!selectedCategoryId && <Check className="qp-category-option-check" aria-hidden="true" />}
+                    </button>
+
+                    {categories.map((category) => (
+                      <button
+                        key={category.id}
+                        type="button"
+                        role="option"
+                        aria-selected={selectedCategoryId === category.id}
+                        className={`qp-category-option ${selectedCategoryId === category.id ? "qp-selected" : ""}`}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          selectCategory(category.id);
+                        }}
+                      >
+                        <span
+                          className="qp-category-option-dot"
+                          style={{ backgroundColor: category.color || "#6366f1" }}
+                          aria-hidden="true"
+                        />
+                        <span className="qp-category-option-label">{category.name}</span>
+                        {selectedCategoryId === category.id && <Check className="qp-category-option-check" aria-hidden="true" />}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -612,7 +611,8 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
 export function showPromptSelector(
   prompts: PromptItemWithVariables[],
   targetElement: EditableElement,
-  onCloseCallback?: () => void
+  onCloseCallback?: () => void,
+  options: { removePromptTrigger?: boolean } = {}
 ): HTMLElement {
   // 移除任何已存在的弹窗
   const existingContainer = document.getElementById("quick-prompt-selector");
@@ -664,7 +664,7 @@ export function showPromptSelector(
 
   // 创建自定义包装组件，以处理shadow DOM环境中的特殊情况
   const ShadowDomWrapper = (props: PromptSelectorProps) => {
-    const { prompts, targetElement, onClose } = props;
+    const { prompts, targetElement, onClose, removePromptTrigger } = props;
     const [isDark, setIsDark] = useState(isDarkMode());
 
     // 设置初始主题
@@ -752,6 +752,7 @@ export function showPromptSelector(
         prompts={prompts}
         targetElement={targetElement}
         onClose={onClose}
+        removePromptTrigger={removePromptTrigger}
       />
     );
   };
@@ -762,6 +763,7 @@ export function showPromptSelector(
     <ShadowDomWrapper
       prompts={prompts}
       targetElement={targetElement}
+      removePromptTrigger={options.removePromptTrigger}
       onClose={() => {
         // 调用关闭回调
         onCloseCallback?.();

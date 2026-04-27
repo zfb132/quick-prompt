@@ -535,6 +535,9 @@
   "allCategories": {
     "message": "All categories"
   },
+  "filterByCategory": {
+    "message": "Filter by category"
+  },
   "localImport": {
     "message": "Local import"
   },
