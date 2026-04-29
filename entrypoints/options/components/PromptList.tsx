@@ -32,6 +32,8 @@ interface PromptListProps {
   onToggleEnabled?: (id: string, enabled: boolean) => void
   onTogglePinned?: (id: string, pinned: boolean) => void
   selectedCategoryId?: string | null
+  selectedTag?: string | null
+  onTagSelect?: (tag: string) => void
   compact?: boolean
   sortType?: SortType
 }
@@ -48,6 +50,8 @@ const PromptList = ({
   onToggleEnabled,
   onTogglePinned,
   selectedCategoryId,
+  selectedTag,
+  onTagSelect,
   compact = false,
   sortType = 'custom',
 }: PromptListProps) => {
@@ -126,11 +130,12 @@ const PromptList = ({
 
   // 获取当前被拖拽的提示词
   const activePrompt = activeId ? filteredPrompts.find(prompt => prompt.id === activeId) : null
+  const listClassName = compact ? 'flex flex-col gap-2' : 'columns-1 gap-4 xl:columns-2'
 
   // 如果不是自定义排序模式，直接渲染列表（不启用拖拽）
   if (!isDragEnabled) {
     return (
-      <div className={compact ? 'flex flex-col gap-1.5' : 'grid grid-cols-1 md:grid-cols-2 gap-4'}>
+      <div className={listClassName}>
         {filteredPrompts.map((prompt) => {
           const category = categoriesMap[prompt.categoryId]
 
@@ -148,6 +153,8 @@ const PromptList = ({
               copiedId={copiedId}
               compact={compact}
               isDragEnabled={false}
+              selectedTag={selectedTag}
+              onTagSelect={onTagSelect}
             />
           )
         })}
@@ -166,7 +173,7 @@ const PromptList = ({
         items={filteredPrompts.map(p => p.id)} 
         strategy={rectSortingStrategy}
       >
-        <div className={compact ? 'flex flex-col gap-1.5' : 'grid grid-cols-1 md:grid-cols-2 gap-4'}>
+        <div className={listClassName}>
           {filteredPrompts.map((prompt) => {
             const category = categoriesMap[prompt.categoryId]
 
@@ -184,6 +191,8 @@ const PromptList = ({
                 copiedId={copiedId}
                 compact={compact}
                 isDragEnabled={true}
+                selectedTag={selectedTag}
+                onTagSelect={onTagSelect}
               />
             )
           })}
@@ -206,6 +215,8 @@ const PromptList = ({
               onDuplicate={() => {}}
               compact={compact}
               isDragEnabled={true}
+              selectedTag={selectedTag}
+              onTagSelect={onTagSelect}
             />
           </div>
         ) : null}

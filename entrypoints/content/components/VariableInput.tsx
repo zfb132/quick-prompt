@@ -25,7 +25,7 @@ const getVariableInputStyles = (): string => {
     .qp-modal-header h3 {
       font-size: 16px !important;
       font-weight: 600 !important;
-      color: white !important;
+      color: var(--qp-text-primary) !important;
       margin: 0 !important;
       padding: 0 !important;
       line-height: 1.5 !important;

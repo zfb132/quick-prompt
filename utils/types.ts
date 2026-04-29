@@ -12,6 +12,19 @@ export interface Category {
 }
 
 /**
+ * Prompt 附件元数据
+ */
+export interface PromptAttachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  relativePath: string;
+  createdAt: string;
+  thumbnailDataUrl?: string;
+}
+
+/**
  * Prompt 数据结构
  */
 export interface PromptItem {
@@ -24,9 +37,11 @@ export interface PromptItem {
   pinned?: boolean; // 置顶字段
   notionPageId?: string;
   notes?: string; // 备注字段
+  createdAt?: string; // 创建时间（ISO 字符串）
   lastModified?: string; // 最后修改时间（ISO 字符串）
   sortOrder?: number; // 排序字段，用于拖拽排序
   thumbnailUrl?: string; // 缩略图 URL
+  attachments?: PromptAttachment[];
 }
 
 export interface PromptItemWithVariables extends PromptItem {
@@ -38,6 +53,7 @@ export interface PromptItemWithVariables extends PromptItem {
 
 // 自定义接口，用于统一处理不同类型的文本输入元素
 export interface EditableElement {
+  _element?: HTMLElement;
   value: string;
   selectionStart?: number | null;
   selectionEnd?: number | null;

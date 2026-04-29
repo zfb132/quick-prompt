@@ -1,7 +1,8 @@
 import type { PromptItem } from '@/utils/types';
 import { browser } from '#imports';
-import { DEFAULT_CATEGORY_ID, BROWSER_STORAGE_KEY } from '@/utils/constants'; // Import DEFAULT_CATEGORY_ID and BROWSER_STORAGE_KEY
+import { DEFAULT_CATEGORY_ID } from '@/utils/constants';
 import { generatePromptId } from '@/utils/promptUtils'; // Import generatePromptId
+import { getAllPrompts, setAllPrompts } from '@/utils/promptStore';
 
 // 存储 Notion Database 中真实的标题属性名称
 let notionDatabaseTitlePropertyName: string = 'Title'; // 默认为 "Title"
@@ -119,6 +120,7 @@ export const ensureDatabaseStructure = async (apiKey: string, databaseId: string
       'PromptID': { type: 'rich_text' },
       'CategoryID': { type: 'rich_text' },
       'Notes': { type: 'rich_text' },
+      'CreatedAt': { type: 'rich_text' },
       'LastModified': { type: 'rich_text' }
     };
 
@@ -220,6 +222,7 @@ export const fetchNotionPrompts = async (apiKey: string, databaseId: string): Pr
       const promptId = props.PromptID?.rich_text?.[0]?.plain_text?.trim() || generatePromptId(title, content, tags);
       const enabled = props.Enabled?.checkbox === undefined ? true : props.Enabled.checkbox;
       const notes = props.Notes?.rich_text?.[0]?.plain_text?.trim() || '';
+      const createdAt = props.CreatedAt?.rich_text?.[0]?.plain_text?.trim() || props.LastModified?.rich_text?.[0]?.plain_text?.trim() || new Date().toISOString();
       const lastModified = props.LastModified?.rich_text?.[0]?.plain_text?.trim() || new Date().toISOString();
 
       return {
@@ -231,6 +234,7 @@ export const fetchNotionPrompts = async (apiKey: string, databaseId: string): Pr
         enabled,
         categoryId: props.CategoryID?.rich_text?.[0]?.plain_text?.trim() || DEFAULT_CATEGORY_ID, // 分配 categoryId
         notes: notes || undefined, // 只在有内容时设置
+        createdAt,
         lastModified,
       } as PromptItem;
     });
@@ -268,8 +272,7 @@ export const syncPromptsFromNotion = async (mode: 'replace' | 'append' = 'replac
     
     console.log(`Fetched ${notionPrompts.length} prompts from Notion.`);
 
-    const localPromptsResult = await browser.storage.local.get(BROWSER_STORAGE_KEY);
-    let localPrompts: PromptItem[] = localPromptsResult[BROWSER_STORAGE_KEY] || [];
+    let localPrompts = await getAllPrompts();
     console.log(`Found ${localPrompts.length} prompts locally before sync.`);
 
     let newLocalPrompts: PromptItem[];
@@ -286,9 +289,7 @@ export const syncPromptsFromNotion = async (mode: 'replace' | 'append' = 'replac
     }
     
     // 更新本地存储
-    const dataToStore: Record<string, any> = {};
-    dataToStore[BROWSER_STORAGE_KEY] = newLocalPrompts;
-    await browser.storage.local.set(dataToStore);
+    await setAllPrompts(newLocalPrompts);
     
     console.log(`Successfully synced ${newLocalPrompts.length} prompts from Notion to local storage (mode: ${mode}).`);
     return true;
@@ -312,6 +313,7 @@ async function createNotionPage(prompt: PromptItem, apiKey: string, databaseId: 
       'CategoryID': { rich_text: [{ text: { content: prompt.categoryId || DEFAULT_CATEGORY_ID } }] },
       'Enabled': { checkbox: prompt.enabled === undefined ? true : !!prompt.enabled }, // 确保是布尔值
       'Notes': { rich_text: [{ text: { content: prompt.notes || "" } }] },
+      'CreatedAt': { rich_text: [{ text: { content: prompt.createdAt || prompt.lastModified || new Date().toISOString() } }] },
       'LastModified': { rich_text: [{ text: { content: prompt.lastModified || new Date().toISOString() } }] }
     };
 
@@ -354,6 +356,7 @@ async function updateNotionPage(notionPageId: string, prompt: PromptItem, apiKey
       'CategoryID': { rich_text: [{ text: { content: prompt.categoryId || DEFAULT_CATEGORY_ID } }] },
       'Enabled': { checkbox: prompt.enabled === undefined ? true : !!prompt.enabled }, // 确保是布尔值
       'Notes': { rich_text: [{ text: { content: prompt.notes || "" } }] },
+      'CreatedAt': { rich_text: [{ text: { content: prompt.createdAt || prompt.lastModified || new Date().toISOString() } }] },
       'LastModified': { rich_text: [{ text: { content: prompt.lastModified || new Date().toISOString() } }] }
     };
 
@@ -504,8 +507,7 @@ export const syncPromptsToNotion = async (localPrompts: PromptItem[]): Promise<{
     // 如果需要将 Notion Page ID 存储回本地提示。
     // 现在，这个函数专注于推送到 Notion。
     // 但是，让我们确保本地提示在新生成 PromptID 的项目没有 ID 时更新。
-    const currentLocalPromptsResult = await browser.storage.local.get(BROWSER_STORAGE_KEY);
-    let currentLocalPrompts: PromptItem[] = (currentLocalPromptsResult[BROWSER_STORAGE_KEY as keyof typeof currentLocalPromptsResult] as PromptItem[]) || [];
+    let currentLocalPrompts = await getAllPrompts();
 
     currentLocalPrompts = currentLocalPrompts.map(p => {
         if (!p.id) { // 如果 ID 预先生成，则理想情况下不应发生这种情况
@@ -537,4 +539,4 @@ export const syncPromptsToNotion = async (localPrompts: PromptItem[]): Promise<{
     console.error('Error syncing prompts to Notion:', error);
     return {success: false, errors: [error.message || '同步到Notion时发生未知错误']};
   }
-}; 
+};

@@ -157,6 +157,22 @@ describe('filterPrompts', () => {
   })
 
   describe('组合筛选', () => {
+    it('应该按标签精确筛选提示词', () => {
+      const filtered = filterPrompts(prompts, { tag: 'frontend' })
+
+      expect(filtered).toHaveLength(2)
+      expect(filtered.map((prompt) => prompt.id)).toEqual(['1', '2'])
+    })
+
+    it('应该同时按分类和标签筛选', () => {
+      const filtered = filterPrompts(prompts, {
+        categoryId: 'lifestyle',
+        tag: 'frontend',
+      })
+
+      expect(filtered).toHaveLength(0)
+    })
+
     it('应该同时按分类和搜索词筛选', () => {
       const filtered = filterPrompts(prompts, {
         categoryId: 'programming',
@@ -270,6 +286,28 @@ describe('normalizePromptItem', () => {
     const normalized = normalizePromptItem(prompt)
 
     expect(normalized.notes).toBe('')
+  })
+
+  it('应该填充缺失的 attachments 为空数组', () => {
+    const normalized = normalizePromptItem(createPrompt())
+
+    expect(normalized.attachments).toEqual([])
+  })
+
+  it('应该保留已有的附件元数据', () => {
+    const attachments = [
+      {
+        id: 'attachment-1',
+        name: 'guide.pdf',
+        type: 'application/pdf',
+        size: 2048,
+        relativePath: 'attachments/test-id/attachment-1-guide.pdf',
+        createdAt: '2024-01-01T00:00:00.000Z',
+      },
+    ]
+    const normalized = normalizePromptItem(createPrompt({ attachments }))
+
+    expect(normalized.attachments).toEqual(attachments)
   })
 
   vi.useRealTimers()

@@ -1,23 +1,48 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import type { PromptItem, Category } from '@/utils/types'
+import { AlertCircle, Info, Save, X } from "lucide-react"
+import type { PromptItem, Category, PromptAttachment } from '@/utils/types'
 import { getCategories } from '@/utils/categoryUtils'
 import { DEFAULT_CATEGORY_ID } from '@/utils/constants'
 import { getValidCategoryId } from '@/utils/promptUtils'
+import PromptAttachmentEditor from './PromptAttachmentEditor'
+import PromptTagSelector from './PromptTagSelector'
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
+import { Textarea } from "@/components/ui/textarea"
 import { t } from '../../../utils/i18n'
 
 interface PromptFormProps {
   onSubmit: (prompt: PromptItem | Omit<PromptItem, 'id'>) => Promise<void>
   initialData: PromptItem | null
+  initialContent?: string | null
   onCancel: () => void
   isEditing: boolean
+  availableTags?: string[]
 }
 
-const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormProps) => {
+const PromptForm = ({
+  onSubmit,
+  initialData,
+  initialContent,
+  onCancel,
+  isEditing,
+  availableTags = [],
+}: PromptFormProps) => {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
-  const [tags, setTags] = useState('')
+  const [tags, setTags] = useState<string[]>([])
   const [notes, setNotes] = useState('')
+  const [attachments, setAttachments] = useState<PromptAttachment[]>([])
   const [thumbnailUrl, setThumbnailUrl] = useState('')
   const [enabled, setEnabled] = useState(true)
   const [categoryId, setCategoryId] = useState(DEFAULT_CATEGORY_ID)
@@ -25,6 +50,8 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
   const [error, setError] = useState<string | null>(null)
   const [categories, setCategories] = useState<Category[]>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
+  const [newPromptId, setNewPromptId] = useState(() => crypto.randomUUID())
+  const promptId = initialData?.id || newPromptId
 
   // 加载分类列表并初始化表单
   useEffect(() => {
@@ -38,16 +65,18 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
         if (initialData) {
           setTitle(initialData.title)
           setContent(initialData.content)
-          setTags(initialData.tags.join(', '))
+          setTags(initialData.tags || [])
           setNotes(initialData.notes || '')
+          setAttachments(initialData.attachments || [])
           setThumbnailUrl(initialData.thumbnailUrl || '')
           setEnabled(initialData.enabled !== undefined ? initialData.enabled : true)
           setCategoryId(getValidCategoryId(initialData.categoryId, enabledCategories))
         } else {
           setTitle('')
-          setContent('')
-          setTags('')
+          setContent(initialContent || '')
+          setTags([])
           setNotes('')
+          setAttachments([])
           setThumbnailUrl('')
           setEnabled(true)
           setCategoryId(getValidCategoryId(DEFAULT_CATEGORY_ID, enabledCategories))
@@ -61,7 +90,7 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
     }
 
     initForm()
-  }, [initialData])
+  }, [initialData, initialContent])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -86,23 +115,21 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
     setError(null)
 
     try {
-      // Process tags: split by commas, trim whitespace, filter empty strings
-      const tagList = tags
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter((tag) => tag !== '')
-
+      const now = new Date().toISOString()
+      const submittedPromptId = initialData?.id || newPromptId
       // Create prompt object
       const promptData = {
-        ...(initialData ? { id: initialData.id } : {}),
+        ...(submittedPromptId ? { id: submittedPromptId } : {}),
         title: title.trim(),
         content: content.trim(),
-        tags: tagList,
+        tags,
         notes: notes.trim(),
+        attachments,
         thumbnailUrl: thumbnailUrl.trim() || undefined,
         enabled,
         categoryId,
-        lastModified: new Date().toISOString(),
+        createdAt: initialData?.createdAt || now,
+        lastModified: now,
       }
 
       await onSubmit(promptData as any) // Type assertion to handle both new and edited prompts
@@ -111,9 +138,11 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
       if (!isEditing) {
         setTitle('')
         setContent('')
-        setTags('')
+        setTags([])
         setNotes('')
+        setAttachments([])
         setThumbnailUrl('')
+        setNewPromptId(crypto.randomUUID())
         // 保持当前分类选中，而不是重置为可能无效的默认分类
       }
     } catch (err) {
@@ -127,85 +156,74 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
   return (
     <div>
       {error && (
-        <div className='bg-red-50 border-l-4 border-red-500 text-red-700 p-4 rounded-md mb-4 flex items-start'>
-          <svg
-            className='w-5 h-5 mr-2 mt-0.5 flex-shrink-0'
-            fill='none'
-            stroke='currentColor'
-            viewBox='0 0 24 24'
-          >
-            <path
-              strokeLinecap='round'
-              strokeLinejoin='round'
-              strokeWidth='2'
-              d='M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z'
-            />
-          </svg>
-          <span>{error}</span>
-        </div>
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="size-4" />
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
       )}
 
       <form onSubmit={handleSubmit} className='space-y-5'>
         <div>
-          <label htmlFor='title' className='block text-sm font-medium text-gray-700 mb-1'>
+          <label htmlFor='title' className='mb-1.5 block text-sm font-medium text-foreground'>
             {t('titleLabel')}
           </label>
-          <input
+          <Input
             type='text'
             id='title'
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            className='w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200'
             placeholder={t('titlePlaceholder')}
           />
         </div>
 
         <div>
-          <label htmlFor='content' className='block text-sm font-medium text-gray-700 mb-1'>
+          <label htmlFor='content' className='mb-1.5 block text-sm font-medium text-foreground'>
             {t('contentLabel')}
           </label>
-          <textarea
+          <Textarea
             id='content'
             value={content}
             onChange={(e) => setContent(e.target.value)}
             rows={6}
-            className='w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200'
             placeholder={t('contentPlaceholder')}
           />
-          <div className='mt-2 text-sm text-gray-600 bg-gray-50 p-3 rounded-md border border-gray-200'>
-            <p>{t('variableFormatTip')}</p>
-            <p className='mt-1 text-gray-500 text-xs'>{t('variableExample')}</p>
+          <div className='mt-2 rounded-xl border border-border bg-muted/50 p-3 text-sm text-muted-foreground'>
+            <p className="flex items-center gap-2 text-foreground">
+              <Info className="size-4 text-primary" />
+              {t('variableFormatTip')}
+            </p>
+            <p className='mt-1 text-xs'>{t('variableExample')}</p>
           </div>
         </div>
 
         <div>
-          <label htmlFor='category' className='block text-sm font-medium text-gray-700 mb-1'>
+          <label htmlFor='category' className='mb-1.5 block text-sm font-medium text-foreground'>
             {t('categoryLabel')}
           </label>
           {loadingCategories ? (
-            <div className='w-full px-3 py-2 border border-gray-300 rounded-lg bg-gray-50 text-gray-500'>
+            <div className='flex h-10 w-full items-center rounded-xl border border-input bg-muted px-3 text-sm text-muted-foreground'>
               {t('loadingCategories')}
             </div>
           ) : (
-            <select
-              id='category'
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              className='w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200'
-            >
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
+            <Select value={categoryId} onValueChange={setCategoryId}>
+              <SelectTrigger id="category">
+                <SelectValue placeholder={t('pleaseSelectCategory')} />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map((category) => (
+                  <SelectItem key={category.id} value={category.id}>
+                    {category.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
           {categories.length === 0 && !loadingCategories && (
-            <p className='mt-1 text-sm text-gray-500'>
+            <p className='mt-2 text-sm text-muted-foreground'>
               {t('noAvailableCategories')}
               <Link 
                 to='/categories' 
-                className='text-blue-600 hover:text-blue-800 ml-1'
+                className='ml-1 text-primary hover:underline'
               >
                 {t('createCategory')}
               </Link>
@@ -214,46 +232,49 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
         </div>
 
         <div>
-          <label htmlFor='tags' className='block text-sm font-medium text-gray-700 mb-1'>
-            {t('tagsLabel')} <span className='text-gray-400 font-normal'>({t('tagsOptional')})</span>
+          <label htmlFor='tags' className='mb-1.5 block text-sm font-medium text-foreground'>
+            {t('tagsLabel')} <span className='font-normal text-muted-foreground'>({t('tagsOptional')})</span>
           </label>
-          <input
-            type='text'
-            id='tags'
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            className='w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200'
-            placeholder={t('tagsPlaceholder')}
+          <PromptTagSelector
+            selectedTags={tags}
+            availableTags={availableTags}
+            onChange={setTags}
+            translate={t}
           />
         </div>
 
         <div>
-          <label htmlFor='notes' className='block text-sm font-medium text-gray-700 mb-1'>
-            {t('notesLabel')} <span className='text-gray-400 font-normal'>({t('notesOptional')})</span>
+          <label htmlFor='notes' className='mb-1.5 block text-sm font-medium text-foreground'>
+            {t('notesLabel')} <span className='font-normal text-muted-foreground'>({t('notesOptional')})</span>
           </label>
-          <textarea
+          <Textarea
             id='notes'
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
-            className='w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200'
             placeholder={t('notesPlaceholder')}
           />
-          <div className='mt-1 text-xs text-gray-500'>
+          <div className='mt-1 text-xs text-muted-foreground'>
             {t('notesHelp')}
           </div>
         </div>
 
+        <PromptAttachmentEditor
+          promptId={promptId}
+          attachments={attachments}
+          onChange={setAttachments}
+          translate={t}
+        />
+
         <div>
-          <label htmlFor='thumbnailUrl' className='block text-sm font-medium text-gray-700 mb-1'>
-            {t('thumbnailUrlLabel')} <span className='text-gray-400 font-normal'>({t('thumbnailUrlOptional')})</span>
+          <label htmlFor='thumbnailUrl' className='mb-1.5 block text-sm font-medium text-foreground'>
+            {t('thumbnailUrlLabel')} <span className='font-normal text-muted-foreground'>({t('thumbnailUrlOptional')})</span>
           </label>
-          <input
+          <Input
             type='url'
             id='thumbnailUrl'
             value={thumbnailUrl}
             onChange={(e) => setThumbnailUrl(e.target.value)}
-            className='w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200'
             placeholder={t('thumbnailUrlPlaceholder')}
           />
           {thumbnailUrl && (
@@ -261,7 +282,7 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
               <img
                 src={thumbnailUrl}
                 alt='Thumbnail preview'
-                className='max-w-32 max-h-32 rounded-lg border border-gray-200 object-cover'
+                className='max-h-32 max-w-32 rounded-xl border border-border object-cover'
                 onError={(e) => {
                   (e.target as HTMLImageElement).style.display = 'none'
                 }}
@@ -273,37 +294,33 @@ const PromptForm = ({ onSubmit, initialData, onCancel, isEditing }: PromptFormPr
           )}
         </div>
 
-        <div className='flex items-center mt-4'>
-          <label className='relative inline-flex items-center cursor-pointer'>
-            <input 
-              type='checkbox' 
-              checked={enabled} 
-              onChange={(e) => setEnabled(e.target.checked)}
-              className='sr-only peer'
-            />
-            <div className='relative w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[""] after:absolute after:top-1/2 after:right-1/2 after:-translate-y-1/2 after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600'></div>
-            <span className='ml-3 text-sm font-medium text-gray-700'>
-              {enabled ? t('enabledStatus') : t('disabledStatus')} <span className='text-gray-400 font-normal'>({t('disabledStatusTip')})</span>
-            </span>
-          </label>
+        <div className='flex items-center justify-between rounded-2xl border border-border bg-muted/40 p-4'>
+          <div>
+            <div className="text-sm font-medium text-foreground">
+              {enabled ? t('enabledStatus') : t('disabledStatus')}
+            </div>
+            <div className="text-xs text-muted-foreground">{t('disabledStatusTip')}</div>
+          </div>
+          <Switch checked={enabled} onCheckedChange={setEnabled} aria-label={enabled ? t('enabledStatus') : t('disabledStatus')} />
         </div>
 
-        <div className='flex space-x-3 pt-2'>
-          <button
-            type='submit'
-            disabled={isSubmitting}
-            className='px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200 font-medium flex-grow sm:flex-grow-0'
-          >
-            {isSubmitting ? t('savingPrompt') : isEditing ? t('updatePrompt') : t('savePromptButton')}
-          </button>
-
-          <button
+        <div className='flex flex-col-reverse gap-2 pt-2 sm:flex-row sm:justify-end'>
+          <Button
             type='button'
             onClick={onCancel}
-            className='px-4 py-2 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-colors duration-200'
+            variant="outline"
           >
+            <X className="size-4" />
             {t('cancel')}
-          </button>
+          </Button>
+
+          <Button
+            type='submit'
+            disabled={isSubmitting}
+          >
+            <Save className="size-4" />
+            {isSubmitting ? t('savingPrompt') : isEditing ? t('updatePrompt') : t('savePromptButton')}
+          </Button>
         </div>
       </form>
     </div>

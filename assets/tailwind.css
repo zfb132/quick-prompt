@@ -1,1 +1,240 @@
 @import "tailwindcss";
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 0.25rem);
+  --radius-2xl: calc(var(--radius) + 0.5rem);
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+:root {
+  color-scheme: light;
+  text-autospace: normal;
+  --background: 210 20% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 221 83% 53%;
+  --primary-foreground: 210 40% 98%;
+  --secondary: 215 20% 94%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 215 20% 94%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 215 20% 94%;
+  --accent-foreground: 222 47% 11%;
+  --destructive: 0 72% 51%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 221 83% 53%;
+  --radius: 0.75rem;
+}
+
+.dark {
+  color-scheme: dark;
+  --background: 222 47% 7%;
+  --foreground: 210 40% 96%;
+  --card: 222 40% 10%;
+  --card-foreground: 210 40% 96%;
+  --popover: 222 40% 10%;
+  --popover-foreground: 210 40% 96%;
+  --primary: 217 91% 60%;
+  --primary-foreground: 222 47% 11%;
+  --secondary: 217 33% 16%;
+  --secondary-foreground: 210 40% 96%;
+  --muted: 217 33% 16%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 217 33% 16%;
+  --accent-foreground: 210 40% 96%;
+  --destructive: 0 63% 45%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217 33% 18%;
+  --input: 217 33% 18%;
+  --ring: 217 91% 60%;
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-sans);
+    font-synthesis: none;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  :where(
+    button:not(:disabled):hover,
+    [role="button"]:not([aria-disabled="true"]):hover,
+    [role="menuitem"]:not([aria-disabled="true"]):hover,
+    [role="option"]:not([aria-disabled="true"]):hover,
+    [role="tab"]:not([aria-disabled="true"]):hover,
+    a[href]:hover,
+    summary:hover,
+    label[for]:hover,
+    input[type="button"]:not(:disabled):hover,
+    input[type="submit"]:not(:disabled):hover,
+    input[type="reset"]:not(:disabled):hover,
+    input[type="checkbox"]:not(:disabled):hover,
+    input[type="radio"]:not(:disabled):hover,
+    input[type="file"]:not(:disabled):hover,
+    select:not(:disabled):hover
+  ) {
+    cursor: pointer;
+  }
+}
+
+@layer utilities {
+  .animate-in {
+    animation-duration: 180ms;
+    animation-fill-mode: both;
+  }
+
+  .animate-out {
+    animation-duration: 150ms;
+    animation-fill-mode: both;
+  }
+
+  .fade-in-0 {
+    animation-name: qp-fade-in;
+  }
+
+  .fade-out-0 {
+    animation-name: qp-fade-out;
+  }
+
+  .zoom-in-95 {
+    animation-name: qp-fade-in, qp-zoom-in;
+  }
+
+  .zoom-out-95 {
+    animation-name: qp-fade-out, qp-zoom-out;
+  }
+
+  .slide-in-from-left {
+    animation-name: qp-slide-in-left;
+  }
+
+  .slide-out-to-left {
+    animation-name: qp-slide-out-left;
+  }
+
+  .slide-in-from-right {
+    animation-name: qp-slide-in-right;
+  }
+
+  .slide-out-to-right {
+    animation-name: qp-slide-out-right;
+  }
+
+  .line-clamp-1 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 1;
+  }
+
+  .line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .line-clamp-3 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+  }
+
+  .line-clamp-5 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 5;
+  }
+}
+
+@keyframes qp-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes qp-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes qp-zoom-in {
+  from { transform: scale(0.96); }
+  to { transform: scale(1); }
+}
+
+@keyframes qp-zoom-out {
+  from { transform: scale(1); }
+  to { transform: scale(0.96); }
+}
+
+@keyframes qp-slide-in-left {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes qp-slide-out-left {
+  from { transform: translateX(0); }
+  to { transform: translateX(-100%); }
+}
+
+@keyframes qp-slide-in-right {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes qp-slide-out-right {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}

@@ -1,6 +1,7 @@
-import { BROWSER_STORAGE_KEY, DEFAULT_PROMPTS } from "@/utils/constants"
+import { DEFAULT_PROMPTS } from "@/utils/constants"
 import { initializeDefaultCategories, migratePromptsWithCategory } from "@/utils/categoryUtils"
 import { t, initLocale } from "@/utils/i18n"
+import { getAllPrompts, setAllPrompts } from "@/utils/promptStore"
 
 // Import extracted modules
 import { checkShortcutConfiguration, handleCommand } from "@/utils/browser/shortcutManager"
@@ -20,15 +21,12 @@ export default defineBackground(async () => {
       await initializeDefaultCategories();
       await migratePromptsWithCategory();
 
-      const promptsResult = await browser.storage.local.get(BROWSER_STORAGE_KEY);
-      const prompts = promptsResult[BROWSER_STORAGE_KEY as keyof typeof promptsResult];
+      const prompts = await getAllPrompts();
 
-      if (prompts && Array.isArray(prompts) && prompts.length > 0) {
+      if (prompts.length > 0) {
         console.log('背景脚本: 已存在Prompts数据，无需初始化默认提示词');
       } else {
-        const dataToStore: Record<string, any> = {};
-        dataToStore[BROWSER_STORAGE_KEY] = DEFAULT_PROMPTS;
-        await browser.storage.local.set(dataToStore);
+        await setAllPrompts(DEFAULT_PROMPTS);
         console.log(t('backgroundNotionSyncInitialized'));
       }
     } catch (error) {
@@ -40,7 +38,7 @@ export default defineBackground(async () => {
   initializeDefaultData();
 
   // Setup all the modular components
-  createContextMenus();
+  await createContextMenus();
   setupNotificationHandlers();
   setupStorageChangeListeners();
 

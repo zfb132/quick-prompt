@@ -1,25 +1,37 @@
 import { t } from "@/utils/i18n"
 
-// Create context menu items
-export const createContextMenus = (): void => {
-  // 创建插件图标右键菜单项
-  browser.contextMenus.create({
+const CONTEXT_MENU_ITEMS: Array<Browser.contextMenus.CreateProperties & { titleKey: string }> = [
+  {
     id: 'open-options',
-    title: t('promptManagement'),
-    contexts: ['action'], // 插件图标右键菜单
-  })
-
-  browser.contextMenus.create({
-    id: 'category-management',
-    title: t('categoryManagement'),
+    titleKey: 'promptManagement',
     contexts: ['action'],
-  })
-
-  // 创建页面内容右键菜单项
-  browser.contextMenus.create({
+  },
+  {
+    id: 'category-management',
+    titleKey: 'categoryManagement',
+    contexts: ['action'],
+  },
+  {
     id: 'save-prompt',
-    title: t('savePrompt'),
+    titleKey: 'savePrompt',
     contexts: ['selection'],
+  },
+];
+
+// Create context menu items
+export const createContextMenus = async (): Promise<void> => {
+  await browser.contextMenus.removeAll();
+
+  CONTEXT_MENU_ITEMS.forEach(({ titleKey, ...item }) => {
+    browser.contextMenus.create({
+      ...item,
+      title: t(titleKey),
+    }, () => {
+      const error = browser.runtime.lastError;
+      if (error) {
+        console.warn(`创建右键菜单失败 (${item.id}):`, error.message);
+      }
+    });
   });
 }
 

@@ -1,4 +1,18 @@
 import { useState, useEffect, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import {
+  AlertCircle,
+  Download,
+  FileInput,
+  FilePenLine,
+  FolderKanban,
+  Link2,
+  Plus,
+  Search,
+  Tags,
+  Upload,
+  X,
+} from "lucide-react";
 import CategoryForm from "./CategoryForm";
 import CategoryList from "./CategoryList";
 import Modal from "./Modal";
@@ -15,9 +29,18 @@ import {
   getPromptCountByCategory,
 } from "@/utils/categoryUtils";
 import { DEFAULT_CATEGORY_ID } from "@/utils/constants";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { EmptyState } from "@/components/common/EmptyState";
+import { LoadingState } from "@/components/common/LoadingState";
+import { PageHeader } from "@/components/common/PageHeader";
+import { SectionCard } from "@/components/common/SectionCard";
+import { PageSurface } from "@/components/layout/AppShell";
 import { t } from '../../../utils/i18n';
 
 const CategoryManager = () => {
+  const navigate = useNavigate();
   const [categories, setCategories] = useState<Category[]>([]);
   const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
@@ -201,6 +224,13 @@ const CategoryManager = () => {
       console.error(t('categoryPageToggleError'), err);
       setError(t('toggleCategoryStatusFailed'));
     }
+  };
+
+  const selectCategoryPrompts = (id: string) => {
+    navigate({
+      pathname: "/",
+      search: `?category=${encodeURIComponent(id)}`,
+    });
   };
 
   // 导出分类
@@ -548,146 +578,87 @@ const CategoryManager = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-        <div className="flex justify-center items-center min-h-screen">
-          <div className="text-center space-y-4">
-            <div className="relative">
-              <div className="w-16 h-16 mx-auto">
-                <div className="absolute inset-0 border-4 border-blue-200 dark:border-blue-800 rounded-full"></div>
-                <div className="absolute inset-0 border-4 border-blue-600 dark:border-blue-400 rounded-full border-t-transparent animate-spin"></div>
-              </div>
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300">{t('loading')}</h3>
-              <p className="text-sm text-gray-500 dark:text-gray-400">{t('loadingMessage')}</p>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageSurface>
+        <LoadingState title={t('loading')} description={t('loadingMessage')} />
+      </PageSurface>
     );
   }
 
   return (
-    <div className="h-screen flex flex-col bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900">
-      {/* 固定顶部区域 */}
-      <div className="flex-shrink-0 px-4 sm:px-6 lg:px-8 pt-4">
-        {/* 错误提示 */}
+    <PageSurface className="flex min-h-full flex-col">
+      <div className="flex-shrink-0 space-y-4 px-4 pt-4 sm:px-6 lg:px-8">
         {error && (
-          <div className="mb-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800/50 rounded-xl p-3 shadow-sm">
-            <div className="flex items-center space-x-3">
-              <svg className="w-5 h-5 text-red-600 dark:text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-              </svg>
-              <p className="text-sm text-red-700 dark:text-red-400 flex-1">{error}</p>
-              <button
+          <Alert variant="destructive">
+            <AlertCircle className="size-4" />
+            <AlertDescription className="flex items-center justify-between gap-3">
+              <span>{error}</span>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
                 onClick={() => setError(null)}
-                className="flex-shrink-0 text-red-400 dark:text-red-500 hover:text-red-600 dark:hover:text-red-300 transition-colors"
+                aria-label={t("close")}
+                className="text-destructive hover:bg-destructive/10"
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
+                <X className="size-4" />
+              </Button>
+            </AlertDescription>
+          </Alert>
         )}
 
-        {/* 顶部工具栏 */}
-        <div className="mb-4">
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-white/20 dark:border-gray-700/50 rounded-xl p-3 shadow-lg">
-            <div className="flex flex-wrap items-center gap-3">
-              {/* 标题 */}
-              <div className="flex items-center gap-3 mr-auto">
-                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center shadow">
-                  <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                  </svg>
-                </div>
-                <h1 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                  {t('categoryManagement')}
-                </h1>
-              </div>
+        <PageHeader
+          icon={Tags}
+          title={t('categoryManagement')}
+          actions={
+            <>
+              <Button
+                onClick={exportCategories}
+                disabled={categories.length === 0}
+                variant="outline"
+                size="sm"
+                title={categories.length === 0 ? t('noCategoriesToExport') : t('exportAllCategories')}
+              >
+                <Download className="size-4" />
+                {t('exportCategories')}
+              </Button>
+              <Button onClick={triggerFileInput} variant="outline" size="sm" title={t('localImportCategories')}>
+                <FileInput className="size-4" />
+                {t('localImportCategories')}
+              </Button>
+              <Button onClick={openRemoteImportModal} variant="outline" size="sm" title={t('importCategoriesFromUrl')}>
+                <Link2 className="size-4" />
+                {t('remoteImportCategories')}
+              </Button>
+              <Button onClick={openAddModal} size="sm">
+                <Plus className="size-4" />
+                {t('addCategory')}
+              </Button>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={importCategories}
+                accept=".json"
+                className="hidden"
+              />
+            </>
+          }
+        />
 
-              {/* 搜索框 */}
-              <div className="relative order-last w-full sm:order-none sm:w-auto">
-                <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none">
-                  <svg className="h-4 w-4 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                  </svg>
-                </div>
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder={t('searchCategory')}
-                  className="block w-full sm:w-44 pl-8 pr-3 py-1.5 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-transparent transition-all"
-                />
-              </div>
-
-              <div className="w-px h-6 bg-gray-200 dark:bg-gray-700 hidden sm:block"></div>
-
-              {/* 操作按钮组 */}
-              <div className="flex items-center gap-1.5">
-                <button
-                  onClick={exportCategories}
-                  disabled={categories.length === 0}
-                  className="inline-flex items-center px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed text-gray-700 dark:text-gray-300 text-xs font-medium rounded-lg transition-colors cursor-pointer"
-                  title={categories.length === 0 ? t('noCategoriesToExport') : t('exportAllCategories')}
-                >
-                  <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-                  </svg>
-                  {t('exportCategories')}
-                </button>
-
-                <button
-                  onClick={triggerFileInput}
-                  className="inline-flex items-center px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-lg transition-colors cursor-pointer"
-                  title={t('localImportCategories')}
-                >
-                  <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                  </svg>
-                  {t('localImportCategories')}
-                </button>
-
-                <button
-                  onClick={openRemoteImportModal}
-                  className="inline-flex items-center px-2.5 py-1.5 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-lg transition-colors cursor-pointer"
-                  title={t('importCategoriesFromUrl')}
-                >
-                  <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                  </svg>
-                  {t('remoteImportCategories')}
-                </button>
-
-                <div className="w-px h-6 bg-gray-200 dark:bg-gray-700"></div>
-
-                <button
-                  onClick={openAddModal}
-                  className="inline-flex items-center px-3 py-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-xs font-medium rounded-lg transition-all shadow-sm hover:shadow cursor-pointer"
-                >
-                  <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                  </svg>
-                  {t('addCategory')}
-                </button>
-
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  onChange={importCategories}
-                  accept=".json"
-                  className="hidden"
-                />
-              </div>
-            </div>
+        <SectionCard contentClassName="pt-6">
+          <div className="relative max-w-md">
+            <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder={t('searchCategory')}
+              className="pl-9"
+            />
           </div>
-        </div>
+        </SectionCard>
       </div>
 
-      {/* 可滚动内容区域 */}
-      <div className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-8 pb-4">
+      <div className="thin-scrollbar flex-1 overflow-y-auto px-4 pb-4 pt-4 sm:px-6 lg:px-8">
 
         {/* 分类列表 */}
         <CategoryList
@@ -697,58 +668,26 @@ const CategoryManager = () => {
           searchTerm={searchTerm}
           allCategoriesCount={categories.length}
           onToggleEnabled={toggleCategoryEnabled}
+          onSelect={selectCategoryPrompts}
           promptCounts={promptCounts}
         />
 
-        {/* 无结果提示 */}
         {filteredCategories.length === 0 && (
-          <div className="text-center py-10">
-            <div className="max-w-sm mx-auto">
-              <div className="w-14 h-14 mx-auto mb-4 bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-full flex items-center justify-center">
-                <svg className="w-7 h-7 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-                </svg>
-              </div>
-
-              {searchTerm ? (
-                <div className="space-y-3">
-                  <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('noMatchingCategories2')}</h3>
-                  <div className="flex justify-center">
-                    <button
-                      onClick={() => setSearchTerm("")}
-                      className="cursor-pointer inline-flex items-center px-3 py-1.5 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors font-medium"
-                    >
-                      <svg className="w-3.5 h-3.5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                      {t('clearSearch')}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  <h3 className="text-base font-semibold text-gray-900 dark:text-gray-100">{t('noCategories')}</h3>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">{t('createFirstCategory')}</p>
-                  <button
-                    onClick={openAddModal}
-                    className="cursor-pointer inline-flex items-center px-4 py-2 text-sm bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition-all font-medium"
-                  >
-                    <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                    </svg>
-                    {t('createFirstCategory')}
-                  </button>
-                </div>
-              )}
-            </div>
-          </div>
+          <EmptyState
+            icon={FolderKanban}
+            title={searchTerm ? t('noMatchingCategories2') : t('noCategories')}
+            description={searchTerm ? undefined : t('createFirstCategory')}
+            actionLabel={searchTerm ? t('clearSearch') : t('createFirstCategory')}
+            onAction={searchTerm ? () => setSearchTerm("") : openAddModal}
+          />
         )}
 
         {/* 添加/编辑分类模态框 */}
         <Modal
           isOpen={isModalOpen}
           onClose={closeModal}
-          title={editingCategory ? t('editCategory') : t('addCategory')} // Title as string
+          title={editingCategory ? t('editCategory') : t('addCategory')}
+          icon={editingCategory ? FilePenLine : Plus}
         >
           <CategoryForm
             onSubmit={handleCategorySubmit}
@@ -763,95 +702,65 @@ const CategoryManager = () => {
           isOpen={isRemoteImportModalOpen}
           onClose={closeRemoteImportModal}
           title={t('importCategoriesFromUrl')}
+          icon={Link2}
         >
           <div className="space-y-6 pt-2">
-            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800/50 rounded-xl p-4">
-              <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0">
-                  <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-medium text-blue-900 dark:text-blue-300">{t('importInstructions')}</h4>
-                  <p className="text-sm text-blue-800 dark:text-blue-400 mt-1">
-                    {t('importCategoriesInstructionsDetail')}
-                  </p>
-                </div>
-              </div>
-            </div>
+            <Alert variant="info">
+              <AlertCircle className="size-4" />
+              <AlertTitle>{t('importInstructions')}</AlertTitle>
+              <AlertDescription>{t('importCategoriesInstructionsDetail')}</AlertDescription>
+            </Alert>
 
             <div className="space-y-4">
               <div>
-                <label htmlFor="remote-url" className="block text-sm font-semibold text-gray-900 dark:text-gray-100 mb-2">
+                <label htmlFor="remote-url" className="mb-2 block text-sm font-semibold text-foreground">
                   {t('remoteUrl')}
                 </label>
                 <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <svg className="h-5 w-5 text-gray-400 dark:text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-                    </svg>
-                  </div>
-                  <input
+                  <Link2 className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
                     type="text"
                     id="remote-url"
                     value={remoteUrl}
                     onChange={handleRemoteUrlChange}
                     placeholder="https://example.com/categories.json"
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+                    className="pl-9"
                   />
                 </div>
               </div>
 
               {error && (
-                <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800/50 rounded-xl p-4">
-                  <div className="flex items-start space-x-3">
-                    <div className="flex-shrink-0">
-                      <svg className="w-5 h-5 text-red-600 dark:text-red-400 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-sm font-medium text-red-900 dark:text-red-300">{t('importFailed')}</h4>
-                      <p className="text-sm text-red-800 dark:text-red-400 mt-1">{error}</p>
-                    </div>
-                  </div>
-                </div>
+                <Alert variant="destructive">
+                  <AlertCircle className="size-4" />
+                  <AlertTitle>{t('importFailed')}</AlertTitle>
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
               )}
             </div>
 
-            <div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-              <button
+            <div className="flex justify-end gap-3 border-t border-border pt-4">
+              <Button
                 onClick={closeRemoteImportModal}
-                className="px-6 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200"
+                variant="outline"
               >
                 {t('cancel')}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={importFromRemoteUrl}
                 disabled={isRemoteImporting || !remoteUrl.trim()}
-                className={`px-6 py-2.5 text-sm font-medium text-white rounded-xl focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-all duration-200 ${
-                  isRemoteImporting || !remoteUrl.trim()
-                    ? "bg-blue-400 cursor-not-allowed"
-                    : "bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 hover:shadow-lg hover:-translate-y-0.5"
-                }`}
               >
                 {isRemoteImporting ? (
-                  <div className="flex items-center">
-                    <div className="w-4 h-4 mr-2">
-                      <div className="border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    </div>
+                  <div className="flex items-center gap-2">
+                    <Upload className="size-4 animate-pulse" />
                     {t('importing')}
                   </div>
                 ) : (
-                  <div className="flex items-center">
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                    </svg>
+                  <div className="flex items-center gap-2">
+                    <Upload className="size-4" />
                     {t('startImport')}
                   </div>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </Modal>
@@ -870,7 +779,7 @@ const CategoryManager = () => {
           cancelText={t('cancel')}
         />
       </div>
-    </div>
+    </PageSurface>
   );
 };
 

@@ -213,6 +213,12 @@
   "globalSettingsDescription": {
     "message": "管理扩展的全局配置选项"
   },
+  "collapseSidebar": {
+    "message": "收起侧边栏"
+  },
+  "expandSidebar": {
+    "message": "展开侧边栏"
+  },
   "loadingGlobalSettings": {
     "message": "正在加载全局设置..."
   },
@@ -369,6 +375,9 @@
   },
   "syncingFromNotion": {
     "message": "正在从Notion同步，请稍候..."
+  },
+  "syncingToWebDav": {
+    "message": "正在上传到 WebDAV，请稍候..."
   },
   "noPromptsAdded": {
     "message": "还没有添加任何 Prompt"
@@ -528,6 +537,9 @@
   },
   "allCategories": {
     "message": "所有分类"
+  },
+  "filterByCategory": {
+    "message": "按分类筛选"
   },
   "localImport": {
     "message": "本地导入"
@@ -1075,10 +1087,22 @@
     "message": "标签"
   },
   "tagsOptional": {
-    "message": "可选，用逗号分隔"
+    "message": "可选，支持多选和自定义"
   },
   "tagsPlaceholder": {
-    "message": "例如：编程, 工作, 邮件"
+    "message": "输入自定义标签"
+  },
+  "selectedTags": {
+    "message": "已选标签"
+  },
+  "availableTags": {
+    "message": "可选标签"
+  },
+  "addTag": {
+    "message": "添加标签"
+  },
+  "removeTag": {
+    "message": "移除标签 $1"
   },
   "enabledStatus": {
     "message": "已启用"
@@ -1178,8 +1202,26 @@
   "notes": {
     "message": "备注"
   },
+  "promptCharacterCount": {
+    "message": "字数"
+  },
+  "promptCharacterCountValue": {
+    "message": "$1 字"
+  },
+  "createdAt": {
+    "message": "创建时间"
+  },
   "lastModified": {
     "message": "最后修改时间"
+  },
+  "filterByTag": {
+    "message": "按标签筛选"
+  },
+  "allTags": {
+    "message": "全部标签"
+  },
+  "viewAllTags": {
+    "message": "查看全部标签"
   },
   "notesLabel": {
     "message": "备注"
@@ -1536,5 +1578,191 @@
   },
   "saveAndTest": {
     "message": "保存并测试连接"
+  },
+  "attachmentStorageTitle": {
+    "message": "附件存储"
+  },
+  "attachmentStorageDescription": {
+    "message": "首次进入管理页前，请选择附件存储方式。强烈推荐使用外部自定义文件夹，能更好地管理和备份附件文件。"
+  },
+  "attachmentStorageRecommended": {
+    "message": "推荐"
+  },
+  "chooseAttachmentDirectory": {
+    "message": "选择附件文件夹"
+  },
+  "useBuiltInAttachmentStorage": {
+    "message": "使用插件内置存储"
+  },
+  "useBuiltInAttachmentStorageDescription": {
+    "message": "附件保存在扩展内部，无需选择本地文件夹。"
+  },
+  "useExternalAttachmentStorage": {
+    "message": "使用外部自定义文件夹"
+  },
+  "useExternalAttachmentStorageDescription": {
+    "message": "通过 File System Access API 授权一个文件夹保存附件。"
+  },
+  "attachmentStoragePermissionRequired": {
+    "message": "需要读写权限才能使用附件功能。"
+  },
+  "attachmentStorageUnsupported": {
+    "message": "当前浏览器不支持 File System Access API，仍可使用插件内置存储。"
+  },
+  "attachmentsLabel": {
+    "message": "附件"
+  },
+  "attachmentsOptional": {
+    "message": "可选"
+  },
+  "addAttachment": {
+    "message": "添加附件"
+  },
+  "removeAttachment": {
+    "message": "移除附件"
+  },
+  "attachmentPermissionLost": {
+    "message": "附件目录权限已失效，请重新授权后再试。"
+  },
+  "attachmentAddFailed": {
+    "message": "添加附件失败。"
+  },
+  "attachmentRemoveFailed": {
+    "message": "移除附件失败。"
+  },
+  "imagePreviewDialog": {
+    "message": "图片预览"
+  },
+  "closeImagePreview": {
+    "message": "关闭图片预览"
+  },
+  "previousImage": {
+    "message": "上一张图片"
+  },
+  "nextImage": {
+    "message": "下一张图片"
+  },
+  "webdavSync": {
+    "message": "WebDAV 同步"
+  },
+  "webdavSyncDescription": {
+    "message": "将提示词、分类和附件文件备份到 WebDAV 服务器。"
+  },
+  "webdavConnectionSettings": {
+    "message": "WebDAV 连接"
+  },
+  "webdavServerUrl": {
+    "message": "服务器 URL"
+  },
+  "webdavServerUrlPlaceholder": {
+    "message": "https://example.com/dav"
+  },
+  "webdavUsername": {
+    "message": "用户名"
+  },
+  "webdavUsernamePlaceholder": {
+    "message": "输入 WebDAV 用户名"
+  },
+  "webdavPassword": {
+    "message": "密码"
+  },
+  "webdavPasswordPlaceholder": {
+    "message": "输入 WebDAV 密码"
+  },
+  "webdavRemoteDirectory": {
+    "message": "远程目录"
+  },
+  "webdavRemoteDirectoryHelp": {
+    "message": "Quick Prompt 只会在该目录内写入；如果目录不存在，会通过 WebDAV 自动创建。"
+  },
+  "webdavAutoUpload": {
+    "message": "自动上传"
+  },
+  "webdavAutoUploadDescription": {
+    "message": "本地提示词或分类变化后自动上传到 WebDAV。"
+  },
+  "saveWebdavSettings": {
+    "message": "保存设置"
+  },
+  "saveAndTestWebdavSettings": {
+    "message": "保存设置并测试连接"
+  },
+  "testWebdavConnection": {
+    "message": "测试连接"
+  },
+  "webdavConnectionSuccess": {
+    "message": "WebDAV 连接成功。"
+  },
+  "webdavConnectionFailed": {
+    "message": "WebDAV 连接失败"
+  },
+  "webdavSettingsSaved": {
+    "message": "WebDAV 设置已保存。"
+  },
+  "webdavLoadSettingsFailed": {
+    "message": "加载 WebDAV 设置失败。"
+  },
+  "webdavSaveSettingsFailed": {
+    "message": "保存 WebDAV 设置失败"
+  },
+  "webdavRequiredFields": {
+    "message": "服务器 URL、用户名和密码为必填项。"
+  },
+  "webdavInvalidServerUrl": {
+    "message": "请输入使用 http 或 https 的有效 WebDAV 服务器 URL。"
+  },
+  "webdavInvalidRemoteDirectory": {
+    "message": "请输入有效的远程目录，不能为空且不能包含路径穿越。"
+  },
+  "webdavReauthorizeDescription": {
+    "message": "已保存的附件文件夹权限不可用。同步附件前请重新授权该文件夹。"
+  },
+  "reauthorizeAttachmentDirectory": {
+    "message": "重新授权附件文件夹"
+  },
+  "attachmentStorageReauthorized": {
+    "message": "附件文件夹已重新授权。"
+  },
+  "webdavUploadTitle": {
+    "message": "上传本地备份"
+  },
+  "uploadWebdavBackup": {
+    "message": "上传到 WebDAV"
+  },
+  "webdavUploadDescription": {
+    "message": "将本地提示词、分类和附件上传到配置的 WebDAV 目录。"
+  },
+  "webdavUploadSuccess": {
+    "message": "WebDAV 上传完成，已上传 $1 个文件，已删除 $2 个旧文件。"
+  },
+  "webdavUploadFailed": {
+    "message": "WebDAV 上传失败"
+  },
+  "webdavAutoUploadSuccess": {
+    "message": "WebDAV 自动上传完成。"
+  },
+  "webdavAutoUploadFailed": {
+    "message": "WebDAV 自动上传失败"
+  },
+  "webdavDownloadTitle": {
+    "message": "下载远程备份"
+  },
+  "appendWebdavBackup": {
+    "message": "追加到本地"
+  },
+  "replaceWebdavBackup": {
+    "message": "替换本地数据"
+  },
+  "webdavDownloadSuccess": {
+    "message": "WebDAV 下载完成，已下载 $1 个附件。"
+  },
+  "webdavDownloadFailed": {
+    "message": "WebDAV 下载失败"
+  },
+  "webdavAttachmentPermissionNote": {
+    "message": "运行 WebDAV 同步前需要附件文件夹的读写权限。"
+  },
+  "webdavAutoUploadTaskNote": {
+    "message": "开启自动上传后，本地提示词或分类变化会在后台上传到 WebDAV。"
   }
 }

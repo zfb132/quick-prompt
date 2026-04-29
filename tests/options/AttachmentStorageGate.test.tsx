@@ -1,0 +1,135 @@
+import React from 'react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+
+vi.mock('@/utils/i18n', () => ({ t: (key: string) => key }))
+
+vi.mock('@/utils/attachments/fileSystem', () => ({
+  getAttachmentStorageMode: vi.fn(),
+  getAttachmentRootHandle: vi.fn(),
+  pickAndStoreAttachmentRoot: vi.fn(),
+  useInternalAttachmentStorage: vi.fn(),
+  verifyReadWritePermission: vi.fn(),
+}))
+
+const fs = await import('@/utils/attachments/fileSystem')
+
+const { default: AttachmentStorageGate } = await import('@/entrypoints/options/components/AttachmentStorageGate')
+
+const createDeferred = <T,>() => {
+  let resolve!: (value: T | PromiseLike<T>) => void
+  const promise = new Promise<T>((promiseResolve) => {
+    resolve = promiseResolve
+  })
+
+  return { promise, resolve }
+}
+
+describe('AttachmentStorageGate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    vi.mocked(fs.getAttachmentStorageMode).mockResolvedValue(undefined)
+    Object.defineProperty(window, 'showDirectoryPicker', {
+      value: vi.fn(),
+      configurable: true,
+    })
+  })
+
+  it('renders children when an existing handle has readwrite permission', async () => {
+    vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue({ name: 'Quick Prompt' } as any)
+    vi.mocked(fs.verifyReadWritePermission).mockResolvedValue(true)
+
+    render(<AttachmentStorageGate><div>Options Ready</div></AttachmentStorageGate>)
+
+    expect(await screen.findByText('Options Ready')).toBeInTheDocument()
+  })
+
+  it('blocks options until the user chooses external storage', async () => {
+    vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue(undefined)
+    vi.mocked(fs.pickAndStoreAttachmentRoot).mockResolvedValue({ name: 'Quick Prompt' } as any)
+
+    render(<AttachmentStorageGate><div>Options Ready</div></AttachmentStorageGate>)
+
+    expect(await screen.findByText('attachmentStorageTitle')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /useExternalAttachmentStorage/ }))
+
+    await waitFor(() => expect(screen.getByText('Options Ready')).toBeInTheDocument())
+  })
+
+  it('presents external directory storage as the recommended first choice for first-time users', async () => {
+    vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue(undefined)
+
+    render(<AttachmentStorageGate><div>Options Ready</div></AttachmentStorageGate>)
+
+    expect(await screen.findByText('attachmentStorageTitle')).toBeInTheDocument()
+    const buttons = screen.getAllByRole('button')
+
+    expect(buttons[0]).toHaveTextContent('useExternalAttachmentStorage')
+    expect(buttons[0]).toHaveTextContent('attachmentStorageRecommended')
+    expect(buttons[1]).toHaveTextContent('useBuiltInAttachmentStorage')
+  })
+
+  it('allows first-time users to choose built-in storage without a directory', async () => {
+    vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue(undefined)
+    vi.mocked(fs.useInternalAttachmentStorage).mockResolvedValue({ name: 'Built-in' } as any)
+
+    render(<AttachmentStorageGate><div>Options Ready</div></AttachmentStorageGate>)
+
+    expect(await screen.findByText('attachmentStorageTitle')).toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', { name: /useBuiltInAttachmentStorage/ }))
+
+    await waitFor(() => {
+      expect(fs.useInternalAttachmentStorage).toHaveBeenCalled()
+      expect(screen.getByText('Options Ready')).toBeInTheDocument()
+    })
+  })
+
+  it('renders children when built-in storage was already selected', async () => {
+    vi.mocked(fs.getAttachmentStorageMode).mockResolvedValue('internal')
+
+    render(<AttachmentStorageGate><div>Options Ready</div></AttachmentStorageGate>)
+
+    expect(await screen.findByText('Options Ready')).toBeInTheDocument()
+    expect(fs.verifyReadWritePermission).not.toHaveBeenCalled()
+  })
+
+  it('disables directory selection while checking existing authorization', async () => {
+    const deferredHandle = createDeferred<FileSystemDirectoryHandle | undefined>()
+    vi.mocked(fs.getAttachmentRootHandle).mockReturnValue(deferredHandle.promise)
+
+    render(<AttachmentStorageGate><div>Options Ready</div></AttachmentStorageGate>)
+
+    const button = screen.getByRole('button', { name: /useExternalAttachmentStorage/ })
+    expect(button).toBeDisabled()
+
+    deferredHandle.resolve(undefined)
+    expect(await screen.findByText('attachmentStorageTitle')).toBeInTheDocument()
+    await waitFor(() => expect(button).not.toBeDisabled())
+  })
+
+  it('disables directory selection when the File System Access API is unavailable', async () => {
+    Object.defineProperty(window, 'showDirectoryPicker', {
+      value: undefined,
+      configurable: true,
+    })
+
+    render(<AttachmentStorageGate><div>Options Ready</div></AttachmentStorageGate>)
+
+    expect(await screen.findByText('attachmentStorageUnsupported')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /useExternalAttachmentStorage/ })).toBeDisabled()
+    expect(screen.getByRole('button', { name: /useBuiltInAttachmentStorage/ })).not.toBeDisabled()
+  })
+
+  it('shows a permission error when directory selection fails', async () => {
+    vi.mocked(fs.getAttachmentRootHandle).mockResolvedValue(undefined)
+    vi.mocked(fs.pickAndStoreAttachmentRoot).mockRejectedValue(new DOMException('Denied', 'NotAllowedError'))
+
+    render(<AttachmentStorageGate><div>Options Ready</div></AttachmentStorageGate>)
+
+    await screen.findByText('attachmentStorageTitle')
+    fireEvent.click(screen.getByRole('button', { name: /useExternalAttachmentStorage/ }))
+
+    expect(await screen.findByText('attachmentStoragePermissionRequired')).toBeInTheDocument()
+    expect(screen.queryByText('Options Ready')).not.toBeInTheDocument()
+  })
+})

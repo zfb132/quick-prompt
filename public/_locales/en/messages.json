@@ -210,6 +210,12 @@
   "globalSettingsDescription": {
     "message": "Manage global configuration options for the extension."
   },
+  "collapseSidebar": {
+    "message": "Collapse sidebar"
+  },
+  "expandSidebar": {
+    "message": "Expand sidebar"
+  },
   "loadingGlobalSettings": {
     "message": "Loading global settings..."
   },
@@ -366,6 +372,9 @@
   },
   "syncingFromNotion": {
     "message": "Syncing from Notion, please wait..."
+  },
+  "syncingToWebDav": {
+    "message": "Uploading to WebDAV, please wait..."
   },
   "noPromptsAdded": {
     "message": "No prompts added yet"
@@ -525,6 +534,9 @@
   },
   "allCategories": {
     "message": "All categories"
+  },
+  "filterByCategory": {
+    "message": "Filter by category"
   },
   "localImport": {
     "message": "Local import"
@@ -1072,10 +1084,22 @@
     "message": "Tags"
   },
   "tagsOptional": {
-    "message": "optional, separate with commas"
+    "message": "optional, multi-select and custom"
   },
   "tagsPlaceholder": {
-    "message": "e.g., programming, work, email"
+    "message": "Enter a custom tag"
+  },
+  "selectedTags": {
+    "message": "Selected tags"
+  },
+  "availableTags": {
+    "message": "Available tags"
+  },
+  "addTag": {
+    "message": "Add tag"
+  },
+  "removeTag": {
+    "message": "Remove tag $1"
   },
   "enabledStatus": {
     "message": "Enabled"
@@ -1178,8 +1202,26 @@
   "notes": {
     "message": "Notes"
   },
+  "promptCharacterCount": {
+    "message": "Characters"
+  },
+  "promptCharacterCountValue": {
+    "message": "$1 chars"
+  },
+  "createdAt": {
+    "message": "Created"
+  },
   "lastModified": {
     "message": "Last Modified"
+  },
+  "filterByTag": {
+    "message": "Filter by tag"
+  },
+  "allTags": {
+    "message": "All tags"
+  },
+  "viewAllTags": {
+    "message": "View all tags"
   },
   "notesLabel": {
     "message": "Notes"
@@ -1536,5 +1578,191 @@
   },
   "saveAndTest": {
     "message": "Save & Test Connection"
+  },
+  "attachmentStorageTitle": {
+    "message": "Attachment Storage"
+  },
+  "attachmentStorageDescription": {
+    "message": "Choose how to store attachments before opening the management page. An external local folder is extremely recommended for better performance and larger storage capacity."
+  },
+  "attachmentStorageRecommended": {
+    "message": "Recommended"
+  },
+  "chooseAttachmentDirectory": {
+    "message": "Choose Attachment Folder"
+  },
+  "useBuiltInAttachmentStorage": {
+    "message": "Use Built-in Storage"
+  },
+  "useBuiltInAttachmentStorageDescription": {
+    "message": "Store attachments inside the extension without choosing a local folder."
+  },
+  "useExternalAttachmentStorage": {
+    "message": "Use External Folder"
+  },
+  "useExternalAttachmentStorageDescription": {
+    "message": "Authorize a folder with the File System Access API for attachment files."
+  },
+  "attachmentStoragePermissionRequired": {
+    "message": "Read and write permission is required to use attachments."
+  },
+  "attachmentStorageUnsupported": {
+    "message": "This browser does not support File System Access API. Built-in storage is still available."
+  },
+  "attachmentsLabel": {
+    "message": "Attachments"
+  },
+  "attachmentsOptional": {
+    "message": "Optional"
+  },
+  "addAttachment": {
+    "message": "Add attachment"
+  },
+  "removeAttachment": {
+    "message": "Remove attachment"
+  },
+  "attachmentPermissionLost": {
+    "message": "Attachment folder permission is missing. Reauthorize the folder and try again."
+  },
+  "attachmentAddFailed": {
+    "message": "Failed to add attachment."
+  },
+  "attachmentRemoveFailed": {
+    "message": "Failed to remove attachment."
+  },
+  "imagePreviewDialog": {
+    "message": "Image preview"
+  },
+  "closeImagePreview": {
+    "message": "Close image preview"
+  },
+  "previousImage": {
+    "message": "Previous image"
+  },
+  "nextImage": {
+    "message": "Next image"
+  },
+  "webdavSync": {
+    "message": "WebDAV Sync"
+  },
+  "webdavSyncDescription": {
+    "message": "Back up prompts, categories, and attachment files to a WebDAV server."
+  },
+  "webdavConnectionSettings": {
+    "message": "WebDAV Connection"
+  },
+  "webdavServerUrl": {
+    "message": "Server URL"
+  },
+  "webdavServerUrlPlaceholder": {
+    "message": "https://example.com/dav"
+  },
+  "webdavUsername": {
+    "message": "Username"
+  },
+  "webdavUsernamePlaceholder": {
+    "message": "Enter your WebDAV username"
+  },
+  "webdavPassword": {
+    "message": "Password"
+  },
+  "webdavPasswordPlaceholder": {
+    "message": "Enter your WebDAV password"
+  },
+  "webdavRemoteDirectory": {
+    "message": "Remote Directory"
+  },
+  "webdavRemoteDirectoryHelp": {
+    "message": "Quick Prompt only writes inside this directory. If it does not exist, it will be created with WebDAV."
+  },
+  "webdavAutoUpload": {
+    "message": "Automatic upload"
+  },
+  "webdavAutoUploadDescription": {
+    "message": "Automatically upload to WebDAV after local prompts or categories change."
+  },
+  "saveWebdavSettings": {
+    "message": "Save Settings"
+  },
+  "saveAndTestWebdavSettings": {
+    "message": "Save Settings & Test Connection"
+  },
+  "testWebdavConnection": {
+    "message": "Test Connection"
+  },
+  "webdavConnectionSuccess": {
+    "message": "WebDAV connection succeeded."
+  },
+  "webdavConnectionFailed": {
+    "message": "WebDAV connection failed"
+  },
+  "webdavSettingsSaved": {
+    "message": "WebDAV settings saved."
+  },
+  "webdavLoadSettingsFailed": {
+    "message": "Failed to load WebDAV settings."
+  },
+  "webdavSaveSettingsFailed": {
+    "message": "Failed to save WebDAV settings"
+  },
+  "webdavRequiredFields": {
+    "message": "Server URL, username, and password are required."
+  },
+  "webdavInvalidServerUrl": {
+    "message": "Enter a valid WebDAV server URL using http or https."
+  },
+  "webdavInvalidRemoteDirectory": {
+    "message": "Enter a remote directory without empty values or path traversal."
+  },
+  "webdavReauthorizeDescription": {
+    "message": "The stored attachment folder permission is no longer available. Reauthorize the folder before syncing attachments."
+  },
+  "reauthorizeAttachmentDirectory": {
+    "message": "Reauthorize Attachment Folder"
+  },
+  "attachmentStorageReauthorized": {
+    "message": "Attachment folder reauthorized."
+  },
+  "webdavUploadTitle": {
+    "message": "Upload Local Backup"
+  },
+  "uploadWebdavBackup": {
+    "message": "Upload to WebDAV"
+  },
+  "webdavUploadDescription": {
+    "message": "Upload local prompts, categories, and attachments to the configured WebDAV directory."
+  },
+  "webdavUploadSuccess": {
+    "message": "WebDAV upload completed. $1 files uploaded, $2 stale files deleted."
+  },
+  "webdavUploadFailed": {
+    "message": "WebDAV upload failed"
+  },
+  "webdavAutoUploadSuccess": {
+    "message": "WebDAV auto upload completed."
+  },
+  "webdavAutoUploadFailed": {
+    "message": "WebDAV auto upload failed"
+  },
+  "webdavDownloadTitle": {
+    "message": "Download Remote Backup"
+  },
+  "appendWebdavBackup": {
+    "message": "Append to Local"
+  },
+  "replaceWebdavBackup": {
+    "message": "Replace Local Data"
+  },
+  "webdavDownloadSuccess": {
+    "message": "WebDAV download completed. $1 attachments downloaded."
+  },
+  "webdavDownloadFailed": {
+    "message": "WebDAV download failed"
+  },
+  "webdavAttachmentPermissionNote": {
+    "message": "Attachment folder read/write permission is required before WebDAV sync can run."
+  },
+  "webdavAutoUploadTaskNote": {
+    "message": "When automatic upload is enabled, local prompt or category changes are uploaded to WebDAV in the background."
   }
 }

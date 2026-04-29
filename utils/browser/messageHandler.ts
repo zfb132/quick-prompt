@@ -1,18 +1,88 @@
-import { BROWSER_STORAGE_KEY } from "@/utils/constants"
 import { authenticateWithGoogle, logoutGoogle, USER_INFO_STORAGE_KEY } from "@/utils/auth/googleAuth"
 import { syncFromNotionToLocal, syncLocalDataToNotion } from "@/utils/sync/notionSync"
-import type { PromptItem } from "@/utils/types"
+import type { PromptAttachment, PromptItem } from "@/utils/types"
 import { t } from "@/utils/i18n"
+import { getAllPrompts } from "@/utils/promptStore"
+import { isImageAttachment } from "@/utils/attachments/metadata"
+import {
+  getAttachmentRootHandle,
+  getFileFromAttachmentRoot,
+  hasReadWritePermission,
+} from "@/utils/attachments/fileSystem"
+
+export type AttachmentPreviewResponse =
+  | { success: true; base64: string; contentType: string }
+  | { success: false; error: string }
+
+const BASE64_CHUNK_SIZE = 0x6000
+
+const readFileAsArrayBuffer = (file: File): Promise<ArrayBuffer> => {
+  if (typeof file.arrayBuffer === 'function') {
+    return file.arrayBuffer()
+  }
+
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as ArrayBuffer)
+    reader.onerror = () => reject(reader.error)
+    reader.readAsArrayBuffer(file)
+  })
+}
+
+const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+  const bytes = new Uint8Array(buffer)
+  const chunks: string[] = []
+
+  for (let offset = 0; offset < bytes.length; offset += BASE64_CHUNK_SIZE) {
+    const chunk = bytes.subarray(offset, offset + BASE64_CHUNK_SIZE)
+    let binary = ''
+
+    for (let index = 0; index < chunk.length; index++) {
+      binary += String.fromCharCode(chunk[index])
+    }
+
+    chunks.push(btoa(binary))
+  }
+
+  return chunks.join('')
+}
+
+export const buildAttachmentPreviewResponse = async (
+  attachment: PromptAttachment
+): Promise<AttachmentPreviewResponse> => {
+  if (!isImageAttachment(attachment)) {
+    return { success: false, error: 'attachmentPreviewUnavailable' }
+  }
+
+  try {
+    const root = await getAttachmentRootHandle()
+    if (!root || !(await hasReadWritePermission(root))) {
+      return { success: false, error: t('attachmentPermissionLost') }
+    }
+
+    const file = await getFileFromAttachmentRoot(root, attachment.relativePath)
+    return {
+      success: true,
+      base64: arrayBufferToBase64(await readFileAsArrayBuffer(file)),
+      contentType: file.type || attachment.type,
+    }
+  } catch (error: any) {
+    return { success: false, error: error?.message || t('attachmentPermissionLost') }
+  }
+}
 
 // Main message handler
 export const handleRuntimeMessage = async (message: any, sender: Browser.runtime.MessageSender, sendResponse: (response?: any) => void) => {
   console.log('[MSG_RECEIVED V3] Background received message:', message, 'from sender:', sender);
 
   // Existing message handlers
+  if (message.action === 'getAttachmentPreview') {
+    return buildAttachmentPreviewResponse(message.attachment)
+  }
+
   if (message.action === 'getPrompts') {
     try {
-      const result = await browser.storage.local.get(BROWSER_STORAGE_KEY);
-      const allPrompts = (result[BROWSER_STORAGE_KEY as keyof typeof result] as PromptItem[]) || [];
+      const allPrompts = await getAllPrompts();
       const enabledPrompts = allPrompts.filter((prompt: PromptItem) => prompt.enabled !== false);
       console.log(t('backgroundPromptsLoaded'), allPrompts.length, t('backgroundPromptsEnabled'), enabledPrompts.length, t('backgroundPromptsEnabledSuffix'));
       return { success: true, data: enabledPrompts };
