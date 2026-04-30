@@ -1583,7 +1583,7 @@
     "message": "Attachment Storage"
   },
   "attachmentStorageDescription": {
-    "message": "Choose how to store attachments before opening the management page. An external local folder is extremely recommended for better performance and larger storage capacity."
+    "message": "Choose how to store attachments before your first upload. An external local folder is strongly recommended for better performance and larger storage capacity."
   },
   "attachmentStorageRecommended": {
     "message": "Recommended"

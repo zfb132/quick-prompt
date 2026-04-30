@@ -67,7 +67,7 @@ describe('content PromptAttachmentPreview', () => {
     await waitFor(() => expect(sendMessage).not.toHaveBeenCalled())
   })
 
-  it('keeps metadata visible and lazy-loads image previews when intersecting', async () => {
+  it('shows only the image thumbnail without filename, size, or an outer tile border', async () => {
     sendMessage.mockResolvedValue({
       success: true,
       base64: btoa('image-bytes'),
@@ -76,8 +76,8 @@ describe('content PromptAttachmentPreview', () => {
 
     render(<PromptAttachmentPreview attachments={[createAttachment()]} />)
 
-    expect(screen.getByText('image.png')).toBeInTheDocument()
-    expect(screen.getByText('1.5 KB')).toBeInTheDocument()
+    expect(screen.queryByText('image.png')).not.toBeInTheDocument()
+    expect(screen.queryByText('1.5 KB')).not.toBeInTheDocument()
     expect(sendMessage).not.toHaveBeenCalled()
 
     act(() => {
@@ -85,8 +85,11 @@ describe('content PromptAttachmentPreview', () => {
     })
 
     const image = await screen.findByRole('img', { name: 'image.png' })
+    const attachmentTile = image.closest('.qp-attachment')
+
     expect(image).toHaveAttribute('src', 'blob:content-preview-url')
     expect(image).toHaveClass('qp-attachment-image')
+    expect(attachmentTile).toHaveClass('qp-attachment-image-only')
     expect(sendMessage).toHaveBeenCalledWith({
       action: 'getAttachmentPreview',
       attachment: createAttachment(),
@@ -105,6 +108,8 @@ describe('content PromptAttachmentPreview', () => {
     expect(image).toHaveAttribute('src', 'data:image/webp;base64,thumbnail')
     expect(image).toHaveAttribute('loading', 'lazy')
     expect(image).toHaveAttribute('decoding', 'async')
+    expect(screen.queryByText('image.png')).not.toBeInTheDocument()
+    expect(screen.queryByText('1.5 KB')).not.toBeInTheDocument()
 
     if (MockIntersectionObserver.instances[0]) {
       act(() => {
@@ -189,5 +194,16 @@ describe('content PromptAttachmentPreview', () => {
     unmount()
 
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:content-preview-url')
+  })
+
+  it('keeps metadata visible for non-image attachments', () => {
+    render(
+      <PromptAttachmentPreview
+        attachments={[createAttachment({ name: 'notes.pdf', type: 'application/pdf', size: 2048 })]}
+      />
+    )
+
+    expect(screen.getByText('notes.pdf')).toBeInTheDocument()
+    expect(screen.getByText('2 KB')).toBeInTheDocument()
   })
 })

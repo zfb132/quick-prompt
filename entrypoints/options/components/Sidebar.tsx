@@ -182,7 +182,7 @@ const Sidebar: React.FC<SidebarProps> = ({ className = "" }) => {
               )}
               title="Quick Prompt"
             >
-              <img src={Logo} alt="Quick Prompt Logo" className="size-9 rounded-2xl shadow-sm" />
+              <img src={Logo} alt="Quick Prompt Logo" className="size-9" />
               {!collapsed && (
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold">Quick Prompt</div>

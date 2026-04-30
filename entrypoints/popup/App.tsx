@@ -215,7 +215,7 @@ function App() {
       className="w-[360px] min-w-[320px] max-w-[420px] bg-background p-4 text-foreground"
     >
       <div className="mb-4 flex items-center gap-3">
-        <img src={Logo} className="size-10 rounded-2xl shadow-sm" alt="quick prompt logo" />
+        <img src={Logo} className="size-10" alt="quick prompt logo" />
         <div className="min-w-0">
           <h1 className="text-base font-semibold leading-tight">Quick Prompt</h1>
           <p className="text-xs text-muted-foreground">{t("usage")}</p>

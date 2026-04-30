@@ -281,6 +281,14 @@ export function getPromptSelectorStyles(): string {
       color: var(--qp-text-secondary) !important;
     }
 
+    .qp-attachment.qp-attachment-image-only {
+      max-width: none !important;
+      padding: 0 !important;
+      border: 0 !important;
+      border-radius: 4px !important;
+      background: transparent !important;
+    }
+
     .qp-attachment-image-button {
       appearance: none !important;
       border: 0 !important;
@@ -303,7 +311,7 @@ export function getPromptSelectorStyles(): string {
       height: 72px !important;
       object-fit: cover !important;
       border-radius: 4px !important;
-      border: 1px solid var(--qp-border-color) !important;
+      border: 0 !important;
       flex-shrink: 0 !important;
     }
 

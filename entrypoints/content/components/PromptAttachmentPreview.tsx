@@ -249,11 +249,16 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
   return (
     <div ref={containerRef} className="qp-attachments">
       {safeAttachments.map((attachment) => {
+        const isImage = isImageAttachment(attachment)
         const thumbnailUrl = getPreview(attachment)?.thumbnailUrl
 
-        return (
-          <div key={attachment.id} className="qp-attachment">
-            {isImageAttachment(attachment) && thumbnailUrl && (
+        if (isImage) {
+          if (!thumbnailUrl) {
+            return null
+          }
+
+          return (
+            <div key={attachment.id} className="qp-attachment qp-attachment-image-only">
               <button
                 type="button"
                 className="qp-attachment-image-button"
@@ -268,7 +273,12 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
                   decoding="async"
                 />
               </button>
-            )}
+            </div>
+          )
+        }
+
+        return (
+          <div key={attachment.id} className="qp-attachment">
             <div className="qp-attachment-meta">
               <span className="qp-attachment-name">{attachment.name}</span>
               <span className="qp-attachment-size">{formatFileSize(attachment.size)}</span>

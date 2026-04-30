@@ -15,7 +15,10 @@ vi.mock('@/utils/categoryUtils', () => ({
 }))
 
 vi.mock('@/utils/attachments/fileSystem', () => ({
+  getAttachmentStorageMode: vi.fn().mockResolvedValue('external'),
   getAttachmentRootHandle: vi.fn().mockResolvedValue({ name: 'root' }),
+  pickAndStoreAttachmentRoot: vi.fn().mockResolvedValue({ name: 'root' }),
+  useInternalAttachmentStorage: vi.fn().mockResolvedValue({ name: 'internal-root' }),
   verifyReadWritePermission: vi.fn().mockResolvedValue(true),
   removeAttachmentDirectoryFromRoot: vi.fn(),
   removeAttachmentFileFromRoot: vi.fn(),

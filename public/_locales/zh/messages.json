@@ -1583,7 +1583,7 @@
     "message": "附件存储"
   },
   "attachmentStorageDescription": {
-    "message": "首次进入管理页前，请选择附件存储方式。强烈推荐使用外部自定义文件夹，能更好地管理和备份附件文件。"
+    "message": "首次上传附件前，请选择附件存储方式。强烈推荐使用外部自定义文件夹，能更好地管理和备份附件文件。"
   },
   "attachmentStorageRecommended": {
     "message": "推荐"
