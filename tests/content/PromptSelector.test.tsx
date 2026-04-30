@@ -172,11 +172,31 @@ describe('content PromptSelector', () => {
     })
   })
 
+  it('keeps clicking the prompt item outside attachments applying the prompt', async () => {
+    const target = createTarget()
+
+    await act(async () => {
+      showPromptSelector([createPrompt()], target)
+    })
+
+    const host = document.getElementById('quick-prompt-selector')!
+    const shadowRoot = host.shadowRoot!
+
+    await waitFor(() => {
+      expect(shadowRoot.querySelector('.qp-prompt-item')).not.toBeNull()
+    })
+
+    fireEvent.click(shadowRoot.querySelector('.qp-prompt-preview')!)
+
+    expect(target.value).toBe('Prompt content')
+  })
+
   it('sets pointer cursors for shadow-dom clickable controls on hover', () => {
     const styles = getPromptSelectorStyles()
 
     expect(styles).toContain('button:not(:disabled):hover')
     expect(styles).toContain('[role="button"]:not([aria-disabled="true"]):hover')
     expect(styles).toContain('a[href]:hover')
+    expect(styles).toMatch(/\.qp-attachment-image\s*\{[\s\S]*cursor:\s*zoom-in\s*!important;/)
   })
 })

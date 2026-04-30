@@ -120,6 +120,46 @@ describe('content PromptAttachmentPreview', () => {
     await waitFor(() => expect(sendMessage).not.toHaveBeenCalled())
   })
 
+  it('opens the image viewer without bubbling the click to the prompt item', async () => {
+    sendMessage.mockResolvedValue({ success: false })
+    const parentClick = vi.fn()
+
+    render(
+      <div onClick={parentClick}>
+        <PromptAttachmentPreview
+          attachments={[createAttachment({ thumbnailDataUrl: 'data:image/webp;base64,thumbnail' })]}
+        />
+      </div>
+    )
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'image.png' }))
+    })
+
+    expect(parentClick).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: 'localized:imagePreviewDialog' })).toBeInTheDocument()
+  })
+
+  it('renders the image viewer as a separate preview layer outside the attachment list', async () => {
+    sendMessage.mockResolvedValue({ success: false })
+
+    const { container } = render(
+      <PromptAttachmentPreview
+        attachments={[createAttachment({ thumbnailDataUrl: 'data:image/webp;base64,thumbnail' })]}
+      />
+    )
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'image.png' }))
+    })
+
+    const attachmentList = container.querySelector('.qp-attachments')
+    const viewer = screen.getByRole('dialog', { name: 'localized:imagePreviewDialog' })
+
+    expect(viewer).toHaveClass('qp-image-viewer')
+    expect(attachmentList).not.toContainElement(viewer)
+  })
+
   it('prefers a newly stored thumbnail over a previously loaded content preview', async () => {
     vi.mocked(URL.createObjectURL).mockReturnValue('blob:stale-content-preview')
     sendMessage.mockResolvedValue({

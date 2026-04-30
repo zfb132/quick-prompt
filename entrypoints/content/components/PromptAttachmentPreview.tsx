@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { browser } from '#imports'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import type { PromptAttachment } from '@/utils/types'
@@ -36,6 +37,7 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
   const [imagePreviews, setImagePreviews] = useState<Record<string, ImagePreviewState>>({})
   const [isPreviewVisible, setIsPreviewVisible] = useState(false)
   const [activeImageId, setActiveImageId] = useState<string | null>(null)
+  const [previewLayerTarget, setPreviewLayerTarget] = useState<Element | DocumentFragment | null>(null)
 
   const getPreview = (attachment: PromptAttachment): ImagePreviewState | undefined => {
     const loadedPreview = imagePreviews[attachment.id]
@@ -124,7 +126,8 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
     }
   }
 
-  const openImageViewer = (attachment: PromptAttachment) => {
+  const openImageViewer = (event: React.MouseEvent, attachment: PromptAttachment) => {
+    event.stopPropagation()
     setActiveImageId(attachment.id)
     void loadFullPreview(attachment)
   }
@@ -144,6 +147,16 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
     setActiveImageId(nextAttachment.id)
     void loadFullPreview(nextAttachment)
   }
+
+  useEffect(() => {
+    const rootNode = containerRef.current?.getRootNode()
+
+    if (typeof ShadowRoot !== 'undefined' && rootNode instanceof ShadowRoot) {
+      setPreviewLayerTarget(rootNode)
+    } else if (typeof document !== 'undefined') {
+      setPreviewLayerTarget(document.body)
+    }
+  }, [])
 
   useEffect(() => {
     const imageAttachments = safeAttachments.filter((attachment) => (
@@ -246,92 +259,108 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
     return null
   }
 
-  return (
-    <div ref={containerRef} className="qp-attachments">
-      {safeAttachments.map((attachment) => {
-        const isImage = isImageAttachment(attachment)
-        const thumbnailUrl = getPreview(attachment)?.thumbnailUrl
+  const imageViewer = activeImage ? (
+    <div
+      className="qp-image-viewer"
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('imagePreviewDialog')}
+      onClick={(event) => {
+        event.stopPropagation()
+        setActiveImageId(null)
+      }}
+    >
+      <div className="qp-image-viewer-inner" onClick={(event) => event.stopPropagation()}>
+        <img
+          src={activeImage.url}
+          alt={activeImage.attachment.name}
+          className="qp-image-viewer-image"
+        />
+        <button
+          type="button"
+          className="qp-image-viewer-close"
+          aria-label={t('closeImagePreview')}
+          onClick={(event) => {
+            event.stopPropagation()
+            setActiveImageId(null)
+          }}
+        >
+          <X aria-hidden="true" />
+        </button>
+        {viewableImages.length > 1 && (
+          <>
+            <button
+              type="button"
+              className="qp-image-viewer-nav qp-image-viewer-prev"
+              aria-label={t('previousImage')}
+              onClick={(event) => {
+                event.stopPropagation()
+                showPreviousImage()
+              }}
+            >
+              <ChevronLeft aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              className="qp-image-viewer-nav qp-image-viewer-next"
+              aria-label={t('nextImage')}
+              onClick={(event) => {
+                event.stopPropagation()
+                showNextImage()
+              }}
+            >
+              <ChevronRight aria-hidden="true" />
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  ) : null
 
-        if (isImage) {
-          if (!thumbnailUrl) {
-            return null
+  return (
+    <>
+      <div ref={containerRef} className="qp-attachments">
+        {safeAttachments.map((attachment) => {
+          const isImage = isImageAttachment(attachment)
+          const thumbnailUrl = getPreview(attachment)?.thumbnailUrl
+
+          if (isImage) {
+            if (!thumbnailUrl) {
+              return null
+            }
+
+            return (
+              <div key={attachment.id} className="qp-attachment qp-attachment-image-only">
+                <button
+                  type="button"
+                  className="qp-attachment-image-button"
+                  aria-label={attachment.name}
+                  onClick={(event) => openImageViewer(event, attachment)}
+                >
+                  <img
+                    src={thumbnailUrl}
+                    alt={attachment.name}
+                    className="qp-attachment-image"
+                    loading="lazy"
+                    decoding="async"
+                  />
+                </button>
+              </div>
+            )
           }
 
           return (
-            <div key={attachment.id} className="qp-attachment qp-attachment-image-only">
-              <button
-                type="button"
-                className="qp-attachment-image-button"
-                aria-label={attachment.name}
-                onClick={() => openImageViewer(attachment)}
-              >
-                <img
-                  src={thumbnailUrl}
-                  alt={attachment.name}
-                  className="qp-attachment-image"
-                  loading="lazy"
-                  decoding="async"
-                />
-              </button>
+            <div key={attachment.id} className="qp-attachment">
+              <div className="qp-attachment-meta">
+                <span className="qp-attachment-name">{attachment.name}</span>
+                <span className="qp-attachment-size">{formatFileSize(attachment.size)}</span>
+              </div>
             </div>
           )
-        }
-
-        return (
-          <div key={attachment.id} className="qp-attachment">
-            <div className="qp-attachment-meta">
-              <span className="qp-attachment-name">{attachment.name}</span>
-              <span className="qp-attachment-size">{formatFileSize(attachment.size)}</span>
-            </div>
-          </div>
-        )
-      })}
-      {activeImage && (
-        <div
-          className="qp-image-viewer"
-          role="dialog"
-          aria-modal="true"
-          aria-label={t('imagePreviewDialog')}
-          onClick={() => setActiveImageId(null)}
-        >
-          <div className="qp-image-viewer-inner" onClick={(event) => event.stopPropagation()}>
-            <img
-              src={activeImage.url}
-              alt={activeImage.attachment.name}
-              className="qp-image-viewer-image"
-            />
-            <button
-              type="button"
-              className="qp-image-viewer-close"
-              aria-label={t('closeImagePreview')}
-              onClick={() => setActiveImageId(null)}
-            >
-              <X aria-hidden="true" />
-            </button>
-            {viewableImages.length > 1 && (
-              <>
-                <button
-                  type="button"
-                  className="qp-image-viewer-nav qp-image-viewer-prev"
-                  aria-label={t('previousImage')}
-                  onClick={showPreviousImage}
-                >
-                  <ChevronLeft aria-hidden="true" />
-                </button>
-                <button
-                  type="button"
-                  className="qp-image-viewer-nav qp-image-viewer-next"
-                  aria-label={t('nextImage')}
-                  onClick={showNextImage}
-                >
-                  <ChevronRight aria-hidden="true" />
-                </button>
-              </>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+        })}
+      </div>
+      {imageViewer && previewLayerTarget ? createPortal(imageViewer, previewLayerTarget) : null}
+    </>
   )
 }
 

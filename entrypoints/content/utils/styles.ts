@@ -313,6 +313,7 @@ export function getPromptSelectorStyles(): string {
       border-radius: 4px !important;
       border: 0 !important;
       flex-shrink: 0 !important;
+      cursor: zoom-in !important;
     }
 
     .qp-image-viewer {
