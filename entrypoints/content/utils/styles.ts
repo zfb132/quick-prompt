@@ -823,14 +823,14 @@ export function getPromptSelectorStyles(): string {
       height: 18px !important;
     }
 
-    /* 缩略图样式 */
+    /* 提示词内容布局 */
     .qp-prompt-body {
       display: flex !important;
       gap: 12px !important;
       align-items: flex-start !important;
     }
 
-    .qp-prompt-body.qp-has-thumbnail {
+    .qp-prompt-body.qp-has-prompt-source-preview {
       justify-content: space-between !important;
     }
 
@@ -839,7 +839,7 @@ export function getPromptSelectorStyles(): string {
       min-width: 0 !important;
     }
 
-    .qp-thumbnail-img {
+    .qp-prompt-source-preview-img {
       width: 36px !important;
       height: 36px !important;
       object-fit: cover !important;

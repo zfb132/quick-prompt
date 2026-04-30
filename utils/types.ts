@@ -40,7 +40,8 @@ export interface PromptItem {
   createdAt?: string; // 创建时间（ISO 字符串）
   lastModified?: string; // 最后修改时间（ISO 字符串）
   sortOrder?: number; // 排序字段，用于拖拽排序
-  thumbnailUrl?: string; // 缩略图 URL
+  promptSourceUrl?: string; // 提示词来源 URL
+  promptSourcePreviewDataUrl?: string; // 提示词来源 URL 预览图 data URL
   attachments?: PromptAttachment[];
 }
 

@@ -1384,6 +1384,9 @@
   "promptSourceUrlPlaceholder": {
     "message": "https://placehold.co/80x80/6366f1/white?text=local"
   },
+  "promptSourceUrlPreviewAlt": {
+    "message": "提示词来源URL预览"
+  },
   "duplicate": {
     "message": "创建副本"
   },

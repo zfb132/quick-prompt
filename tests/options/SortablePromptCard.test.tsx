@@ -158,6 +158,20 @@ describe("SortablePromptCard", () => {
     expect(screen.getByText(/createdAt:/)).toBeInTheDocument();
   });
 
+  it("renders promptSourceUrl as a source link and image preview", () => {
+    renderCard(vi.fn(), false, {
+      promptSourceUrl: "https://cdn.example.cn/prompt-source",
+      promptSourcePreviewDataUrl: "data:image/png;base64,saved-preview",
+    });
+
+    const sourceLink = screen.getByRole("link", { name: "promptSourceUrlLabel" });
+    const preview = screen.getByRole("img", { name: "promptSourceUrlPreviewAlt" });
+
+    expect(sourceLink).toHaveAttribute("href", "https://cdn.example.cn/prompt-source");
+    expect(sourceLink).toHaveAttribute("target", "_blank");
+    expect(preview).toHaveAttribute("src", "data:image/png;base64,saved-preview");
+  });
+
   it("allows compact layout title and content to wrap with independent card heights", () => {
     renderCard(vi.fn(), true, {
       title: "Long compact title ".repeat(12),

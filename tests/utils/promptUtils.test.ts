@@ -310,6 +310,16 @@ describe('normalizePromptItem', () => {
     expect(normalized.attachments).toEqual(attachments)
   })
 
+  it('应该将旧的 thumbnailUrl 迁移为 promptSourceUrl', () => {
+    const normalized = normalizePromptItem({
+      ...createPrompt(),
+      thumbnailUrl: 'https://example.com/legacy-source',
+    } as PromptItem & { thumbnailUrl: string })
+
+    expect(normalized.promptSourceUrl).toBe('https://example.com/legacy-source')
+    expect(normalized).not.toHaveProperty('thumbnailUrl')
+  })
+
   vi.useRealTimers()
 })
 

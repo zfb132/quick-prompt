@@ -1184,7 +1184,7 @@ Include in `promptData`:
 attachments,
 ```
 
-Render the editor after notes and before thumbnail URL:
+Render the editor after notes and before prompt source URL:
 
 ```tsx
 <PromptAttachmentEditor
