@@ -349,10 +349,11 @@ export function getPromptSelectorStyles(): string {
 
     .qp-image-viewer-close,
     .qp-image-viewer-nav {
-      position: absolute !important;
+      position: fixed !important;
       display: inline-flex !important;
       align-items: center !important;
       justify-content: center !important;
+      z-index: 2147483647 !important;
       width: 40px !important;
       height: 40px !important;
       border: 0 !important;
@@ -375,8 +376,8 @@ export function getPromptSelectorStyles(): string {
     }
 
     .qp-image-viewer-close {
-      top: 8px !important;
-      right: 8px !important;
+      top: 16px !important;
+      right: 16px !important;
     }
 
     .qp-image-viewer-nav {
@@ -385,11 +386,11 @@ export function getPromptSelectorStyles(): string {
     }
 
     .qp-image-viewer-prev {
-      left: 8px !important;
+      left: 16px !important;
     }
 
     .qp-image-viewer-next {
-      right: 8px !important;
+      right: 16px !important;
     }
 
     .qp-image-viewer-close svg,

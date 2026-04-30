@@ -362,39 +362,48 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({
                 {t('loading')}
               </div>
             )}
-            <button
-              type="button"
-              onClick={() => setActiveImageId(null)}
-              className="absolute right-2 top-2 inline-flex size-10 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-white"
-              aria-label={t('closeImagePreview')}
-            >
-              <X className="size-5" />
-            </button>
-            {viewableImages.length > 1 && (
-              <>
-                <Button
-                  type="button"
-                  onClick={showPreviousImage}
-                  variant="ghost"
-                  size="icon"
-                  className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white focus:ring-white"
-                  aria-label={t('previousImage')}
-                >
-                  <ChevronLeft className="size-6" />
-                </Button>
-                <Button
-                  type="button"
-                  onClick={showNextImage}
-                  variant="ghost"
-                  size="icon"
-                  className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white focus:ring-white"
-                  aria-label={t('nextImage')}
-                >
-                  <ChevronRight className="size-6" />
-                </Button>
-              </>
-            )}
           </div>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation()
+              setActiveImageId(null)
+            }}
+            className="fixed right-4 top-4 z-[1001] inline-flex size-10 items-center justify-center rounded-full bg-black/60 text-white transition-colors hover:bg-black/80 focus:outline-none focus:ring-2 focus:ring-white"
+            aria-label={t('closeImagePreview')}
+          >
+            <X className="size-5" />
+          </button>
+          {viewableImages.length > 1 && (
+            <>
+              <Button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  showPreviousImage()
+                }}
+                variant="ghost"
+                size="icon"
+                className="fixed left-4 top-1/2 z-[1001] -translate-y-1/2 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white focus:ring-white"
+                aria-label={t('previousImage')}
+              >
+                <ChevronLeft className="size-6" />
+              </Button>
+              <Button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  showNextImage()
+                }}
+                variant="ghost"
+                size="icon"
+                className="fixed right-4 top-1/2 z-[1001] -translate-y-1/2 rounded-full bg-black/60 text-white hover:bg-black/80 hover:text-white focus:ring-white"
+                aria-label={t('nextImage')}
+              >
+                <ChevronRight className="size-6" />
+              </Button>
+            </>
+          )}
         </div>
       )}
     </div>

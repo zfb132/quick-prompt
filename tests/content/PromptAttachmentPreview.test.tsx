@@ -213,11 +213,20 @@ describe('content PromptAttachmentPreview', () => {
     const dialog = screen.getByRole('dialog', { name: 'localized:imagePreviewDialog' })
     expect(dialog).toBeInTheDocument()
     expect(within(dialog).getByRole('img', { name: 'first.png' })).toHaveAttribute('src', 'blob:first-content-preview')
+    const imageStage = within(dialog).getByRole('img', { name: 'first.png' }).closest('.qp-image-viewer-inner')
 
     fireEvent.click(screen.getByRole('button', { name: 'localized:nextImage' }))
     expect(within(dialog).getByRole('img', { name: 'second.png' })).toHaveAttribute('src', 'blob:second-content-preview')
-    expect(screen.getByRole('button', { name: 'localized:closeImagePreview' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'localized:previousImage' })).toBeInTheDocument()
+    const closeButton = screen.getByRole('button', { name: 'localized:closeImagePreview' })
+    const previousButton = screen.getByRole('button', { name: 'localized:previousImage' })
+    const nextButton = screen.getByRole('button', { name: 'localized:nextImage' })
+
+    expect(closeButton.parentElement).toBe(dialog)
+    expect(previousButton.parentElement).toBe(dialog)
+    expect(nextButton.parentElement).toBe(dialog)
+    expect(imageStage).not.toContainElement(closeButton)
+    expect(imageStage).not.toContainElement(previousButton)
+    expect(imageStage).not.toContainElement(nextButton)
   })
 
   it('loads immediately when IntersectionObserver is unavailable and revokes object URLs on unmount', async () => {

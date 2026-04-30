@@ -276,44 +276,44 @@ const PromptAttachmentPreview: React.FC<PromptAttachmentPreviewProps> = ({ attac
           alt={activeImage.attachment.name}
           className="qp-image-viewer-image"
         />
-        <button
-          type="button"
-          className="qp-image-viewer-close"
-          aria-label={t('closeImagePreview')}
-          onClick={(event) => {
-            event.stopPropagation()
-            setActiveImageId(null)
-          }}
-        >
-          <X aria-hidden="true" />
-        </button>
-        {viewableImages.length > 1 && (
-          <>
-            <button
-              type="button"
-              className="qp-image-viewer-nav qp-image-viewer-prev"
-              aria-label={t('previousImage')}
-              onClick={(event) => {
-                event.stopPropagation()
-                showPreviousImage()
-              }}
-            >
-              <ChevronLeft aria-hidden="true" />
-            </button>
-            <button
-              type="button"
-              className="qp-image-viewer-nav qp-image-viewer-next"
-              aria-label={t('nextImage')}
-              onClick={(event) => {
-                event.stopPropagation()
-                showNextImage()
-              }}
-            >
-              <ChevronRight aria-hidden="true" />
-            </button>
-          </>
-        )}
       </div>
+      <button
+        type="button"
+        className="qp-image-viewer-close"
+        aria-label={t('closeImagePreview')}
+        onClick={(event) => {
+          event.stopPropagation()
+          setActiveImageId(null)
+        }}
+      >
+        <X aria-hidden="true" />
+      </button>
+      {viewableImages.length > 1 && (
+        <>
+          <button
+            type="button"
+            className="qp-image-viewer-nav qp-image-viewer-prev"
+            aria-label={t('previousImage')}
+            onClick={(event) => {
+              event.stopPropagation()
+              showPreviousImage()
+            }}
+          >
+            <ChevronLeft aria-hidden="true" />
+          </button>
+          <button
+            type="button"
+            className="qp-image-viewer-nav qp-image-viewer-next"
+            aria-label={t('nextImage')}
+            onClick={(event) => {
+              event.stopPropagation()
+              showNextImage()
+            }}
+          >
+            <ChevronRight aria-hidden="true" />
+          </button>
+        </>
+      )}
     </div>
   ) : null
 
