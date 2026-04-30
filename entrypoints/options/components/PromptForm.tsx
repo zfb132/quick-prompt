@@ -268,14 +268,14 @@ const PromptForm = ({
 
         <div>
           <label htmlFor='thumbnailUrl' className='mb-1.5 block text-sm font-medium text-foreground'>
-            {t('thumbnailUrlLabel')} <span className='font-normal text-muted-foreground'>({t('thumbnailUrlOptional')})</span>
+            {t('promptSourceUrlLabel')} <span className='font-normal text-muted-foreground'>({t('promptSourceUrlOptional')})</span>
           </label>
           <Input
             type='url'
             id='thumbnailUrl'
             value={thumbnailUrl}
             onChange={(e) => setThumbnailUrl(e.target.value)}
-            placeholder={t('thumbnailUrlPlaceholder')}
+            placeholder={t('promptSourceUrlPlaceholder')}
           />
           {thumbnailUrl && (
             <div className='mt-2'>

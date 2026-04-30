@@ -111,7 +111,7 @@ const CategoryList = ({
                 }}
                 className={cn(!isSelectable && "invisible")}
               >
-                {t("viewAllCategories")}
+                {t("viewAllPrompts")}
                 <ArrowRight className="size-3.5" />
               </Button>
               <div className="flex items-center gap-1">

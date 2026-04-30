@@ -547,8 +547,8 @@
   "addNewPrompt": {
     "message": "Add new prompt"
   },
-  "viewAllCategories": {
-    "message": "View all categories"
+  "viewAllPrompts": {
+    "message": "View prompts"
   },
   "createFirstPrompt": {
     "message": "Create your first prompt to boost productivity"
@@ -1375,14 +1375,14 @@
   "unpinPrompt": {
     "message": "Unpin prompt"
   },
-  "thumbnailUrlLabel": {
-    "message": "Thumbnail URL"
+  "promptSourceUrlLabel": {
+    "message": "Prompt source URL"
   },
-  "thumbnailUrlOptional": {
+  "promptSourceUrlOptional": {
     "message": "optional"
   },
-  "thumbnailUrlPlaceholder": {
-    "message": "https://example.com/image.png"
+  "promptSourceUrlPlaceholder": {
+    "message": "https://placehold.co/80x80/6366f1/white?text=local"
   },
   "duplicate": {
     "message": "Duplicate"

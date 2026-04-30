@@ -94,4 +94,22 @@ describe('PromptForm attachments', () => {
       }))
     })
   })
+
+  it('uses prompt source URL translation keys for the URL field', async () => {
+    render(
+      <PromptForm
+        onSubmit={vi.fn()}
+        initialData={null}
+        onCancel={vi.fn()}
+        isEditing={false}
+      />
+    )
+
+    await screen.findByLabelText('titleLabel')
+
+    expect(screen.getByText('promptSourceUrlLabel')).toBeInTheDocument()
+    expect(screen.getByText(/promptSourceUrlOptional/)).toBeInTheDocument()
+    expect(screen.getByPlaceholderText('promptSourceUrlPlaceholder')).toBeInTheDocument()
+    expect(screen.queryByText('thumbnailUrlLabel')).not.toBeInTheDocument()
+  })
 })

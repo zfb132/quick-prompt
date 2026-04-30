@@ -550,8 +550,8 @@
   "addNewPrompt": {
     "message": "新增提示词"
   },
-  "viewAllCategories": {
-    "message": "查看所有分类"
+  "viewAllPrompts": {
+    "message": "查看提示词"
   },
   "createFirstPrompt": {
     "message": "创建您的第一个提示词，开始提升工作效率"
@@ -1375,14 +1375,14 @@
   "unpinPrompt": {
     "message": "取消置顶提示词"
   },
-  "thumbnailUrlLabel": {
-    "message": "缩略图 URL"
+  "promptSourceUrlLabel": {
+    "message": "提示词来源URL"
   },
-  "thumbnailUrlOptional": {
+  "promptSourceUrlOptional": {
     "message": "可选"
   },
-  "thumbnailUrlPlaceholder": {
-    "message": "https://example.com/image.png"
+  "promptSourceUrlPlaceholder": {
+    "message": "https://placehold.co/80x80/6366f1/white?text=local"
   },
   "duplicate": {
     "message": "创建副本"
