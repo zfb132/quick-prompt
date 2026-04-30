@@ -25,6 +25,7 @@ const operations = await import('@/utils/attachments/promptAttachmentOperations'
 const {
   buildPromptDuplicate,
   deletePromptWithAttachments,
+  formatPromptBackupFileName,
 } = await import('@/entrypoints/options/components/PromptManager')
 
 const createAttachment = (overrides: Partial<PromptAttachment> = {}): PromptAttachment => ({
@@ -95,5 +96,11 @@ describe('PromptManager attachment lifecycle helpers', () => {
     })
 
     vi.restoreAllMocks()
+  })
+
+  it('formats prompt backup export file names with compact local timestamps', () => {
+    expect(formatPromptBackupFileName(new Date(2026, 3, 30, 9, 4, 5))).toBe(
+      'quick-prompt-backup-20260430090405.zip'
+    )
   })
 })
