@@ -16,10 +16,10 @@ A powerful browser extension focused on prompt management and quick input. Helps
 - 🚀 **Quick Input**: Quickly trigger the prompt selector by typing `/p` in any webpage input field
 - ⌨️ Support configurable keyboard shortcuts to open prompt selector & save selected text as prompts
 - 📑 Support right-click context menu to save selected text as a prompt
-- 🎯 Support customizing prompts with categories, titles, content, tags and variables
+- 🎯 Support customizing prompts with categories, titles, content, attachments, tags and variables
 - 🧑‍💻 **Variable Support**: Use variables in prompts with `{{variable_name}}` format, fill in specific values when using
 - 💾 **Data Backup**: Export and import your prompt library for easy cross-device migration and backup
-- 🔗 **Cloud Sync**: Support synchronizing prompt library with Notion database or Gitee/GitHub Gist
+- 🔗 **Cloud Sync**: Support synchronizing prompt library with WebDAV, Notion database or Gitee/GitHub Gist
 - 🔍 Search and filter prompts functionality
 - 🌙 Automatically adapt to system light/dark theme
 
