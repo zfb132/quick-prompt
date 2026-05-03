@@ -1,3 +1,15 @@
+## [2.0.0] - 2026-05-03
+
+### 新增
+- 提示词支持附件能力，可在新增/编辑提示词时上传附件，图片附件支持缩略图和大图预览，[PR#57](https://github.com/wenyuanw/quick-prompt/pull/57)、[PR#58](https://github.com/wenyuanw/quick-prompt/pull/58)
+- 新增 WebDAV 同步能力，支持配置服务器、连接测试、手动上传/下载、自动上传和附件同步，[PR#57](https://github.com/wenyuanw/quick-prompt/pull/57)
+- 支持选择插件内置附件存储或外部自定义目录，首次上传附件时按需弹窗选择存储方式，[PR#57](https://github.com/wenyuanw/quick-prompt/pull/57)、[PR#58](https://github.com/wenyuanw/quick-prompt/pull/58)
+
+### 优化
+- 重构提示词本地存储结构，由单 JSON 调整为索引加单条提示词分片存储，提升大量提示词场景下的加载和同步效率，[PR#57](https://github.com/wenyuanw/quick-prompt/pull/57)
+- 全面升级 popup、options 和内容脚本界面，统一按钮、卡片、表单、弹窗、列表、设置页等 UI 组件与暗色模式样式，[PR#57](https://github.com/wenyuanw/quick-prompt/pull/57)
+- 优化提示词库卡片式与紧凑式布局，改善长标题、长正文、多图片附件和多标签场景下的展示效果，[PR#57](https://github.com/wenyuanw/quick-prompt/pull/57)
+
 ## [1.0.9] - 2026-04-02
 
 ### 新增
