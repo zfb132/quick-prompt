@@ -22,7 +22,7 @@ import ConfirmModal from "./ConfirmModal";
 import "../App.css";
 import "~/assets/tailwind.css";
 import { PromptItem, Category } from "@/utils/types";
-import { getCategories, migratePromptsWithCategory } from "@/utils/categoryUtils";
+import { getCategories, migratePromptsWithCategory, saveCategories } from "@/utils/categoryUtils";
 import { getAllPrompts, setAllPrompts } from "@/utils/promptStore";
 import {
   type AttachmentStorageRootHandle,
@@ -36,12 +36,18 @@ import {
 import {
   sortPrompts,
   filterPrompts,
-  validateAndNormalizePrompts,
   mergePrompts,
   PromptValidationException,
   PROMPT_VALIDATION_ERRORS,
   SortType,
 } from "@/utils/promptUtils";
+import {
+  createPromptBackupZip,
+  mergePromptBackupCategories,
+  parsePromptBackupBlob,
+  restorePromptBackupAttachments,
+  type PromptBackupAttachmentFile,
+} from "@/utils/promptBackupArchive";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -69,6 +75,25 @@ const getAuthorizedAttachmentRoot = async (): Promise<AttachmentStorageRootHandl
   }
 
   return root;
+};
+
+const hasPromptAttachments = (prompts: PromptItem[]): boolean => (
+  prompts.some((prompt) => Array.isArray(prompt.attachments) && prompt.attachments.length > 0)
+);
+
+const padDatePart = (value: number): string => value.toString().padStart(2, "0");
+
+export const formatPromptBackupFileName = (date: Date = new Date()): string => {
+  const timestamp = [
+    date.getFullYear().toString(),
+    padDatePart(date.getMonth() + 1),
+    padDatePart(date.getDate()),
+    padDatePart(date.getHours()),
+    padDatePart(date.getMinutes()),
+    padDatePart(date.getSeconds()),
+  ].join("");
+
+  return `quick-prompt-backup-${timestamp}.zip`;
 };
 
 export const deletePromptWithAttachments = async (
@@ -269,13 +294,22 @@ const PromptManager = () => {
     }
   };
 
+  const savePromptCategories = async (newCategories: Category[]) => {
+    await saveCategories(newCategories);
+    setCategories(newCategories);
+  };
+
   // 处理导入结果
   const handleImportResult = async (
     validPrompts: PromptItem[],
     confirmMessageKey: string,
-    onSuccess?: () => void
+    onSuccess?: () => void,
+    importedCategories: Category[] = [],
+    attachmentFiles: PromptBackupAttachmentFile[] = []
   ): Promise<boolean> => {
-    if (prompts.length > 0) {
+    const shouldConfirmImport = prompts.length > 0 || (categories.length > 0 && importedCategories.length > 0);
+
+    if (shouldConfirmImport) {
       const shouldImport = window.confirm(
         t(confirmMessageKey, [prompts.length.toString(), validPrompts.length.toString()])
       );
@@ -286,18 +320,37 @@ const PromptManager = () => {
       }
 
       const { merged, addedCount, updatedCount } = mergePrompts(prompts, validPrompts);
+      const categoryMerge = mergePromptBackupCategories(categories, importedCategories);
+      const categoryChangeCount = categoryMerge.addedCount + categoryMerge.updatedCount;
+      const changedCount = addedCount + updatedCount + categoryChangeCount;
 
-      if (addedCount === 0 && updatedCount === 0) {
+      if (changedCount === 0) {
         alert(t('noNewPromptsFound'));
         onSuccess?.();
         return false;
       }
 
+      if (attachmentFiles.length > 0) {
+        const root = await getAuthorizedAttachmentRoot();
+        await restorePromptBackupAttachments(root, attachmentFiles);
+      }
+
       await savePrompts(merged);
-      alert(t('importSuccessful', [(addedCount + updatedCount).toString()]));
+      if (categoryChangeCount > 0) {
+        await savePromptCategories(categoryMerge.categories);
+      }
+      alert(t('importSuccessful', [changedCount.toString()]));
     } else {
+      if (attachmentFiles.length > 0) {
+        const root = await getAuthorizedAttachmentRoot();
+        await restorePromptBackupAttachments(root, attachmentFiles);
+      }
+
       await savePrompts(validPrompts);
-      alert(t('importSuccessful', [validPrompts.length.toString()]));
+      if (importedCategories.length > 0) {
+        await savePromptCategories(importedCategories);
+      }
+      alert(t('importSuccessful', [(validPrompts.length + importedCategories.length).toString()]));
     }
 
     onSuccess?.();
@@ -476,19 +529,19 @@ const PromptManager = () => {
   };
 
   // 导出提示词
-  const exportPrompts = () => {
+  const exportPrompts = async () => {
     if (prompts.length === 0) {
       alert(t('noPromptsToExport'));
       return;
     }
 
     try {
-      const dataStr = JSON.stringify(prompts, null, 2);
-      const dataBlob = new Blob([dataStr], { type: "application/json" });
+      const root = hasPromptAttachments(prompts) ? await getAuthorizedAttachmentRoot() : undefined;
+      const dataBlob = await createPromptBackupZip(root, prompts, categories);
       const url = URL.createObjectURL(dataBlob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `prompts-export-${new Date().toISOString().slice(0, 10)}.json`;
+      link.download = formatPromptBackupFileName();
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -534,11 +587,15 @@ const PromptManager = () => {
     };
 
     try {
-      const fileContent = await file.text();
-      const importedData = JSON.parse(fileContent);
-      const validPrompts = validateAndNormalizePrompts(importedData);
+      const importedData = await parsePromptBackupBlob(file);
 
-      await handleImportResult(validPrompts, 'importPromptsConfirm');
+      await handleImportResult(
+        importedData.prompts,
+        'importPromptsConfirm',
+        undefined,
+        importedData.categories,
+        importedData.attachmentFiles
+      );
       clearFileInput();
     } catch (err) {
       console.error(t('importPromptsError'), err);
@@ -588,11 +645,15 @@ const PromptManager = () => {
         );
       }
 
-      const fileContent = await response.text();
-      const importedData = JSON.parse(fileContent);
-      const validPrompts = validateAndNormalizePrompts(importedData);
+      const importedData = await parsePromptBackupBlob(await response.blob());
 
-      await handleImportResult(validPrompts, 'remoteImportPromptsConfirm', closeRemoteImportModal);
+      await handleImportResult(
+        importedData.prompts,
+        'remoteImportPromptsConfirm',
+        closeRemoteImportModal,
+        importedData.categories,
+        importedData.attachmentFiles
+      );
     } catch (err) {
       console.error(t('remoteImportPromptsError'), err);
       setError(t('remoteImportFailed', [getValidationErrorMessage(err)]));
@@ -671,7 +732,7 @@ const PromptManager = () => {
                 type="file"
                 ref={fileInputRef}
                 onChange={importPrompts}
-                accept=".json"
+                accept=".json,.zip"
                 className="hidden"
               />
             </>
@@ -834,7 +895,7 @@ const PromptManager = () => {
                     id="remote-url"
                     value={remoteUrl}
                     onChange={handleRemoteUrlChange}
-                    placeholder="https://example.com/prompts.json"
+                    placeholder="https://example.com/quick-prompt-backup.zip"
                     className="pl-9"
                   />
                 </div>

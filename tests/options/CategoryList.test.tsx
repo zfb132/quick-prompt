@@ -68,4 +68,21 @@ describe('CategoryList', () => {
     expect(onToggleEnabled).toHaveBeenCalledWith('work', false)
     expect(onSelect).not.toHaveBeenCalled()
   })
+
+  it('uses the prompt-focused view action label', () => {
+    render(
+      <CategoryList
+        categories={[createCategory()]}
+        onEdit={vi.fn()}
+        onDelete={vi.fn()}
+        onSelect={vi.fn()}
+        searchTerm=""
+        allCategoriesCount={1}
+        promptCounts={{ work: 3 }}
+      />
+    )
+
+    expect(screen.getByText('viewAllPrompts')).toBeInTheDocument()
+    expect(screen.queryByText('viewAllCategories')).not.toBeInTheDocument()
+  })
 })

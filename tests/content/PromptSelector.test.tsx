@@ -172,11 +172,53 @@ describe('content PromptSelector', () => {
     })
   })
 
+  it('renders prompt source URL image previews in the selector', async () => {
+    await act(async () => {
+      showPromptSelector([
+        createPrompt({
+          promptSourceUrl: 'https://cdn.example.cn/source.png',
+          promptSourcePreviewDataUrl: 'data:image/png;base64,saved-preview',
+        }),
+      ], createTarget())
+    })
+
+    const host = document.getElementById('quick-prompt-selector')!
+    const shadowRoot = host.shadowRoot!
+
+    await waitFor(() => {
+      const preview = shadowRoot.querySelector('.qp-prompt-source-preview-img') as HTMLImageElement | null
+      expect(preview).not.toBeNull()
+      expect(preview).toHaveAttribute('src', 'data:image/png;base64,saved-preview')
+      expect(preview).toHaveAttribute('alt', 'translated:promptSourceUrlPreviewAlt')
+    })
+  })
+
+  it('keeps clicking the prompt item outside attachments applying the prompt', async () => {
+    const target = createTarget()
+
+    await act(async () => {
+      showPromptSelector([createPrompt()], target)
+    })
+
+    const host = document.getElementById('quick-prompt-selector')!
+    const shadowRoot = host.shadowRoot!
+
+    await waitFor(() => {
+      expect(shadowRoot.querySelector('.qp-prompt-item')).not.toBeNull()
+    })
+
+    fireEvent.click(shadowRoot.querySelector('.qp-prompt-preview')!)
+
+    expect(target.value).toBe('Prompt content')
+  })
+
   it('sets pointer cursors for shadow-dom clickable controls on hover', () => {
     const styles = getPromptSelectorStyles()
 
     expect(styles).toContain('button:not(:disabled):hover')
     expect(styles).toContain('[role="button"]:not([aria-disabled="true"]):hover')
     expect(styles).toContain('a[href]:hover')
+    expect(styles).toMatch(/\.qp-attachment-image\s*\{[\s\S]*cursor:\s*zoom-in\s*!important;/)
+    expect(styles).toMatch(/\.qp-image-viewer-close,\s*\.qp-image-viewer-nav\s*\{[\s\S]*position:\s*fixed\s*!important;/)
   })
 })

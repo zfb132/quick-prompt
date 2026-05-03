@@ -548,7 +548,7 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
                         )}
                       </button>
                     </div>
-                    <div className={`qp-prompt-body ${prompt.thumbnailUrl ? 'qp-has-thumbnail' : ''}`}>
+                    <div className={`qp-prompt-body ${prompt.promptSourcePreviewDataUrl ? 'qp-has-prompt-source-preview' : ''}`}>
                       <div className="qp-prompt-content">
                         <div className="qp-prompt-preview">{prompt.content}</div>
                         <PromptAttachmentPreview attachments={prompt.attachments} />
@@ -579,14 +579,11 @@ const PromptSelector: React.FC<PromptSelectorProps> = ({
                           )}
                         </div>
                       </div>
-                      {prompt.thumbnailUrl && (
+                      {prompt.promptSourcePreviewDataUrl && (
                         <img
-                          src={prompt.thumbnailUrl}
-                          alt={prompt.title}
-                          className="qp-thumbnail-img"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none'
-                          }}
+                          src={prompt.promptSourcePreviewDataUrl}
+                          alt={t('promptSourceUrlPreviewAlt')}
+                          className="qp-prompt-source-preview-img"
                         />
                       )}
                     </div>

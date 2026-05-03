@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import { AlertCircle, Info, Save, X } from "lucide-react"
 import type { PromptItem, Category, PromptAttachment } from '@/utils/types'
 import { getCategories } from '@/utils/categoryUtils'
 import { DEFAULT_CATEGORY_ID } from '@/utils/constants'
 import { getValidCategoryId } from '@/utils/promptUtils'
+import { fetchPromptSourcePreviewDataUrl } from '@/utils/promptSourcePreview'
 import PromptAttachmentEditor from './PromptAttachmentEditor'
 import PromptTagSelector from './PromptTagSelector'
 import { Alert, AlertDescription } from "@/components/ui/alert"
@@ -43,7 +44,9 @@ const PromptForm = ({
   const [tags, setTags] = useState<string[]>([])
   const [notes, setNotes] = useState('')
   const [attachments, setAttachments] = useState<PromptAttachment[]>([])
-  const [thumbnailUrl, setThumbnailUrl] = useState('')
+  const [promptSourceUrl, setPromptSourceUrl] = useState('')
+  const [promptSourcePreviewDataUrl, setPromptSourcePreviewDataUrl] = useState('')
+  const [resolvedPromptSourceUrl, setResolvedPromptSourceUrl] = useState('')
   const [enabled, setEnabled] = useState(true)
   const [categoryId, setCategoryId] = useState(DEFAULT_CATEGORY_ID)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -51,7 +54,12 @@ const PromptForm = ({
   const [categories, setCategories] = useState<Category[]>([])
   const [loadingCategories, setLoadingCategories] = useState(true)
   const [newPromptId, setNewPromptId] = useState(() => crypto.randomUUID())
+  const promptSourceUrlRef = useRef('')
   const promptId = initialData?.id || newPromptId
+
+  useEffect(() => {
+    promptSourceUrlRef.current = promptSourceUrl
+  }, [promptSourceUrl])
 
   // 加载分类列表并初始化表单
   useEffect(() => {
@@ -68,7 +76,10 @@ const PromptForm = ({
           setTags(initialData.tags || [])
           setNotes(initialData.notes || '')
           setAttachments(initialData.attachments || [])
-          setThumbnailUrl(initialData.thumbnailUrl || '')
+          const sourceUrl = initialData.promptSourceUrl || (initialData as PromptItem & { thumbnailUrl?: string }).thumbnailUrl || ''
+          setPromptSourceUrl(sourceUrl)
+          setPromptSourcePreviewDataUrl(initialData.promptSourcePreviewDataUrl || '')
+          setResolvedPromptSourceUrl(initialData.promptSourcePreviewDataUrl ? sourceUrl : '')
           setEnabled(initialData.enabled !== undefined ? initialData.enabled : true)
           setCategoryId(getValidCategoryId(initialData.categoryId, enabledCategories))
         } else {
@@ -77,7 +88,9 @@ const PromptForm = ({
           setTags([])
           setNotes('')
           setAttachments([])
-          setThumbnailUrl('')
+          setPromptSourceUrl('')
+          setPromptSourcePreviewDataUrl('')
+          setResolvedPromptSourceUrl('')
           setEnabled(true)
           setCategoryId(getValidCategoryId(DEFAULT_CATEGORY_ID, enabledCategories))
         }
@@ -91,6 +104,38 @@ const PromptForm = ({
 
     initForm()
   }, [initialData, initialContent])
+
+  const handlePromptSourceUrlChange = (value: string) => {
+    setPromptSourceUrl(value)
+
+    if (value.trim() !== resolvedPromptSourceUrl) {
+      setPromptSourcePreviewDataUrl('')
+      setResolvedPromptSourceUrl('')
+    }
+  }
+
+  const resolvePromptSourcePreview = async (): Promise<string> => {
+    const sourceUrl = promptSourceUrl.trim()
+
+    if (!sourceUrl) {
+      setPromptSourcePreviewDataUrl('')
+      setResolvedPromptSourceUrl('')
+      return ''
+    }
+
+    if (sourceUrl === resolvedPromptSourceUrl && promptSourcePreviewDataUrl) {
+      return promptSourcePreviewDataUrl
+    }
+
+    const dataUrl = await fetchPromptSourcePreviewDataUrl(sourceUrl)
+
+    if (promptSourceUrlRef.current.trim() === sourceUrl) {
+      setPromptSourcePreviewDataUrl(dataUrl || '')
+      setResolvedPromptSourceUrl(dataUrl ? sourceUrl : '')
+    }
+
+    return dataUrl || ''
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -117,6 +162,10 @@ const PromptForm = ({
     try {
       const now = new Date().toISOString()
       const submittedPromptId = initialData?.id || newPromptId
+      const submittedPromptSourceUrl = promptSourceUrl.trim()
+      const submittedPromptSourcePreviewDataUrl = submittedPromptSourceUrl
+        ? await resolvePromptSourcePreview()
+        : ''
       // Create prompt object
       const promptData = {
         ...(submittedPromptId ? { id: submittedPromptId } : {}),
@@ -125,7 +174,8 @@ const PromptForm = ({
         tags,
         notes: notes.trim(),
         attachments,
-        thumbnailUrl: thumbnailUrl.trim() || undefined,
+        promptSourceUrl: submittedPromptSourceUrl || undefined,
+        promptSourcePreviewDataUrl: submittedPromptSourcePreviewDataUrl || undefined,
         enabled,
         categoryId,
         createdAt: initialData?.createdAt || now,
@@ -141,7 +191,9 @@ const PromptForm = ({
         setTags([])
         setNotes('')
         setAttachments([])
-        setThumbnailUrl('')
+        setPromptSourceUrl('')
+        setPromptSourcePreviewDataUrl('')
+        setResolvedPromptSourceUrl('')
         setNewPromptId(crypto.randomUUID())
         // 保持当前分类选中，而不是重置为可能无效的默认分类
       }
@@ -267,25 +319,23 @@ const PromptForm = ({
         />
 
         <div>
-          <label htmlFor='thumbnailUrl' className='mb-1.5 block text-sm font-medium text-foreground'>
-            {t('thumbnailUrlLabel')} <span className='font-normal text-muted-foreground'>({t('thumbnailUrlOptional')})</span>
+          <label htmlFor='promptSourceUrl' className='mb-1.5 block text-sm font-medium text-foreground'>
+            {t('promptSourceUrlLabel')} <span className='font-normal text-muted-foreground'>({t('promptSourceUrlOptional')})</span>
           </label>
           <Input
             type='url'
-            id='thumbnailUrl'
-            value={thumbnailUrl}
-            onChange={(e) => setThumbnailUrl(e.target.value)}
-            placeholder={t('thumbnailUrlPlaceholder')}
+            id='promptSourceUrl'
+            value={promptSourceUrl}
+            onChange={(e) => handlePromptSourceUrlChange(e.target.value)}
+            onBlur={() => void resolvePromptSourcePreview()}
+            placeholder={t('promptSourceUrlPlaceholder')}
           />
-          {thumbnailUrl && (
+          {promptSourcePreviewDataUrl && (
             <div className='mt-2'>
               <img
-                src={thumbnailUrl}
-                alt='Thumbnail preview'
+                src={promptSourcePreviewDataUrl}
+                alt={t('promptSourceUrlPreviewAlt')}
                 className='max-h-32 max-w-32 rounded-xl border border-border object-cover'
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none'
-                }}
                 onLoad={(e) => {
                   (e.target as HTMLImageElement).style.display = 'block'
                 }}

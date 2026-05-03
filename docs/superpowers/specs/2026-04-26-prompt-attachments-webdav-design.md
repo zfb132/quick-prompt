@@ -36,7 +36,8 @@ export interface PromptItem {
   notes?: string;
   lastModified?: string;
   sortOrder?: number;
-  thumbnailUrl?: string;
+  promptSourceUrl?: string;
+  promptSourcePreviewDataUrl?: string;
   attachments?: PromptAttachment[];
 }
 ```

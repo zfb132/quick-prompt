@@ -413,7 +413,7 @@
     "message": "导入的文件中没有有效的提示词"
   },
   "importPromptsConfirm": {
-    "message": "您已有$existingCount$个提示词，发现$newCount$个待导入提示词。\n点击\"确定\"导入新提示词，点击\"取消\"不进行任何操作。",
+    "message": "您已有$existingCount$个提示词，发现$newCount$个待导入提示词。若备份中包含分类和附件，也会一并导入。\n点击\"确定\"导入数据，点击\"取消\"不进行任何操作。",
     "placeholders": {
       "existingCount": {
         "content": "$1"
@@ -424,7 +424,7 @@
     }
   },
   "noNewPromptsFound": {
-    "message": "没有发现新的提示词，导入已取消。"
+    "message": "没有发现新的提示词或分类，导入已取消。"
   },
   "importPromptsFailed": {
     "message": "导入 Prompts 失败: $error$",
@@ -444,7 +444,7 @@
     "message": "远程数据中没有有效的提示词"
   },
   "remoteImportPromptsConfirm": {
-    "message": "您已有$existingCount$个提示词，从远程发现$newCount$个待导入提示词。\n点击\"确定\"导入新提示词，点击\"取消\"不进行任何操作。",
+    "message": "您已有$existingCount$个提示词，从远程发现$newCount$个待导入提示词。若备份中包含分类和附件，也会一并导入。\n点击\"确定\"导入数据，点击\"取消\"不进行任何操作。",
     "placeholders": {
       "existingCount": {
         "content": "$1"
@@ -469,7 +469,7 @@
     "message": "没有提示词可导出"
   },
   "exportAllPrompts": {
-    "message": "导出所有提示词"
+    "message": "导出所有提示词数据（含分类和附件）"
   },
   "importFromUrl": {
     "message": "从URL导入提示词"
@@ -550,8 +550,8 @@
   "addNewPrompt": {
     "message": "新增提示词"
   },
-  "viewAllCategories": {
-    "message": "查看所有分类"
+  "viewAllPrompts": {
+    "message": "查看提示词"
   },
   "createFirstPrompt": {
     "message": "创建您的第一个提示词，开始提升工作效率"
@@ -568,7 +568,7 @@
     "message": "导入说明"
   },
   "importInstructionsDetail": {
-    "message": "输入包含有效提示词 JSON 数据的 URL 链接，系统将自动获取并导入数据。"
+    "message": "输入包含 Quick Prompt 备份 ZIP 或提示词 JSON 数据的 URL 链接，系统将自动获取并导入数据。"
   },
   "remoteUrl": {
     "message": "远程 URL"
@@ -1375,14 +1375,17 @@
   "unpinPrompt": {
     "message": "取消置顶提示词"
   },
-  "thumbnailUrlLabel": {
-    "message": "缩略图 URL"
+  "promptSourceUrlLabel": {
+    "message": "提示词来源URL"
   },
-  "thumbnailUrlOptional": {
+  "promptSourceUrlOptional": {
     "message": "可选"
   },
-  "thumbnailUrlPlaceholder": {
-    "message": "https://example.com/image.png"
+  "promptSourceUrlPlaceholder": {
+    "message": "https://placehold.co/80x80/6366f1/white?text=local"
+  },
+  "promptSourceUrlPreviewAlt": {
+    "message": "提示词来源URL预览"
   },
   "duplicate": {
     "message": "创建副本"
@@ -1583,7 +1586,7 @@
     "message": "附件存储"
   },
   "attachmentStorageDescription": {
-    "message": "首次进入管理页前，请选择附件存储方式。强烈推荐使用外部自定义文件夹，能更好地管理和备份附件文件。"
+    "message": "首次上传附件前，请选择附件存储方式。强烈推荐使用外部自定义文件夹，能更好地管理和备份附件文件。"
   },
   "attachmentStorageRecommended": {
     "message": "推荐"

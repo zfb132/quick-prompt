@@ -410,7 +410,7 @@
     "message": "No valid prompts found in the file"
   },
   "importPromptsConfirm": {
-    "message": "You already have $existingCount$ prompts, found $newCount$ prompts to import.\nClick \"OK\" to import new prompts, or \"Cancel\" to abort.",
+    "message": "You already have $existingCount$ prompts and found $newCount$ prompts to import. Categories and attachments in the backup will be imported too.\nClick \"OK\" to import data, or \"Cancel\" to abort.",
     "placeholders": {
       "existingCount": {
         "content": "$1"
@@ -421,7 +421,7 @@
     }
   },
   "noNewPromptsFound": {
-    "message": "No new prompts found, import cancelled."
+    "message": "No new prompts or categories found, import cancelled."
   },
   "importPromptsFailed": {
     "message": "Failed to import prompts: $error$",
@@ -441,7 +441,7 @@
     "message": "No valid prompts found in remote data"
   },
   "remoteImportPromptsConfirm": {
-    "message": "You already have $existingCount$ prompts, found $newCount$ prompts from remote source.\nClick \"OK\" to import new prompts, or \"Cancel\" to abort.",
+    "message": "You already have $existingCount$ prompts and found $newCount$ prompts from the remote source. Categories and attachments in the backup will be imported too.\nClick \"OK\" to import data, or \"Cancel\" to abort.",
     "placeholders": {
       "existingCount": {
         "content": "$1"
@@ -466,7 +466,7 @@
     "message": "No prompts to export"
   },
   "exportAllPrompts": {
-    "message": "Export all prompts"
+    "message": "Export all prompt data, including categories and attachments"
   },
   "importFromUrl": {
     "message": "Import prompts from URL"
@@ -547,8 +547,8 @@
   "addNewPrompt": {
     "message": "Add new prompt"
   },
-  "viewAllCategories": {
-    "message": "View all categories"
+  "viewAllPrompts": {
+    "message": "View prompts"
   },
   "createFirstPrompt": {
     "message": "Create your first prompt to boost productivity"
@@ -565,7 +565,7 @@
     "message": "Import instructions"
   },
   "importInstructionsDetail": {
-    "message": "Enter the URL link containing valid prompt JSON data, and the system will automatically fetch and import the data."
+    "message": "Enter a URL containing a Quick Prompt backup ZIP or prompt JSON data. The system will fetch and import it automatically."
   },
   "remoteUrl": {
     "message": "Remote URL"
@@ -1375,14 +1375,17 @@
   "unpinPrompt": {
     "message": "Unpin prompt"
   },
-  "thumbnailUrlLabel": {
-    "message": "Thumbnail URL"
+  "promptSourceUrlLabel": {
+    "message": "Prompt source URL"
   },
-  "thumbnailUrlOptional": {
+  "promptSourceUrlOptional": {
     "message": "optional"
   },
-  "thumbnailUrlPlaceholder": {
-    "message": "https://example.com/image.png"
+  "promptSourceUrlPlaceholder": {
+    "message": "https://placehold.co/80x80/6366f1/white?text=local"
+  },
+  "promptSourceUrlPreviewAlt": {
+    "message": "Prompt source URL preview"
   },
   "duplicate": {
     "message": "Duplicate"
@@ -1583,7 +1586,7 @@
     "message": "Attachment Storage"
   },
   "attachmentStorageDescription": {
-    "message": "Choose how to store attachments before opening the management page. An external local folder is extremely recommended for better performance and larger storage capacity."
+    "message": "Choose how to store attachments before your first upload. An external local folder is strongly recommended for better performance and larger storage capacity."
   },
   "attachmentStorageRecommended": {
     "message": "Recommended"

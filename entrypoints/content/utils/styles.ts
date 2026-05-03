@@ -281,6 +281,14 @@ export function getPromptSelectorStyles(): string {
       color: var(--qp-text-secondary) !important;
     }
 
+    .qp-attachment.qp-attachment-image-only {
+      max-width: none !important;
+      padding: 0 !important;
+      border: 0 !important;
+      border-radius: 4px !important;
+      background: transparent !important;
+    }
+
     .qp-attachment-image-button {
       appearance: none !important;
       border: 0 !important;
@@ -303,8 +311,9 @@ export function getPromptSelectorStyles(): string {
       height: 72px !important;
       object-fit: cover !important;
       border-radius: 4px !important;
-      border: 1px solid var(--qp-border-color) !important;
+      border: 0 !important;
       flex-shrink: 0 !important;
+      cursor: zoom-in !important;
     }
 
     .qp-image-viewer {
@@ -340,10 +349,11 @@ export function getPromptSelectorStyles(): string {
 
     .qp-image-viewer-close,
     .qp-image-viewer-nav {
-      position: absolute !important;
+      position: fixed !important;
       display: inline-flex !important;
       align-items: center !important;
       justify-content: center !important;
+      z-index: 2147483647 !important;
       width: 40px !important;
       height: 40px !important;
       border: 0 !important;
@@ -366,8 +376,8 @@ export function getPromptSelectorStyles(): string {
     }
 
     .qp-image-viewer-close {
-      top: 8px !important;
-      right: 8px !important;
+      top: 16px !important;
+      right: 16px !important;
     }
 
     .qp-image-viewer-nav {
@@ -376,11 +386,11 @@ export function getPromptSelectorStyles(): string {
     }
 
     .qp-image-viewer-prev {
-      left: 8px !important;
+      left: 16px !important;
     }
 
     .qp-image-viewer-next {
-      right: 8px !important;
+      right: 16px !important;
     }
 
     .qp-image-viewer-close svg,
@@ -814,14 +824,14 @@ export function getPromptSelectorStyles(): string {
       height: 18px !important;
     }
 
-    /* 缩略图样式 */
+    /* 提示词内容布局 */
     .qp-prompt-body {
       display: flex !important;
       gap: 12px !important;
       align-items: flex-start !important;
     }
 
-    .qp-prompt-body.qp-has-thumbnail {
+    .qp-prompt-body.qp-has-prompt-source-preview {
       justify-content: space-between !important;
     }
 
@@ -830,7 +840,7 @@ export function getPromptSelectorStyles(): string {
       min-width: 0 !important;
     }
 
-    .qp-thumbnail-img {
+    .qp-prompt-source-preview-img {
       width: 36px !important;
       height: 36px !important;
       object-fit: cover !important;

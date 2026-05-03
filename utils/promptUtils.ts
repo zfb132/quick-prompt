@@ -154,9 +154,16 @@ export const isValidPromptItem = (prompt: unknown): prompt is PromptItem => {
  */
 export const normalizePromptItem = (prompt: PromptItem): PromptItem => {
   const promptWithAttachments = normalizePromptAttachments(prompt)
+  const {
+    thumbnailUrl: legacyThumbnailUrl,
+    promptSourceUrl,
+    ...promptWithoutLegacyThumbnail
+  } = promptWithAttachments as PromptItem & { thumbnailUrl?: string }
+  const normalizedPromptSourceUrl = promptSourceUrl || legacyThumbnailUrl
 
   return {
-    ...promptWithAttachments,
+    ...promptWithoutLegacyThumbnail,
+    ...(normalizedPromptSourceUrl ? { promptSourceUrl: normalizedPromptSourceUrl } : {}),
     categoryId: prompt.categoryId || DEFAULT_CATEGORY_ID,
     enabled: prompt.enabled !== undefined ? prompt.enabled : true,
     createdAt: prompt.createdAt || prompt.lastModified || new Date().toISOString(),

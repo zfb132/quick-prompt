@@ -67,7 +67,7 @@ describe('content PromptAttachmentPreview', () => {
     await waitFor(() => expect(sendMessage).not.toHaveBeenCalled())
   })
 
-  it('keeps metadata visible and lazy-loads image previews when intersecting', async () => {
+  it('shows only the image thumbnail without filename, size, or an outer tile border', async () => {
     sendMessage.mockResolvedValue({
       success: true,
       base64: btoa('image-bytes'),
@@ -76,8 +76,8 @@ describe('content PromptAttachmentPreview', () => {
 
     render(<PromptAttachmentPreview attachments={[createAttachment()]} />)
 
-    expect(screen.getByText('image.png')).toBeInTheDocument()
-    expect(screen.getByText('1.5 KB')).toBeInTheDocument()
+    expect(screen.queryByText('image.png')).not.toBeInTheDocument()
+    expect(screen.queryByText('1.5 KB')).not.toBeInTheDocument()
     expect(sendMessage).not.toHaveBeenCalled()
 
     act(() => {
@@ -85,8 +85,11 @@ describe('content PromptAttachmentPreview', () => {
     })
 
     const image = await screen.findByRole('img', { name: 'image.png' })
+    const attachmentTile = image.closest('.qp-attachment')
+
     expect(image).toHaveAttribute('src', 'blob:content-preview-url')
     expect(image).toHaveClass('qp-attachment-image')
+    expect(attachmentTile).toHaveClass('qp-attachment-image-only')
     expect(sendMessage).toHaveBeenCalledWith({
       action: 'getAttachmentPreview',
       attachment: createAttachment(),
@@ -105,6 +108,8 @@ describe('content PromptAttachmentPreview', () => {
     expect(image).toHaveAttribute('src', 'data:image/webp;base64,thumbnail')
     expect(image).toHaveAttribute('loading', 'lazy')
     expect(image).toHaveAttribute('decoding', 'async')
+    expect(screen.queryByText('image.png')).not.toBeInTheDocument()
+    expect(screen.queryByText('1.5 KB')).not.toBeInTheDocument()
 
     if (MockIntersectionObserver.instances[0]) {
       act(() => {
@@ -113,6 +118,46 @@ describe('content PromptAttachmentPreview', () => {
     }
 
     await waitFor(() => expect(sendMessage).not.toHaveBeenCalled())
+  })
+
+  it('opens the image viewer without bubbling the click to the prompt item', async () => {
+    sendMessage.mockResolvedValue({ success: false })
+    const parentClick = vi.fn()
+
+    render(
+      <div onClick={parentClick}>
+        <PromptAttachmentPreview
+          attachments={[createAttachment({ thumbnailDataUrl: 'data:image/webp;base64,thumbnail' })]}
+        />
+      </div>
+    )
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'image.png' }))
+    })
+
+    expect(parentClick).not.toHaveBeenCalled()
+    expect(screen.getByRole('dialog', { name: 'localized:imagePreviewDialog' })).toBeInTheDocument()
+  })
+
+  it('renders the image viewer as a separate preview layer outside the attachment list', async () => {
+    sendMessage.mockResolvedValue({ success: false })
+
+    const { container } = render(
+      <PromptAttachmentPreview
+        attachments={[createAttachment({ thumbnailDataUrl: 'data:image/webp;base64,thumbnail' })]}
+      />
+    )
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'image.png' }))
+    })
+
+    const attachmentList = container.querySelector('.qp-attachments')
+    const viewer = screen.getByRole('dialog', { name: 'localized:imagePreviewDialog' })
+
+    expect(viewer).toHaveClass('qp-image-viewer')
+    expect(attachmentList).not.toContainElement(viewer)
   })
 
   it('prefers a newly stored thumbnail over a previously loaded content preview', async () => {
@@ -168,11 +213,20 @@ describe('content PromptAttachmentPreview', () => {
     const dialog = screen.getByRole('dialog', { name: 'localized:imagePreviewDialog' })
     expect(dialog).toBeInTheDocument()
     expect(within(dialog).getByRole('img', { name: 'first.png' })).toHaveAttribute('src', 'blob:first-content-preview')
+    const imageStage = within(dialog).getByRole('img', { name: 'first.png' }).closest('.qp-image-viewer-inner')
 
     fireEvent.click(screen.getByRole('button', { name: 'localized:nextImage' }))
     expect(within(dialog).getByRole('img', { name: 'second.png' })).toHaveAttribute('src', 'blob:second-content-preview')
-    expect(screen.getByRole('button', { name: 'localized:closeImagePreview' })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: 'localized:previousImage' })).toBeInTheDocument()
+    const closeButton = screen.getByRole('button', { name: 'localized:closeImagePreview' })
+    const previousButton = screen.getByRole('button', { name: 'localized:previousImage' })
+    const nextButton = screen.getByRole('button', { name: 'localized:nextImage' })
+
+    expect(closeButton.parentElement).toBe(dialog)
+    expect(previousButton.parentElement).toBe(dialog)
+    expect(nextButton.parentElement).toBe(dialog)
+    expect(imageStage).not.toContainElement(closeButton)
+    expect(imageStage).not.toContainElement(previousButton)
+    expect(imageStage).not.toContainElement(nextButton)
   })
 
   it('loads immediately when IntersectionObserver is unavailable and revokes object URLs on unmount', async () => {
@@ -189,5 +243,16 @@ describe('content PromptAttachmentPreview', () => {
     unmount()
 
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:content-preview-url')
+  })
+
+  it('keeps metadata visible for non-image attachments', () => {
+    render(
+      <PromptAttachmentPreview
+        attachments={[createAttachment({ name: 'notes.pdf', type: 'application/pdf', size: 2048 })]}
+      />
+    )
+
+    expect(screen.getByText('notes.pdf')).toBeInTheDocument()
+    expect(screen.getByText('2 KB')).toBeInTheDocument()
   })
 })

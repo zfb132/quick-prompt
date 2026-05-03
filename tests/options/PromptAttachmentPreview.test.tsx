@@ -192,12 +192,20 @@ describe('PromptAttachmentPreview', () => {
     const dialog = await screen.findByRole('dialog', { name: 'imagePreviewDialog' })
     expect(dialog).toBeInTheDocument()
     expect(within(dialog).getByRole('img', { name: 'first.png' })).toHaveAttribute('src', 'blob:first-preview')
+    const imageStage = within(dialog).getByRole('img', { name: 'first.png' }).parentElement
 
     fireEvent.click(screen.getByRole('button', { name: 'nextImage' }))
     expect(within(dialog).getByRole('img', { name: 'second.png' })).toHaveAttribute('src', 'blob:second-preview')
+    expect(screen.getByRole('button', { name: 'nextImage' }).parentElement).toBe(dialog)
 
     fireEvent.click(screen.getByRole('button', { name: 'previousImage' }))
     expect(within(dialog).getByRole('img', { name: 'first.png' })).toHaveAttribute('src', 'blob:first-preview')
+    expect(screen.getByRole('button', { name: 'previousImage' }).parentElement).toBe(dialog)
+
+    const closeButton = screen.getByRole('button', { name: 'closeImagePreview' })
+    expect(closeButton.parentElement).toBe(dialog)
+    expect(closeButton).toHaveClass('fixed')
+    expect(imageStage).not.toContainElement(closeButton)
 
     fireEvent.click(screen.getByRole('button', { name: 'closeImagePreview' }))
     expect(screen.queryByRole('dialog', { name: 'imagePreviewDialog' })).not.toBeInTheDocument()

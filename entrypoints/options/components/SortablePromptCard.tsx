@@ -6,6 +6,7 @@ import {
   Check,
   Clock3,
   Copy,
+  ExternalLink,
   FileText,
   GripVertical,
   Pencil,
@@ -104,6 +105,8 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
     WebkitBoxOrient: "vertical",
     WebkitLineClamp: compactTextLineCount,
   } as React.CSSProperties;
+  const promptSourceUrl = prompt.promptSourceUrl?.trim();
+  const promptSourcePreviewDataUrl = prompt.promptSourcePreviewDataUrl?.trim();
 
   const formatTime = (timestamp?: string) => {
     if (!timestamp) return t("noModificationTime");
@@ -217,6 +220,41 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
     </div>
   );
 
+  const PromptSourceLink = ({ compact: compactLink = false }: { compact?: boolean }) => (
+    promptSourceUrl ? (
+      <a
+        href={promptSourceUrl}
+        target="_blank"
+        rel="noreferrer"
+        title={promptSourceUrl}
+        aria-label={t("promptSourceUrlLabel")}
+        onClick={(event) => event.stopPropagation()}
+        className={cn(
+          "inline-flex items-center gap-1.5 text-muted-foreground transition-colors hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background",
+          compactLink ? "rounded-lg p-1" : "min-w-0",
+        )}
+      >
+        <ExternalLink className={compactLink ? "size-3.5" : "size-3.5 shrink-0"} />
+        {!compactLink && (
+          <span className="max-w-[14rem] truncate">{t("promptSourceUrlLabel")}</span>
+        )}
+      </a>
+    ) : null
+  );
+
+  const renderPromptSourceImagePreview = () => (
+    promptSourcePreviewDataUrl ? (
+      <img
+        src={promptSourcePreviewDataUrl}
+        alt={t("promptSourceUrlPreviewAlt")}
+        className="size-24 shrink-0 rounded-2xl border border-border object-cover"
+        onLoad={(e) => {
+          (e.target as HTMLImageElement).style.display = "block";
+        }}
+      />
+    ) : null
+  );
+
   if (compact) {
     return (
       <Card
@@ -303,6 +341,7 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
               {category.name}
             </Badge>
           )}
+          <PromptSourceLink compact />
           <div className="qp-compact-actions flex shrink-0 items-center gap-1">
             <ActionButtons small />
           </div>
@@ -427,19 +466,10 @@ const SortablePromptCard: React.FC<SortablePromptCardProps> = ({
               <FileText className="size-3.5" />
               {t("promptCharacterCount")}: {t("promptCharacterCountValue", [characterCount.toString()])}
             </div>
+            <PromptSourceLink />
           </div>
         </div>
-
-        {prompt.thumbnailUrl && (
-          <img
-            src={prompt.thumbnailUrl}
-            alt={prompt.title}
-            className="size-24 shrink-0 rounded-2xl border border-border object-cover"
-            onError={(e) => {
-              (e.target as HTMLImageElement).style.display = "none";
-            }}
-          />
-        )}
+        {renderPromptSourceImagePreview()}
       </div>
 
       <div className="flex justify-end border-t border-border bg-muted/35 px-4 py-3">

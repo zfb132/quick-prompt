@@ -9,7 +9,6 @@ import GistIntegrationPage from "./components/GistIntegrationPage";
 import WebDavIntegrationPage from "./components/WebDavIntegrationPage";
 import GlobalSettings from "./components/GlobalSettings";
 import ToastContainer from "./components/ToastContainer";
-import AttachmentStorageGate from "./components/AttachmentStorageGate";
 import "./App.css";
 import "~/assets/tailwind.css";
 import { Button } from "@/components/ui/button";
@@ -78,48 +77,46 @@ const App = () => {
   if (!localeReady) return null;
 
   return (
-    <AttachmentStorageGate translate={t}>
-      <Router>
-        <AppShell>
-          <div className="flex h-screen">
-            <Sidebar />
+    <Router>
+      <AppShell>
+        <div className="flex h-screen">
+          <Sidebar />
 
-            <main className="flex-1 flex flex-col min-w-0 md:relative">
-              <div className="md:hidden h-16 flex-shrink-0 border-b border-border bg-background/95 backdrop-blur" />
+          <main className="flex-1 flex flex-col min-w-0 md:relative">
+            <div className="md:hidden h-16 flex-shrink-0 border-b border-border bg-background/95 backdrop-blur" />
 
-              <div
-                ref={scrollContainerRef}
-                className="thin-scrollbar relative flex-1 overflow-auto bg-background"
-              >
-                <Routes>
-                  <Route path="/" element={<PromptManager />} />
-                  <Route path="/categories" element={<CategoryManager />} />
-                  <Route path="/settings" element={<GlobalSettings />} />
-                  <Route path="/integrations/notion" element={<NotionIntegrationPage />} />
+            <div
+              ref={scrollContainerRef}
+              className="thin-scrollbar relative flex-1 overflow-auto bg-background"
+            >
+              <Routes>
+                <Route path="/" element={<PromptManager />} />
+                <Route path="/categories" element={<CategoryManager />} />
+                <Route path="/settings" element={<GlobalSettings />} />
+                <Route path="/integrations/notion" element={<NotionIntegrationPage />} />
 
-                  <Route path="/integrations/gist" element={<GistIntegrationPage />} />
-                  <Route path="/integrations/webdav" element={<WebDavIntegrationPage />} />
-                </Routes>
+                <Route path="/integrations/gist" element={<GistIntegrationPage />} />
+                <Route path="/integrations/webdav" element={<WebDavIntegrationPage />} />
+              </Routes>
 
-                {showBackToTop && (
-                  <Button
-                    onClick={scrollToTop}
-                    size="icon"
-                    className="fixed bottom-6 right-6 z-[9999] rounded-full shadow-lg"
-                    title={t("backToTop")}
-                    aria-label={t("backToTop")}
-                  >
-                    <ArrowUp className="size-5" />
-                  </Button>
-                )}
+              {showBackToTop && (
+                <Button
+                  onClick={scrollToTop}
+                  size="icon"
+                  className="fixed bottom-6 right-6 z-[9999] rounded-full shadow-lg"
+                  title={t("backToTop")}
+                  aria-label={t("backToTop")}
+                >
+                  <ArrowUp className="size-5" />
+                </Button>
+              )}
 
-                <ToastContainer />
-              </div>
-            </main>
-          </div>
-        </AppShell>
-      </Router>
-    </AttachmentStorageGate>
+              <ToastContainer />
+            </div>
+          </main>
+        </div>
+      </AppShell>
+    </Router>
   );
 };
 
